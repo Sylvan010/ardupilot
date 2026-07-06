@@ -1,9 +1,22 @@
-# Дефолтные параметры для HAKRC F405 V2 на раме квадрокоптера
-FRAME_CLASS 1
-FRAME_TYPE 0
+# Дефолтные параметры для HAKRC F405 V2 (Без BT/Buzzer, Full Params)
 BRD_ALT_CONFIG 0
 SYSID_THISMAV 1
-# Настройка протокола выходов на ESC под DShot600
+
+# Принудительное включение ARMING_CHECK в дереве параметров
+ARMING_CHECK 1
+
+# Настройки моторов и выходов (DShot600)
 MOT_PWM_TYPE 6
-# Настройка типа датчика питания (Аналоговый)
+FRAME_CLASS 1
+FRAME_TYPE 0
+
+# Настройки адресных светодиодов (WS2812) на 9-м выходе
+NTF_LED_TYPES 256
+SERVO9_FUNCTION 120
+
+# Настройки датчика тока и напряжения
 BATT_MONITOR 4
+BATT_VOLT_PIN 11
+BATT_CURR_PIN 13
+BATT_VOLT_MULT 11.0
+BATT_AMP_PERVLT 142.9
