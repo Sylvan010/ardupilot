@@ -1,6 +1,6 @@
 # hwdef file for processing by chibios_hwdef.py
 # Target: HAKRC F405 V2 (Specific Revision) mapped as SpeedyBee F4 V3
-# INDUSTRIAL RELEASE COMPATIBLE - 100% EXTI & UART HARDWARE CORRECTION
+# INDUSTRIAL PRODUCTION TARGET FOR ARDUPILOT 4.6.3+ - STABLE RELEASE VERSION
 
 MCU STM32F4xx STM32F405xx
 APJ_BOARD_ID AP_HW_SPEEDYBEEF4V3
@@ -11,7 +11,7 @@ FLASH_RESERVE_START_KB 48
 
 define HAL_STORAGE_SIZE 16384
 define STORAGE_FLASH_PAGE 1
-STM32_ST_USE_TIMER 5
+define STM32_ST_USE_TIMER 5
 
 # --- SPI HARDWARE REGISTRY ---
 PA5 SPI1_SCK SPI1
@@ -26,38 +26,37 @@ PC10 SPI3_SCK SPI3
 PC11 SPI3_MISO SPI3
 PB5  SPI3_MOSI SPI3
 
-# Physical Chip Select and EXTI Pins Definition
+# Physical Chip Select Pins Definition (Strictly Isolated, No EXTI Conflict)
 PA4  GYRO1_CS CS
-PB10 GYRO1_EXTI INPUT
 PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
 
 # SERIAL ORDER (SERIAL0 to SERIAL6 Absolute Hardware Indexes)
-SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
+SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
 
-# SERIAL1: USART1 (UART1 -> Fixed ELRS / CRSF Receiver Input Link)
+# SERIAL1: USART1 (UART1 -> Fixed ELRS / CRSF Protocol Lock)
 PB6 USART1_TX USART1
 PB7 USART1_RX USART1
 define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_CRSF
 
-# SERIAL2: USART2 (UART2 -> Free Accessory Port)
+# SERIAL2: USART2 (UART2 -> Free Telemetry Expansion Port)
 PA2 USART2_TX USART2
 PA3 USART2_RX USART2
 PC0 INVERTER_UART2 OUTPUT LOW GPIO(82)
 
-# SERIAL3: USART3 (UART3 -> GPS Module Engine)
+# SERIAL3: USART3 (UART3 -> GPS Module Engine via Full TX3/RX3 Hardware Lines)
 PB10 USART3_TX USART3
 PB11 USART3_RX USART3
 define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_GPS
 
-# SERIAL4: UART4 (MAVLink2 High-Speed Companion Computer Link)
+# SERIAL4: UART4 (MAVLink2 High-Speed Companion Computer / Telemetry Link)
 PA0 UART4_TX UART4
 PA1 UART4_RX UART4
 define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_MAVLink2
 
-# SERIAL5: UART5 (ESC Telemetry Input Bus - Clean Hardware Binding Fix)
+# SERIAL5: UART5 (ESC Telemetry Input Bus)
 PC12 UART5_TX UART5
 PD2  UART5_RX UART5 NODMA
 define DEFAULT_SERIAL5_PROTOCOL SerialProtocol_ESCTelemetry
@@ -73,9 +72,9 @@ I2C_ORDER I2C1
 PB8 I2C1_SCL I2C1
 PB9 I2C1_SDA I2C1
 
-# ADC Subsystem Registry (Clean Single-Layer Pin Mapping Engine)
-PC1 BATT_VOLTAGE_SENS ADC1
-PC3 BATT_CURRENT_SENS ADC1
+# ADC Subsystem Registry (Upstream-Safe ADC1 Mapping for STM32F405)
+PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
+PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
 
 # Global Battery Scale Defaults
 define HAL_BATT_MONITOR_DEFAULT 4
@@ -93,6 +92,9 @@ PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)   # M7
 PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)   # M8
 PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)   # AUX SERVO 1
 
+# Safe DMA Isolation Layout (Excludes secondary channels to prevent F405 DMA Allocation Failure)
+DMA_NOSHARE TIM8_CH3 TIM8_CH4 TIM1_CH1 TIM1_CH2 TIM1_CH3 TIM3_CH3 TIM3_CH4
+
 # Status LEDs (HAKRC Layout)
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
 PC15 LED0 OUTPUT LOW GPIO(90)
@@ -100,26 +102,28 @@ define HAL_GPIO_A_LED_PIN 90
 PC14 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_B_LED_PIN 91
 
-# --- SPI DEVICE REGISTRY (Direct Hardware Pin Binding) ---
+# --- SPI DEVICE REGISTRY (Canonical Direct Hardware Pin Binding via Aliases) ---
 
-# IMU Hard Target (Deterministic Registry Binding via direct pin PA4)
-SPIDEV imu0 SPI1 DEVID1 PA4 MODE3 1*MHZ 8*MHZ
+# IMU Target (Hard Target Driver Def for ICM42688 Core - Fully Supported in 4.6.x)
+SPIDEV imu0 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
 IMU ICM42688 SPI:imu0 ROTATION_YAW_90
 
-# Flash Logger Registry (SPI3 Onboard Memory Partition via direct pin PA15)
-SPIDEV flash SPI3 DEVID1 PA15 MODE3 21*MHZ 21*MHZ
+# Flash Logger Registry (SPI3 Onboard Memory Partition via FLASH1_CS alias)
+SPIDEV flash SPI3 DEVID1 FLASH1_CS MODE3 21*MHZ 21*MHZ
 define HAL_Storage_Type StorageType_Flash
+define HAL_LOGGING_DATAFLASH_ENABLED 1
+define HAL_LOGGING_FILESYSTEM_ENABLED 1
 
-# OSD Registry (SPI2 Core Mapping via direct pin PB12)
-SPIDEV osd SPI2 DEVID1 PB12 MODE0 10*MHZ 10*MHZ
+# OSD Registry (SPI2 Core Mapping via OSD1_CS alias)
+SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
 define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
-# Nav-Core Fixed Barometer
+# Nav-Core Fixed Barometer (Strictly BMP280, No Probing Race Conditions)
 BARO BMP280 I2C:0:0x76
 
-# RC Protocol Driver Hard-Lock Enforcements (Cuts off runtime autodetect loops)
+# RC Protocol Driver Hard-Lock Enforcements
 define AP_RCPROTOCOL_CRSF_ENABLED 1
 define AP_RCPROTOCOL_SBUS_ENABLED 0
 define AP_RCPROTOCOL_PPM_ENABLED 0
@@ -130,9 +134,10 @@ define ALLOW_ARM_NO_COMPASS
 define AP_COMPASS_PROBING_ENABLED 1
 define HAL_I2C_INTERNAL_MASK 0
 define HAL_COMPASS_AUTO_ROT_DEFAULT 2
-define HAL_DEFAULT_INS_FAST_SAMPLE 3
+define HAL_DEFAULT_INS_FAST_SAMPLE 2
 define HAL_FRAME_TYPE_DEFAULT 12
 
 include ../include/minimize_fpv_osd.inc
-define HAL_MINIMIZE_FEATURES 1
 define AP_NAV_EKF2_ENABLED 0
+define AP_NAV_EKF3_ENABLED 1
+define HAL_NAVEKF3_ENABLED 1
