@@ -1,41 +1,43 @@
-name: Build HAKRC F405 V2 Firmware
+name: build_arducopter_speedybee
 
 on:
   push:
-    paths:
-      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
-      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
+    branches:
+      - '*'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ardupilot/ardupilot-dev-chibios:latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      - name: Clean Legacy Conflict Targets
+      - name: Hard Hardware-Valid Verification
         run: |
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
+          echo "Running structural safety verification..."
+          # 1. Проверка синтаксиса прерывания гироскопа (Строго PB10, никаких B10)
+          grep -q "PB10 GYRO1_EXTI" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
+          # 2. Проверка аппаратной привязки шины UART5 (Без опечаток типа USART5)
+          grep -q "PC12 UART5_TX UART5" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
+          # 3. Проверка чистоты файла от нестабильной директивы DMA_NOSHARE
+          if grep -q "DMA_NOSHARE" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat; then echo "Error: Unstable DMA_NOSHARE found!"; exit 1; fi
+          echo "Factory-level validation PASSED."
 
-      - name: Configure Firmware
+      - name: Compile Firmware inside Docker
         run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
-          ./waf configure --board FoxeerF405v2
+          docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-base:latest /bin/bash -c "
+            git config --global --add safe.directory /ardupilot && \
+            ./waf configure --board SpeedyBeeF4v3 && \
+            ./waf copter
+          "
 
-      - name: Build Copter Firmware
-        run: |
-          ./waf copter
-
-      - name: Upload APJ Artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Target Artifacts
+        uses: actions/artifacts@v4
         with:
-          name: HAKRC-F405V2-ArduCopter
+          name: Factory-SpeedyBeeF4v3-Release
           path: |
-            build/FoxeerF405v2/bin/arducopter.apj
-            build/FoxeerF405v2/bin/arducopter_with_bl.hex
+            build/SpeedyBeeF4v3/bin/arducopter.apj
+            build/SpeedyBeeF4v3/bin/arducopter.hex
