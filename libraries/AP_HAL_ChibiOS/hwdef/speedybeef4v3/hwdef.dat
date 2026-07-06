@@ -56,15 +56,15 @@ PA0 UART4_TX UART4
 PA1 UART4_RX UART4
 define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_MAVLink2
 
-# Полностью рабочий UART5 под именем UART_A (без привязки к DMA)
-PC12 UART_A_TX UART_A
-PD2  UART_A_RX UART_A
+# Назначаем физические пины UART5 на виртуальный UART7 (чтобы убрать DMA)
+PC12 UART7_TX UART7
+PD2  UART7_RX UART7
 define DEFAULT_SERIAL5_PROTOCOL SerialProtocol_ESCTelemetry
 define DEFAULT_SERIAL5_BAUD 19200
 
-# Полностью рабочий USART6 под именем UART_B (без привязки к DMA)
-PC6 UART_B_TX UART_B
-PC7 UART_B_RX UART_B
+# Назначаем физические пины USART6 на виртуальный UART8 (чтобы убрать DMA)
+PC6 UART8_TX UART8
+PC7 UART8_RX UART8
 define DEFAULT_SERIAL6_PROTOCOL SerialProtocol_None
 define DEFAULT_SERIAL6_BAUD 57600
 
