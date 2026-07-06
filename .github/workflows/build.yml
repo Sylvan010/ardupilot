@@ -20,7 +20,7 @@ jobs:
         run: |
           echo "Running hardened hwdef validation..."
 
-          # Стабільний покроковий пошук директорії без колізій дублікатів
+          # Стабильный пошаговый поиск директории без коллизий дубликатов
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
           HWDEF_PATH=$HWDEF_DIR/hwdef.dat
 
@@ -29,7 +29,7 @@ jobs:
 
           test -f "$HWDEF_PATH" || exit 1
 
-          # Валідація токенів сумісності під ArduPilot 4.6.3+
+          # Валидация токенов совместимости под ArduPilot 4.6.3+
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
           grep -q "IMU ICM42688" "$HWDEF_PATH" || exit 1
@@ -38,20 +38,20 @@ jobs:
 
       - name: Build ArduCopter
         run: |
-          # Визначення цільової плати на основі знайденої папки
+          # Определение целевой платы на основе найденной папки
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
           BOARD_TARGET=$(basename "$HWDEF_DIR")
 
           echo "Building target board:"
           echo "$BOARD_TARGET"
 
-          # Запуск компіляції всередині профільного ChibiOS контейнера
+          # Запуск компиляции внутри ChibiOS контейнера с полным фиксом прав субмодулей Git
           docker run --rm \
             -v ${{ github.workspace }}:/ardupilot \
             -w /ardupilot \
             ardupilot/ardupilot-dev-chibios:latest \
             /bin/bash -c "
-              git config --global --add safe.directory /ardupilot &&
+              git config --global --add safe.directory '*' &&
               ./waf configure --board $BOARD_TARGET &&
               ./waf copter
             "
