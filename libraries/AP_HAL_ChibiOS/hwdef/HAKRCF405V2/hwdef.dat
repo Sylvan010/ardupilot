@@ -1,5 +1,5 @@
 # hwdef file for processing by chibios_hwdef.py
-# Fully optimized & fixed SPI mapping for HAKRC-F405V2 without Bluetooth/Buzzer
+# Fully optimized & fixed SPI mapping for HAKRC-F405V2 based on FoxeerF405v2
 
 # MCU class and specific type
 MCU STM32F4xx STM32F405xx
@@ -7,7 +7,7 @@ MCU STM32F4xx STM32F405xx
 # board ID. See Tools/AP_Bootloader/board_types.txt
 APJ_BOARD_ID AP_HW_FOXEERF405_V2
 
-# Подключаем файл параметров по умолчанию
+# Подключение файла параметров по умолчанию
 include defaults.parm
 
 # crystal frequency, setup to use external oscillator
@@ -65,7 +65,7 @@ define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_GPS
 PA1 UART4_RX UART4
 PA0 UART4_TX UART4
 
-# UART5 (UART5 -> Полностью свободный стандартный UART)
+# UART5 (UART5 -> Вільний)
 PD2 UART5_RX UART5 NODMA
 PC12 UART5_TX UART5 NODMA
 
@@ -106,9 +106,6 @@ define HAL_GPIO_A_LED_PIN 90
 PC14 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_B_LED_PIN 91
 
-# LED STRIP / WS2812 (Адресная светодиодная лента на 9-м выходе)
-PA2 TIM5_CH3 TIM5 PWM(9) GPIO(58) NODMA 
-
 # Dataflash setup (Remapped to SPI3 according to hardware lines)
 SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 104*MHZ 104*MHZ
 define HAL_LOGGING_DATAFLASH_ENABLED 1
@@ -137,5 +134,5 @@ define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 define HAL_DEFAULT_INS_FAST_SAMPLE 3
 define HAL_FRAME_TYPE_DEFAULT 12
 
-# ВАЖНО: Удален инклюд minimize_fpv_osd.inc для возврата полного списка параметров
+# ПОЛНЫЙ ПАКЕТ ПАРАМЕТРОВ (Включает ARMING_CHECK, вырезана минимизация FPV)
 define AP_NAV_EKF2_ENABLED 0
