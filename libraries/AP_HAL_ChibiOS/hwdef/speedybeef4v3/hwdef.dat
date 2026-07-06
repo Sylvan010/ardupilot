@@ -1,4 +1,7 @@
-# ==================== HAKRCF405V2 (SpeedyBee slot override) ====================
+# =========================================================
+# HAKRCF405V2 - ArduPilot Custom Board (SpeedyBee base slot)
+# STM32F405
+# =========================================================
 
 MCU STM32F4xx STM32F405xx
 
@@ -13,30 +16,37 @@ define HAL_STORAGE_SIZE 16384
 define STORAGE_FLASH_PAGE 1
 STM32_ST_USE_TIMER 5
 
-# ==================== BOOT / INCLUDES ====================
+
+# ==================== INCLUDES ====================
 include ../include/minimize_fpv_osd.inc
 include ../include/no_bootloader_DFU.inc
 
-# ==================== SPI ====================
 
+# ==================== SPI BUS ====================
+
+# IMU (SPI1)
 PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
 
+# OSD (SPI2)
 PB13 SPI2_SCK SPI2
 PB14 SPI2_MISO SPI2
 PB15 SPI2_MOSI SPI2
 
+# FLASH (SPI3)
 PC10 SPI3_SCK SPI3
 PC11 SPI3_MISO SPI3
 PB5  SPI3_MOSI SPI3
 
-# ==================== CS ====================
+
+# ==================== CHIP SELECT ====================
 
 PA4  GYRO1_CS CS
 PC4  GYRO1_EXTI INPUT
 PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
+
 
 # ==================== SERIAL ====================
 
@@ -61,11 +71,13 @@ PA0 UART4_TX UART4
 PD2 UART5_RX UART5
 PC12 UART5_TX UART5
 
+
 # ==================== I2C ====================
 
 I2C_ORDER I2C1
 PB8 I2C1_SCL I2C1
 PB9 I2C1_SDA I2C1
+
 
 # ==================== ANALOG ====================
 
@@ -78,21 +90,22 @@ define HAL_BATT_VOLT_SCALE 11.0
 define HAL_BATT_CURR_SCALE 100.0
 define HAL_BATT_MONITOR_DEFAULT 4
 
+
 # ==================== MOTORS ====================
 
-PC8 TIM8_CH3 TIM8 PWM(1)
-PC9 TIM8_CH4 TIM8 PWM(2)
+PC8  TIM8_CH3 TIM8 PWM(1)
+PC9  TIM8_CH4 TIM8 PWM(2)
 
-PA8 TIM1_CH1 TIM1 PWM(3)
-PA9 TIM1_CH2 TIM1 PWM(4)
+PA8  TIM1_CH1 TIM1 PWM(3)
+PA9  TIM1_CH2 TIM1 PWM(4)
 
-PB0 TIM3_CH3 TIM3 PWM(5)
-PB1 TIM3_CH4 TIM3 PWM(6)
+PB0  TIM3_CH3 TIM3 PWM(5)
+PB1  TIM3_CH4 TIM3 PWM(6)
 
 PA10 TIM1_CH3 TIM1 PWM(7)
-PB4 TIM3_CH1 TIM3 PWM(8)
+PB4  TIM3_CH1 TIM3 PWM(8)
+PB3  TIM2_CH2 TIM2 PWM(9)
 
-PB3 TIM2_CH2 TIM2 PWM(9)
 
 # ==================== PERIPHERALS ====================
 
@@ -103,7 +116,8 @@ PC2 PINIO2 OUTPUT GPIO(82)
 define HAL_BUZZER_PIN 80
 define HAL_BUZZER_INVERTED 1
 
-# ==================== LED ====================
+
+# ==================== LEDs ====================
 
 PC15 LED0 OUTPUT LOW GPIO(90)
 PC14 LED1 OUTPUT LOW GPIO(91)
@@ -111,7 +125,6 @@ PC14 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_A_LED_PIN 90
 define HAL_GPIO_B_LED_PIN 91
 
-define AP_NOTIFY_GPIO_LED_2_ENABLED 1
 
 # ==================== SPI DEVICES ====================
 
@@ -124,12 +137,14 @@ define HAL_OSD_TYPE_DEFAULT 1
 
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
+
 # ==================== SENSORS ====================
 
 BARO DPS310 I2C:0:0x76
 
 SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 8*MHZ 8*MHZ
 IMU Invensensev3 SPI:imu1 ROTATION_PITCH_180_YAW_90
+
 
 # ==================== SAFETY ====================
 
