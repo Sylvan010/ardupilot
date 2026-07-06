@@ -68,8 +68,8 @@ PC7 USART6_RX USART6
 define DEFAULT_SERIAL6_PROTOCOL SerialProtocol_None
 define DEFAULT_SERIAL6_BAUD 57600
 
-# Принудительное назначение DMA каналов без конфликтов
-DMA_STREAM USART5_TX DMA1_STREAM7_CH4
+# Фиксированное переназначение DMA для обхода ошибок автопланировщика
+DMA_STREAM USART5_TX DMA1_STREAM6_CH4
 DMA_STREAM USART5_RX DMA1_STREAM0_CH4
 
 DMA_STREAM USART6_TX DMA2_STREAM6_CH5
