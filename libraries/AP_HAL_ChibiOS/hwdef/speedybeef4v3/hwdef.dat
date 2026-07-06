@@ -56,21 +56,17 @@ PA0 UART4_TX UART4
 PA1 UART4_RX UART4
 define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_MAVLink2
 
-# Полностью изолированный рабочий UART5 без DMA для HAKRC V2
-PC12 UART5_TX UART5 NODMA
-PD2  UART5_RX UART5 NODMA
+# Полностью рабочий UART5 под именем UART_A (без привязки к DMA)
+PC12 UART_A_TX UART_A
+PD2  UART_A_RX UART_A
 define DEFAULT_SERIAL5_PROTOCOL SerialProtocol_ESCTelemetry
 define DEFAULT_SERIAL5_BAUD 19200
 
-# Полноценный рабочий USART6 с поддержкой DMA
-PC6 USART6_TX USART6
-PC7 USART6_RX USART6
+# Полностью рабочий USART6 под именем UART_B (без привязки к DMA)
+PC6 UART_B_TX UART_B
+PC7 UART_B_RX UART_B
 define DEFAULT_SERIAL6_PROTOCOL SerialProtocol_None
 define DEFAULT_SERIAL6_BAUD 57600
-
-# Фиксируем DMA только для шестого порта
-DMA_STREAM USART6_TX DMA2_STREAM6_CH5
-DMA_STREAM USART6_RX DMA2_STREAM2_CH5
 
 # I2C Subsystem Registry (Compass & Airspeed)
 I2C_ORDER I2C1
