@@ -1,44 +1,12 @@
-name: Build HAKRC F405 V2 Firmware
+- name: Inject HAKRC hwdef
+  run: |
+    rm -rf libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF405V3
+    mkdir -p libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF405V3
 
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    if [ ! -d hwdef/HAKRCF405V2 ]; then
+      echo "ERROR: hwdef/HAKRCF405V2 folder missing!"
+      ls -R
+      exit 1
+    fi
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Install deps
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3 python3-pip gcc-arm-none-eabi libnewlib-arm-none-eabi
-
-    - name: Clean
-      run: ./waf distclean
-
-    - name: Verify hwdef exists
-      run: |
-        ls -R libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2
-
-    - name: Configure
-      run: |
-        # Базируемся на стабильном SpeedyBeeF405V3 из ядра, но скармливаем ему ваш hwdef.dat
-        ./waf configure --board SpeedyBeeF405V3 --hwdef libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
-
-    - name: Build Copter
-      run: ./waf copter
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: HAKRCF405V2-Firmware
-        path: |
-          build/SpeedyBeeF405V3/bin/*.apj
-          build/SpeedyBeeF405V3/bin/*.bin
+    cp -r hwdef/HAKRCF405V2/* libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF405V3/
