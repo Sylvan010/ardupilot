@@ -1,4 +1,4 @@
-name: Build HAKRCF405V2 via SpeedyBee
+name: Build HAKRC F405 V2 Firmware
 
 on:
   push:
@@ -18,30 +18,27 @@ jobs:
     - name: Install deps
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          python3 python3-pip \
-          gcc-arm-none-eabi libnewlib-arm-none-eabi
+        sudo apt-get install -y python3 python3-pip gcc-arm-none-eabi libnewlib-arm-none-eabi
 
     - name: Clean
       run: ./waf distclean
 
-    # =========================
-    # 🔥 ПІДМІНА hwdef
-    # =========================
-    - name: Inject HAKRC into SpeedyBee slot
+    - name: Verify hwdef exists
       run: |
-        rm -rf libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF405V3
-        mkdir -p libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF405V3
-        cp -r hwdef/HAKRCF405V2/* libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF405V3/
+        ls -R libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2
 
     - name: Configure
-      run: ./waf configure --board SpeedyBeeF405V3
+      run: |
+        # Базируемся на стабильном SpeedyBeeF405V3 из ядра, но скармливаем ему ваш hwdef.dat
+        ./waf configure --board SpeedyBeeF405V3 --hwdef libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
     - name: Build Copter
       run: ./waf copter
 
-    - name: Upload firmware
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: HAKRCF405V2
-        path: build/SpeedyBeeF405V3/bin/*
+        name: HAKRCF405V2-Firmware
+        path: |
+          build/SpeedyBeeF405V3/bin/*.apj
+          build/SpeedyBeeF405V3/bin/*.bin
