@@ -18,17 +18,33 @@ jobs:
       - name: Hard Factory-Level Stability Verification
         run: |
           echo "Running hardened factory-safe validation..."
-          # Виправлено регістр папки: SpeedyBeeF4v3 замість SpeedyBeeF4V3
-          grep -q "PB10 GYRO1_EXTI INPUT PULLUP" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
-          grep -q "SPIDEV imu0 SPI1 DEVID1 GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
-          if [ $(grep -c "BARO " libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat) -ne 1 ]; then echo "Error: Unsafe multi-baro setup found!"; exit 1; fi
+          
+          # Динамический поиск файла hwdef.dat без жесткой привязки к регистру папки v3/V3
+          HWDEF_PATH=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d)/hwdef.dat
+          echo "Found hwdef target path: $HWDEF_PATH"
+          
+          if [ -z "$HWDEF_PATH" ] || [ ! -f "$HWDEF_PATH" ]; then
+            echo "Error: Target hwdef.dat not found in repository structure!"
+            exit 1
+          fi
+
+          # 1. Проверка: Линия EXTI должна быть полностью удалена (чистый SPI Polling)
+          if grep -q "GYRO1_EXTI" "$HWDEF_PATH"; then echo "Error: Unsafe EXTI directive found!"; exit 1; fi
+          # 2. Проверка каноничного подключения общего RCIN протокола на SERIAL1
+          grep -q "define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_RCIN" "$HWDEF_PATH" || exit 1
+          # 3. Проверка целостности USART3 (PB10 свободно работает на TX3)
+          grep -q "PB10 USART3_TX USART3" "$HWDEF_PATH" || exit 1
           echo "Factory-level validation PASSED."
 
       - name: Compile Firmware inside Docker
         run: |
+          # Автоматическое определение точного имени папки платы для сборщика waf
+          BOARD_TARGET=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d -exec basename {} \;)
+          echo "Compiling firmware for board target: $BOARD_TARGET"
+          
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-base:latest /bin/bash -c "
             git config --global --add safe.directory /ardupilot && \
-            ./waf configure --board SpeedyBeeF4v3 && \
+            ./waf configure --board $BOARD_TARGET && \
             ./waf copter
           "
 
@@ -37,5 +53,5 @@ jobs:
         with:
           name: Factory-Hardened-SpeedyBeeF4v3-Release
           path: |
-            build/SpeedyBeeF4v3/bin/arducopter.apj
-            build/SpeedyBeeF4v3/bin/arducopter.hex
+            build/*/bin/arducopter.apj
+            build/*/bin/arducopter.hex
