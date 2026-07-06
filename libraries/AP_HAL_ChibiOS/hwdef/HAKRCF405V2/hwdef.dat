@@ -7,6 +7,9 @@ MCU STM32F4xx STM32F405xx
 # board ID. See Tools/AP_Bootloader/board_types.txt
 APJ_BOARD_ID AP_HW_FOXEERF405_V2
 
+# Подключение файла параметров по умолчанию
+include defaults.parm
+
 # crystal frequency, setup to use external oscillator
 OSCILLATOR_HZ 8000000
 
@@ -96,10 +99,12 @@ PB4  TIM3_CH1 TIM3 PWM(6) GPIO(55)   # M6
 PB0  TIM8_CH2N TIM8 PWM(7) GPIO(56)  # M7
 PB1  TIM8_CH3N TIM8 PWM(8) GPIO(57)  # M8
 
-# LEDs (HAKRC PC15 / PC14)
+# LEDs Hardware Binding (Автоматическая подсистема уведомлений ArduPilot)
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
+
 PC15 LED0 OUTPUT LOW GPIO(90)
 define HAL_GPIO_A_LED_PIN 90
+
 PC14 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_B_LED_PIN 91
 
@@ -131,6 +136,6 @@ define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 define HAL_DEFAULT_INS_FAST_SAMPLE 3
 define HAL_FRAME_TYPE_DEFAULT 12
 
-include ../include/minimize_fpv_osd.inc
-define HAL_MINIMIZE_FEATURES 1
+# ПОЛНЫЙ ПАКЕТ ПАРАМЕТРОВ И НАВИГАЦИИ (Без минимизации памяти)
 define AP_NAV_EKF2_ENABLED 0
+define AP_NAV_EKF3_ENABLED 1
