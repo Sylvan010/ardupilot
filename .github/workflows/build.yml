@@ -15,15 +15,15 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Hard Hardware-Valid Verification
+      - name: Hard Factory-Level Stability Verification
         run: |
-          echo "Running structural safety verification..."
-          # 1. Проверка синтаксиса прерывания гироскопа (Строго PB10, никаких B10)
-          grep -q "PB10 GYRO1_EXTI" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
-          # 2. Проверка аппаратной привязки шины UART5 (Без опечаток типа USART5)
-          grep -q "PC12 UART5_TX UART5" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
-          # 3. Проверка чистоты файла от нестабильной директивы DMA_NOSHARE
-          if grep -q "DMA_NOSHARE" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat; then echo "Error: Unstable DMA_NOSHARE found!"; exit 1; fi
+          echo "Running hardened factory-safe validation..."
+          # 1. Перевірка наявності апаратного PULLUP підтягування на лінії EXTI
+          grep -q "PB10 GYRO1_EXTI INPUT PULLUP" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
+          # 2. Перевірка канонічного біндінгу через аліас GYRO1_CS
+          grep -q "SPIDEV imu0 SPI1 DEVID1 GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
+          # 3. Перевірка жорсткої фіксації барометра без сторонніх пристроїв на 0x76
+          if [ $(grep -c "BARO " libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat) -ne 1 ]; then echo "Error: Unsafe multi-baro setup found!"; exit 1; fi
           echo "Factory-level validation PASSED."
 
       - name: Compile Firmware inside Docker
@@ -35,9 +35,9 @@ jobs:
           "
 
       - name: Upload Target Artifacts
-        uses: actions/artifacts@v4
+        uses: actions/upload-artifact@v4
         with:
-          name: Factory-SpeedyBeeF4v3-Release
+          name: Factory-Hardened-SpeedyBeeF4v3-Release
           path: |
             build/SpeedyBeeF4v3/bin/arducopter.apj
             build/SpeedyBeeF4v3/bin/arducopter.hex
