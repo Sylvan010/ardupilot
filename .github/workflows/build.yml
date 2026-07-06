@@ -1,4 +1,4 @@
-name: Build HAKRC F405 V2 Firmware
+name: Build HAKRCF405V2 Firmware
 
 on:
   push:
@@ -18,7 +18,9 @@ jobs:
     - name: Install deps
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3 python3-pip gcc-arm-none-eabi libnewlib-arm-none-eabi
+        sudo apt-get install -y \
+          python3 python3-pip \
+          gcc-arm-none-eabi libnewlib-arm-none-eabi
 
     - name: Clean
       run: ./waf distclean
@@ -29,8 +31,7 @@ jobs:
 
     - name: Configure
       run: |
-        # Базируемся на стабильном SpeedyBeeF405V3 из ядра, но скармливаем ему ваш hwdef.dat
-        ./waf configure --board SpeedyBeeF405V3 --hwdef libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
+        ./waf configure --board HAKRCF405V2
 
     - name: Build Copter
       run: ./waf copter
@@ -40,5 +41,5 @@ jobs:
       with:
         name: HAKRCF405V2-Firmware
         path: |
-          build/SpeedyBeeF405V3/bin/*.apj
-          build/SpeedyBeeF405V3/bin/*.bin
+          build/HAKRCF405V2/bin/*.apj
+          build/HAKRCF405V2/bin/*.bin
