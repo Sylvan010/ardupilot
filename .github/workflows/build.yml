@@ -18,11 +18,9 @@ jobs:
       - name: Hard Factory-Level Stability Verification
         run: |
           echo "Running hardened factory-safe validation..."
-          # 1. Перевірка наявності апаратного PULLUP підтягування на лінії EXTI
+          # Виправлено регістр папки: SpeedyBeeF4v3 замість SpeedyBeeF4V3
           grep -q "PB10 GYRO1_EXTI INPUT PULLUP" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
-          # 2. Перевірка канонічного біндінгу через аліас GYRO1_CS
           grep -q "SPIDEV imu0 SPI1 DEVID1 GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat || exit 1
-          # 3. Перевірка жорсткої фіксації барометра без сторонніх пристроїв на 0x76
           if [ $(grep -c "BARO " libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF4v3/hwdef.dat) -ne 1 ]; then echo "Error: Unsafe multi-baro setup found!"; exit 1; fi
           echo "Factory-level validation PASSED."
 
