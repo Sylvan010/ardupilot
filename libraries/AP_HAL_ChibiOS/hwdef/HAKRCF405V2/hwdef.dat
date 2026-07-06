@@ -1,14 +1,11 @@
 # hwdef file for processing by chibios_hwdef.py
-# Production-grade & clean SPI mapping for HAKRC-F405V2 based on FoxeerF405v2
+# Fully optimized & fixed SPI mapping for HAKRC-F405V2 based on FoxeerF405v2
 
 # MCU class and specific type
 MCU STM32F4xx STM32F405xx
 
 # board ID. See Tools/AP_Bootloader/board_types.txt
 APJ_BOARD_ID AP_HW_FOXEERF405_V2
-
-# Подключение файла параметров по умолчанию
-include defaults.parm
 
 # crystal frequency, setup to use external oscillator
 OSCILLATOR_HZ 8000000
@@ -18,7 +15,8 @@ FLASH_SIZE_KB 1024
 # bootloader takes first sector
 FLASH_RESERVE_START_KB 48
 
-# Таймер операционной системы ChibiOS
+define HAL_STORAGE_SIZE 16384
+define STORAGE_FLASH_PAGE 1
 STM32_ST_USE_TIMER 5
 
 # --- SPI HW ПІНИ (HAKRC Layout) ---
@@ -98,12 +96,10 @@ PB4  TIM3_CH1 TIM3 PWM(6) GPIO(55)   # M6
 PB0  TIM8_CH2N TIM8 PWM(7) GPIO(56)  # M7
 PB1  TIM8_CH3N TIM8 PWM(8) GPIO(57)  # M8
 
-# LEDs Hardware Binding (Автоматическая подсистема уведомлений ArduPilot)
+# LEDs (HAKRC PC15 / PC14)
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
-
 PC15 LED0 OUTPUT LOW GPIO(90)
 define HAL_GPIO_A_LED_PIN 90
-
 PC14 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_B_LED_PIN 91
 
@@ -118,8 +114,9 @@ define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
-# Barometer setup (Оставлен только DPS310/SPL06, убран конфликтующий BMP280)
+# Barometer setup
 BARO DPS310 I2C:0:0x76
+BARO BMP280 I2C:0:0x76
 BARO SPL06  I2C:0:0x76
 
 # IMU setup
@@ -133,3 +130,7 @@ define HAL_I2C_INTERNAL_MASK 0
 define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 define HAL_DEFAULT_INS_FAST_SAMPLE 3
 define HAL_FRAME_TYPE_DEFAULT 12
+
+include ../include/minimize_fpv_osd.inc
+define HAL_MINIMIZE_FEATURES 1
+define AP_NAV_EKF2_ENABLED 0
