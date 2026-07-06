@@ -1,48 +1,41 @@
-name: Build Custom ArduPilot for HAKRC F405 V2
+name: Build HAKRC F405 V2 Firmware
 
 on:
   push:
-    branches: [ "main" ]
+    paths:
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
   workflow_dispatch:
 
 jobs:
-  build-firmware:
+  build:
     runs-on: ubuntu-latest
-    container: ardupilot/ardupilot-dev-chibios:v3
+    container: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      - name: Checkout user repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          path: user-config
-
-      - name: Checkout ArduPilot source
-        uses: actions/checkout@v4
-        with:
-          repository: ArduPilot/ardupilot
-          ref: Copter-stable
           submodules: 'recursive'
-          path: ardupilot
 
-      - name: Replace target configuration and purge SpeedyBee dependencies
+      - name: Clean Legacy Conflict Targets
         run: |
-          TARGET_DIR="ardupilot/libraries/AP_HAL_ChibiOS/hwdef/speedybeef4v3"
-          rm -rf $TARGET_DIR/*
-          cp user-config/hwdef.dat $TARGET_DIR/hwdef.dat
-          cp user-config/defaults.parm $TARGET_DIR/defaults.parm
-          echo "Конфигурация SpeedyBee очищена. Применен hwdef HAKRC F405 V2 с полной сеткой параметров."
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
 
-      - name: Configure and Build ArduCopter
+      - name: Configure Firmware
         run: |
-          cd ardupilot
-          ./waf configure --board speedybeef4v3
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          ./waf configure --board FoxeerF405v2
+
+      - name: Build Copter Firmware
+        run: |
           ./waf copter
 
-      - name: Upload Build Artifacts
+      - name: Upload APJ Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HAKRC-F405V2-FullParams-Firmware
+          name: HAKRC-F405V2-ArduCopter
           path: |
-            ardupilot/build/speedybeef4v3/bin/arducopter.apj
-            ardupilot/build/speedybeef4v3/bin/arducopter.hex
-          if-no-files-found: error
+            build/FoxeerF405v2/bin/arducopter.apj
+            build/FoxeerF405v2/bin/arducopter_with_bl.hex
