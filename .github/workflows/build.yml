@@ -1,44 +1,64 @@
-name: Build HAKRC F405 V2 Firmware
+name: Build Custom ArduPilot for HAKRC F405 V2
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: [ "main" ]
+  workflow_dispatch: # Позволяет запускать сборку вручную одной кнопкой в GitHub
 
 jobs:
-  build:
+  build-firmware:
     runs-on: ubuntu-latest
+    # Используем официальный контейнер ArduPilot со всеми компиляторами (ARM GCC)
+    container: ardupilot/ardupilot-dev-chibios:v3
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      # Шаг 1: Скачиваем ваш репозиторий (где лежат кастомные hwdef.dat и defaults.parm)
+      - name: Checkout user repository
+        uses: actions/checkout@v4
+        with:
+          path: user-config
 
-    - name: Install deps
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3 python3-pip gcc-arm-none-eabi libnewlib-arm-none-eabi
+      # Шаг 2: Скачиваем стабильный исходный код ArduCopter
+      - name: Checkout ArduPilot source
+        uses: actions/checkout@v4
+        with:
+          repository: ArduPilot/ardupilot
+          ref: Copter-stable # Скачает текущую стабильную ветку (например, 4.5.x / 4.6.x)
+          submodules: 'recursive'
+          path: ardupilot
 
-    - name: Clean
-      run: ./waf distclean
+      # Шаг 3: Подменяем файлы внутри контейнера SpeedyBeeF405V3 без правки boards.py
+      - name: Replace hwdef and defaults for SpeedyBeeF405V3 target
+        run: |
+          TARGET_DIR="ardupilot/libraries/AP_HAL_ChibiOS/hwdef/speedybeef4v3"
+          
+          # Удаляем старые конфигурации, чтобы исключить конфликты
+          rm -f $TARGET_DIR/hwdef.dat
+          rm -f $TARGET_DIR/defaults.parm
+          
+          # Копируем ваши файлы из корня репозитория в папку тарджета
+          cp user-config/hwdef.dat $TARGET_DIR/hwdef.dat
+          cp user-config/defaults.parm $TARGET_DIR/defaults.parm
+          
+          echo "Файлы конфигурации HAKRC F405 V2 успешно интегрированы."
 
-    - name: Verify hwdef exists
-      run: |
-        ls -R libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2
+      # Шаг 4: Конфигурация и сборка через инструмент Waf
+      - name: Configure and Build ArduCopter
+        run: |
+          cd ardupilot
+          
+          # Настраиваем сборщик под чип и архитектуру платы
+          ./waf configure --board speedybeef4v3
+          
+          # Запускаем сборку бинарника для мультикоптера
+          ./waf copter
 
-    - name: Configure
-      run: |
-        # Собираем строго на базе SpeedyBeeF405V3, на лету переопределяя маппинг пинов вашим hwdef.dat
-        ./waf configure --board SpeedyBeeF405V3 --hwdef libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat --defaults libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/defaults.parm
-
-    - name: Build Copter
-      run: ./waf copter
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: HAKRCF405V2-Firmware
-        path: |
-          build/SpeedyBeeF405V3/bin/*.apj
-          build/SpeedyBeeF405V3/bin/*.bin
+      # Шаг 5: Выгрузка готовой прошивки в артефакты GitHub Actions
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAKRC-F405V2-ArduCopter-Firmware
+          path: |
+            ardupilot/build/speedybeef4v3/bin/arducopter.apj
+            ardupilot/build/speedybeef4v3/bin/arducopter.hex
+          if-no-files-found: error
