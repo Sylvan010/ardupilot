@@ -1,12 +1,9 @@
-ARMING_CHECK 1
-BRD_SAFETYENABLE 1
-
-SERIAL0_PROTOCOL 2
-SERIAL1_PROTOCOL 23
-SERIAL3_PROTOCOL 5
-
-GPS_TYPE 1
+# Дефолтные параметры для HAKRC F405 V2 на раме квадрокоптера
+FRAME_CLASS 1
+FRAME_TYPE 0
+BRD_ALT_CONFIG 0
+SYSID_THISMAV 1
+# Настройка протокола выходов на ESC под DShot600
+MOT_PWM_TYPE 6
+# Настройка типа датчика питания (Аналоговый)
 BATT_MONITOR 4
-
-COMPASS_ENABLE 1
-INS_ENABLE_MASK 1
