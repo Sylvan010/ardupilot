@@ -1,17 +1,72 @@
-# Arming & safety
+#################################################
+# HAKRC F405 V2 - DEFAULT PARAMETERS
+#################################################
+
+# -------------------------
+# SAFETY / ARMING
+# -------------------------
 ARMING_CHECK 1
-BRD_SAFETYENABLE 0
 FS_GCS_ENABLE 1
 FS_THR_ENABLE 1
 FS_BATT_ENABLE 1
+BRD_SAFETYENABLE 0
 
-# GPS / EKF
-GPS_TYPE 1
+# -------------------------
+# SYSTEM ID (DRONE NUMBER)
+# -------------------------
+SYSID_THISMAV 1
+
+OSD1_CUSTOM1 "HAKRC F405"
+OSD1_CUSTOM2 "DRONE 01"
+
+# -------------------------
+# EKF / NAVIGATION
+# -------------------------
 AHRS_EKF_TYPE 3
+GPS_TYPE 1
 
-# RC
+# -------------------------
+# RC (ELRS / CRSF)
+# -------------------------
 RC_PROTOCOLS 1
+SERIAL1_PROTOCOL 23
+SERIAL1_BAUD 420
 
-# Logging
+# -------------------------
+# GPS
+# -------------------------
+SERIAL3_PROTOCOL 5
+SERIAL3_BAUD 115
+
+# -------------------------
+# LOGGING
+# -------------------------
 LOG_BACKEND_TYPE 1
 LOG_DISARMED 1
+
+# -------------------------
+# OSD
+# -------------------------
+OSD_TYPE 1
+OSD_ENABLED 1
+
+# -------------------------
+# BATTERY MONITOR
+# -------------------------
+BATT_MONITOR 4
+BATT_VOLT_PIN 11
+BATT_CURR_PIN 13
+BATT_VOLT_MULT 11.0
+BATT_CURR_SCALE 142.9
+
+# -------------------------
+# FAILSAFE
+# -------------------------
+FS_THR_VALUE 985
+FS_CRASH_CHECK 1
+
+# -------------------------
+# OPTIONAL FPV BEHAVIOR
+# -------------------------
+DISARM_DELAY 10
+ARMING_RUDDER 2
