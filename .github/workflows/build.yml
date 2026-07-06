@@ -3,61 +3,45 @@ name: Build Custom ArduPilot for HAKRC F405 V2
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Позволяет запускать сборку вручную одной кнопкой в GitHub
+  workflow_dispatch:
 
 jobs:
   build-firmware:
     runs-on: ubuntu-latest
-    # Используем официальный контейнер ArduPilot со всеми компиляторами (ARM GCC)
     container: ardupilot/ardupilot-dev-chibios:v3
 
     steps:
-      # Шаг 1: Скачиваем ваш репозиторий (где лежат кастомные hwdef.dat и defaults.parm)
       - name: Checkout user repository
         uses: actions/checkout@v4
         with:
           path: user-config
 
-      # Шаг 2: Скачиваем стабильный исходный код ArduCopter
       - name: Checkout ArduPilot source
         uses: actions/checkout@v4
         with:
           repository: ArduPilot/ardupilot
-          ref: Copter-stable # Скачает текущую стабильную ветку (например, 4.5.x / 4.6.x)
+          ref: Copter-stable
           submodules: 'recursive'
           path: ardupilot
 
-      # Шаг 3: Подменяем файлы внутри контейнера SpeedyBeeF405V3 без правки boards.py
-      - name: Replace hwdef and defaults for SpeedyBeeF405V3 target
+      - name: Replace target configuration and purge SpeedyBee dependencies
         run: |
           TARGET_DIR="ardupilot/libraries/AP_HAL_ChibiOS/hwdef/speedybeef4v3"
-          
-          # Удаляем старые конфигурации, чтобы исключить конфликты
-          rm -f $TARGET_DIR/hwdef.dat
-          rm -f $TARGET_DIR/defaults.parm
-          
-          # Копируем ваши файлы из корня репозитория в папку тарджета
+          rm -rf $TARGET_DIR/*
           cp user-config/hwdef.dat $TARGET_DIR/hwdef.dat
           cp user-config/defaults.parm $TARGET_DIR/defaults.parm
-          
-          echo "Файлы конфигурации HAKRC F405 V2 успешно интегрированы."
+          echo "Конфигурация SpeedyBee очищена. Применен hwdef HAKRC F405 V2 с полной сеткой параметров."
 
-      # Шаг 4: Конфигурация и сборка через инструмент Waf
       - name: Configure and Build ArduCopter
         run: |
           cd ardupilot
-          
-          # Настраиваем сборщик под чип и архитектуру платы
           ./waf configure --board speedybeef4v3
-          
-          # Запускаем сборку бинарника для мультикоптера
           ./waf copter
 
-      # Шаг 5: Выгрузка готовой прошивки в артефакты GitHub Actions
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HAKRC-F405V2-ArduCopter-Firmware
+          name: HAKRC-F405V2-FullParams-Firmware
           path: |
             ardupilot/build/speedybeef4v3/bin/arducopter.apj
             ardupilot/build/speedybeef4v3/bin/arducopter.hex
