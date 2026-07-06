@@ -15,11 +15,11 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Hard Factory-Level Stability Verification
+      - name: Hard Factory-Level 4.6.3 Verification
         run: |
           echo "Running hardened factory-safe validation..."
           
-          # Динамический поиск файла hwdef.dat без жесткой привязки к регистру папки v3/V3
+          # Динамический поиск файла hwdef.dat независимо от регистра папки (v3 или V3)
           HWDEF_PATH=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d)/hwdef.dat
           echo "Found hwdef target path: $HWDEF_PATH"
           
@@ -28,15 +28,15 @@ jobs:
             exit 1
           fi
 
-          # 1. Проверка: Линия EXTI должна быть полностью удалена (чистый SPI Polling)
-          if grep -q "GYRO1_EXTI" "$HWDEF_PATH"; then echo "Error: Unsafe EXTI directive found!"; exit 1; fi
-          # 2. Проверка каноничного подключения общего RCIN протокола на SERIAL1
-          grep -q "define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_RCIN" "$HWDEF_PATH" || exit 1
-          # 3. Проверка целостности USART3 (PB10 свободно работает на TX3)
-          grep -q "PB10 USART3_TX USART3" "$HWDEF_PATH" || exit 1
+          # 1. Проверка: Наличие системного токена фиксации навигации HAL_NAVEKF3
+          grep -q "define HAL_NAVEKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
+          # 2. Проверка синтаксиса системного таймера (наличие макроса define)
+          grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
+          # 3. Проверка: Четкий современный драйвер ICM42688
+          grep -q "IMU ICM42688" "$HWDEF_PATH" || exit 1
           echo "Factory-level validation PASSED."
 
-      - name: Compile Firmware inside Docker
+      - name: Compile Firmware inside Docker (ArduPilot 4.6.3 Branch Environment)
         run: |
           # Автоматическое определение точного имени папки платы для сборщика waf
           BOARD_TARGET=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d -exec basename {} \;)
@@ -51,7 +51,7 @@ jobs:
       - name: Upload Target Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Factory-Hardened-SpeedyBeeF4v3-Release
+          name: Factory-Hardened-SpeedyBeeF4v3-Copter4.6.3-Release
           path: |
             build/*/bin/arducopter.apj
             build/*/bin/arducopter.hex
