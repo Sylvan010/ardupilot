@@ -1,4 +1,4 @@
-name: Build HAKRC via SpeedyBee Alias
+name: Build HAKRCF405V2 via SpeedyBee
 
 on:
   push:
@@ -25,9 +25,9 @@ jobs:
     - name: Clean
       run: ./waf distclean
 
-    # ==============================
-    # 🔥 MAGIC: подмена hwdef
-    # ==============================
+    # =========================
+    # 🔥 ПІДМІНА hwdef
+    # =========================
     - name: Inject HAKRC into SpeedyBee slot
       run: |
         rm -rf libraries/AP_HAL_ChibiOS/hwdef/SpeedyBeeF405V3
@@ -40,7 +40,7 @@ jobs:
     - name: Build Copter
       run: ./waf copter
 
-    - name: Upload
+    - name: Upload firmware
       uses: actions/upload-artifact@v4
       with:
         name: HAKRCF405V2
