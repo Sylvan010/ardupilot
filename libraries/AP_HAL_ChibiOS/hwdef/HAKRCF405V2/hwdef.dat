@@ -7,9 +7,6 @@ MCU STM32F4xx STM32F405xx
 # board ID. See Tools/AP_Bootloader/board_types.txt
 APJ_BOARD_ID AP_HW_FOXEERF405_V2
 
-# Подключение файла параметров по умолчанию
-include defaults.parm
-
 # crystal frequency, setup to use external oscillator
 OSCILLATOR_HZ 8000000
 
@@ -134,5 +131,6 @@ define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 define HAL_DEFAULT_INS_FAST_SAMPLE 3
 define HAL_FRAME_TYPE_DEFAULT 12
 
-# ПОЛНЫЙ ПАКЕТ ПАРАМЕТРОВ (Включает ARMING_CHECK, вырезана минимизация FPV)
+include ../include/minimize_fpv_osd.inc
+define HAL_MINIMIZE_FEATURES 1
 define AP_NAV_EKF2_ENABLED 0
