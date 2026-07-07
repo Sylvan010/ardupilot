@@ -31,8 +31,7 @@ jobs:
       - name: Verify hwdef real source
         run: |
           echo "===== HWDEF REAL SOURCE CHECK ====="
-          grep -n "PC4" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
-          grep -n "GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep -nE "PC4.*(GYRO_INT|IMU_INT)" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
           if grep -n "GPIO(70)" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat; then
             echo "ERROR: GPIO(70) still exists in source file!"
             exit 1
@@ -52,28 +51,38 @@ jobs:
           echo "===== LED MAP CHECK ====="
           grep -Rni "HAL_GPIO_A_LED_PIN" build/MatekF405-TE || true
           grep -Rni "HAL_GPIO_B_LED_PIN" build/MatekF405-TE || true
+          grep -Rni "HAL_GPIO_C_LED_PIN" build/MatekF405-TE || true
           grep -Rni "PC15" build/MatekF405-TE || true
           grep -Rni "PC14" build/MatekF405-TE || true
+
+      - name: Verify LED count
+        run: |
+          echo "===== NOTIFY LED COUNT ====="
+          grep -Rni "HAL_NOTIFY_NUM_LEDS" build/MatekF405-TE || true
+          if ! grep -R "#define HAL_NOTIFY_NUM_LEDS 2" build/MatekF405-TE; then
+              echo "ERROR: HAL_NOTIFY_NUM_LEDS is not 2"
+              exit 1
+          fi
 
       - name: Validate no duplicate LED definitions
         run: |
           echo "===== LED DUPLICATE CHECK ====="
-          COUNT_A=$(grep -R "HAL_GPIO_A_LED_PIN" build/MatekF405-TE 2>/dev/null | wc -l)
-          COUNT_B=$(grep -R "HAL_GPIO_B_LED_PIN" build/MatekF405-TE 2>/dev/null | wc -l)
+          COUNT_A=$(grep -R "#define HAL_GPIO_A_LED_PIN" build/MatekF405-TE 2>/dev/null | wc -l)
+          COUNT_B=$(grep -R "#define HAL_GPIO_B_LED_PIN" build/MatekF405-TE 2>/dev/null | wc -l)
 
           COUNT_A=${COUNT_A:-0}
           COUNT_B=${COUNT_B:-0}
 
-          echo "LED A definitions: $COUNT_A"
-          echo "LED B definitions: $COUNT_B"
+          echo "LED A = $COUNT_A"
+          echo "LED B = $COUNT_B"
 
           if [ "$COUNT_A" -gt 1 ]; then
-             echo "ERROR: multiple HAL_GPIO_A_LED_PIN definitions"
+             echo "ERROR: multiple HAL_GPIO_A_LED_PIN definitions detected!"
              exit 1
           fi
 
           if [ "$COUNT_B" -gt 1 ]; then
-             echo "ERROR: multiple HAL_GPIO_B_LED_PIN definitions"
+             echo "ERROR: multiple HAL_GPIO_B_LED_PIN definitions detected!"
              exit 1
           fi
 
@@ -134,9 +143,12 @@ jobs:
           echo "===== build errors ====="
           grep -Rni "error:" build/MatekF405-TE | head -50 || true
 
-      - name: Flash usage
+      - name: Verify final firmware
         run: |
-          arm-none-eabi-size --format=berkeley build/MatekF405-TE/bin/arducopter.elf
+          echo "===== FINAL ARTIFACT CHECK ====="
+          test -f build/MatekF405-TE/bin/arducopter.apj
+          test -f build/MatekF405-TE/bin/arducopter.hex
+          arm-none-eabi-size build/MatekF405-TE/bin/arducopter.elf
 
       - name: Publish Artifacts
         uses: actions/upload-artifact@v4
