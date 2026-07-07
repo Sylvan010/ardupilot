@@ -1,6 +1,6 @@
 # hwdef file for processing by chibios_hwdef.py
 # Target: HAKRC F405 V2 (Specific Revision) mapped as SpeedyBee F4 V3
-# FINAL HARDENED FACTORY RELEASE FOR ARDUPILOT 4.6.3+
+# INDUSTRIAL PRODUCTION TARGET FOR ARDUPILOT 4.6.3+ - DMA DISABLE HARDENING
 
 MCU STM32F4xx STM32F405xx
 APJ_BOARD_ID AP_HW_SPEEDYBEEF4V3
@@ -31,8 +31,8 @@ PA4  GYRO1_CS CS
 PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
 
-# SERIAL ORDER (SERIAL0 to SERIAL6 Absolute Hardware Indexes)
-SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
+# SERIAL ORDER (SERIAL0 to SERIAL6 Absolute Hardware Indexes - Fixed Native UART5 Token)
+SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
 
@@ -56,18 +56,18 @@ PA0 UART4_TX UART4
 PA1 UART4_RX UART4
 define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_MAVLink2
 
-# SERIAL5: UART5 (ESC Telemetry Input Bus - FULL NODMA)
+# SERIAL5: UART5 ESC Telemetry - Forced Polled Mode (Symmetric NODMA Pins Matching SERIAL_ORDER)
 PC12 UART5_TX UART5 NODMA
 PD2  UART5_RX UART5 NODMA
 define DEFAULT_SERIAL5_PROTOCOL SerialProtocol_ESCTelemetry
 define DEFAULT_SERIAL5_BAUD 19200
 
-# SERIAL6: USART6 (Auxiliary / Airspeed Extension Port)
-PC6 USART6_TX USART6
+# SERIAL6: USART6 (Auxiliary / Airspeed Extension Port - Symmetric NODMA Engine)
+PC6 USART6_TX USART6 NODMA
 PC7 USART6_RX USART6 NODMA
 define DEFAULT_SERIAL6_PROTOCOL SerialProtocol_None
 
-# I2C Subsystem Registry (Compass & Airspeed)
+# I2C Subsystem Registry (Compass & External Digital Airspeed Sensors)
 I2C_ORDER I2C1
 PB8 I2C1_SCL I2C1
 PB9 I2C1_SDA I2C1
@@ -104,9 +104,9 @@ define HAL_GPIO_B_LED_PIN 91
 
 # --- SPI DEVICE REGISTRY (Canonical Direct Hardware Pin Binding via Aliases) ---
 
-# IMU Target (Universal Driver Token for Maximum Upstream 4.6.x Hardware Compatibility)
+# IMU Target (Hard Target Driver Def for ICM42688 Core - Fully Supported in 4.6.3+)
 SPIDEV imu0 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
-IMU Invensense SPI:imu0 ROTATION_YAW_90
+IMU ICM42688 SPI:imu0 ROTATION_YAW_90
 
 # Flash Logger Registry (SPI3 Onboard Memory Partition via FLASH1_CS alias)
 SPIDEV flash SPI3 DEVID1 FLASH1_CS MODE3 21*MHZ 21*MHZ
