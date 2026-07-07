@@ -9,54 +9,49 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: 'recursive'
 
-      - name: Factory hwdef validation
+      - name: Hard Factory-Level 4.6.3 Verification
         run: |
-          echo "Running hardened hwdef validation..."
-
-          # Стабильный пошаговый поиск директории без коллизий дубликатов
+          echo "Running hardened factory-safe validation..."
+          
+          # Безопасный пошаговый поиск папки, защищенный от дубликатов с помощью head -n1
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
           HWDEF_PATH=$HWDEF_DIR/hwdef.dat
+          echo "Found hwdef target path: $HWDEF_PATH"
+          
+          if [ -z "$HWDEF_PATH" ] || [ ! -f "$HWDEF_PATH" ]; then
+            echo "Error: Target hwdef.dat not found in repository structure!"
+            exit 1
+          fi
 
-          echo "Using target path:"
-          echo "$HWDEF_PATH"
-
-          test -f "$HWDEF_PATH" || exit 1
-
-          # Валидация токенов совместимости под ArduPilot 4.6.3+
+          # Строгая промышленная верификация рантайм-токенов под ArduPilot 4.6.3+
+          grep -q "AP_HW_SPEEDYBEEF4V3" "$HWDEF_PATH" || exit 1
+          grep -q "SerialProtocol_CRSF" "$HWDEF_PATH" || exit 1
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
-          grep -q "IMU ICM42688" "$HWDEF_PATH" || exit 1
+          grep -q "DMA_NOSHARE TIM8_CH3 TIM8_CH4 TIM1_CH1 TIM1_CH2" "$HWDEF_PATH" || exit 1
+          
+          echo "Factory-level validation PASSED."
 
-          echo "hwdef validation OK"
-
-      - name: Build ArduCopter
+      - name: Compile Firmware inside Docker (ArduPilot 4.6.3 Branch Environment)
         run: |
-          # Определение целевой платы на основе найденной папки
+          # Автоматическое определение точного имени папки платы без коллизий бэкапов
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
           BOARD_TARGET=$(basename "$HWDEF_DIR")
+          echo "Compiling firmware for board target: $BOARD_TARGET"
+          
+          docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
+            git config --global --add safe.directory '*' && \
+            ./waf configure --board $BOARD_TARGET && \
+            ./waf copter
+          "
 
-          echo "Building target board:"
-          echo "$BOARD_TARGET"
-
-          # Запуск компиляции внутри ChibiOS контейнера с полным фиксом прав субмодулей Git
-          docker run --rm \
-            -v ${{ github.workspace }}:/ardupilot \
-            -w /ardupilot \
-            ardupilot/ardupilot-dev-chibios:latest \
-            /bin/bash -c "
-              git config --global --add safe.directory '*' &&
-              ./waf configure --board $BOARD_TARGET &&
-              ./waf copter
-            "
-
-      - name: Upload Firmware
+      - name: Upload Target Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: HAKRC-F405V2-ArduCopter-4.6.3
