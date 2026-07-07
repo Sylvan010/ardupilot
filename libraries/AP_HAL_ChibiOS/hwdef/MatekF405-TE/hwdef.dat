@@ -17,16 +17,13 @@ OSCILLATOR_HZ 8000000
 
 define AP_SCRIPTING_ENABLED 0
 
-# Явное объявление числовых пинов светодиодов для AP_BoardLED2.cpp
-define HAL_GPIO_A_LED_PIN 47
-define HAL_GPIO_B_LED_PIN 46
-define HAL_GPIO_C_LED_PIN 46
-define HAL_NOTIFY_NUM_LEDS 2
-define AP_NOTIFY_GPIO_LED_2_ENABLED 1
+# Отключаем трехканальный AP_BoardLED2 и переводим систему на 1 штатный LED
+define AP_NOTIFY_GPIO_LED_2_ENABLED 0
+define HAL_NOTIFY_NUM_LEDS 1
 
-# Конфигурация физических ног процессора с жестким указанием GPIO каналов
-PC15 GPIO(47) OUTPUT LOW
-PC14 GPIO(46) OUTPUT LOW
+# Возвращаем стандартные теги, которые ChibiOS корректно скомпилирует в libch.a
+PC15 LED1 OUTPUT LOW
+PC14 LED2 OUTPUT LOW
 
 PC8  TIM8_CH3   TIM8  PWM(1)  GPIO(50)
 PC9  TIM8_CH4   TIM8  PWM(2)  GPIO(51)
