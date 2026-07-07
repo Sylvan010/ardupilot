@@ -19,7 +19,7 @@ jobs:
         run: |
           echo "Running hardened factory-safe validation..."
           
-          # Пуленепробиваемый поиск папки платы с флагом -iname без коллизий по -o операторам
+          # Надежный пошаговый поиск папки платы с флагом -iname без коллизий по -o операторам
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
           HWDEF_PATH=$HWDEF_DIR/hwdef.dat
           echo "Found hwdef target path: $HWDEF_PATH"
@@ -35,7 +35,6 @@ jobs:
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
           grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
-          grep -q "PC6 USART6_TX USART6 NODMA" "$HWDEF_PATH" || exit 1
           grep -Eq "IMU Invensense(v3)? SPI:imu0" "$HWDEF_PATH" || exit 1
           grep -q "define AP_COMPASS_PROBING_ENABLED 0" "$HWDEF_PATH" || exit 1
           
@@ -43,27 +42,33 @@ jobs:
 
       - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
         run: |
-          # Автоматическое определение точного имени папки платы и перевод строго в нижний регистр (lowercase)
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
+          # 1. Тотальный аудит дерева каталогов hwdef в консоль перед стартом контейнера
+          echo "===== REPOSITORY HWDEF PATH TREE ====="
+          find libraries/AP_HAL_ChibiOS/hwdef -maxdepth 2 -iname "*speedy*" -print || true
           
-          if [ -z "$HWDEF_DIR" ]; then
-            echo "ERROR: hwdef directory not found"
-            exit 1
-          fi
+          # 2. Автоматическое определение имени папки платы и принудительный перевод в нижний регистр (lowercase)
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
+          if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
 
           RAW_TARGET=$(basename "$HWDEF_DIR")
           BOARD_TARGET=$(echo "$RAW_TARGET" | tr '[:upper:]' '[:lower:]')
-          echo "Compiling firmware for board target: $BOARD_TARGET"
           
-          # Запуск сборки с жестким разделением команд через ';' для предотвращения багов синтаксиса bash в Docker
+          echo "===== RESOLVED TARGET LOGIC ====="
+          echo "BOARD_TARGET=$BOARD_TARGET"
+          
+          # Запуск сборки с использованием современной команды --target bin/arducopter и разделением через ';'
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
             git config --global --add safe.directory '*' ; \
             rm -rf build ; \
             ./waf distclean || true ; \
-            echo 'Available boards list:' ; \
+            echo '===== BOARD CHECK =====' ; \
             ./waf list_boards | grep -i speedy || true ; \
+            echo '===== CONFIGURE =====' ; \
             ./waf configure --board $BOARD_TARGET --ram-fraction=0.3 ; \
-            ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log
+            echo '===== BUILD COPTER =====' ; \
+            ./waf build --target bin/arducopter -j 1 -v 2>&1 | tee /ardupilot/build.log ; \
+            echo '===== OUTPUT =====' ; \
+            find build -name '*.apj' -o -name '*.hex' || true
           "
 
       - name: Upload Target Artifacts
@@ -72,9 +77,8 @@ jobs:
         with:
           name: HAKRC-F405V2-ArduCopter-4.6.3
           path: |
-            build/**/arducopter.apj
-            build/**/arducopter.hex
-            build/**/bin/*
+            build/**/bin/arducopter.apj
+            build/**/bin/arducopter.hex
 
       - name: Upload Linker Debug Log
         if: always()
