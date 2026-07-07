@@ -8,8 +8,8 @@ FLASH_SIZE_KB 1024
 STORAGE_FLASH_PAGE 2
 define HAL_STORAGE_SIZE 15360
 
-# Подмена ID на OmnibusF4Pro для обхода ValueError в старых версиях ArduPilot
-APJ_BOARD_ID AP_HW_OmnibusF4Pro
+# Прямое числовое сопоставление ID для обхода ValueError без правки board_types.txt
+APJ_BOARD_ID 131
 
 define STM32_ST_USE_TIMER 5
 define CH_CFG_ST_RESOLUTION 32
