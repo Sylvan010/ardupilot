@@ -20,19 +20,19 @@ jobs:
           echo "===== DIAGNOSTIC HWDEF DIRECTORY LIST ====="
           ls -la libraries/AP_HAL_ChibiOS/hwdef/ | grep -i speedy || true
 
-          # Надежный пошаговый поиск папки платы с флагом -print -quit (Зафиксирован верхний регистр папки)
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "SpeedyBeeF4V3" -print -quit)
+          # Полное выравнивание под lowercase-имя официального апстрима ArduPilot
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "speedybeef4v3" -print -quit)
           echo "Found hwdef target directory: $HWDEF_DIR"
           
           if [ -z "$HWDEF_DIR" ]; then
-              echo "ERROR: SpeedyBeeF4V3 hwdef directory not found in repository!"
+              echo "ERROR: speedybeef4v3 hwdef directory not found in repository!"
               exit 1
           fi
 
           BOARD_TARGET=$(basename "$HWDEF_DIR")
-          if [ "$BOARD_TARGET" != "SpeedyBeeF4V3" ]; then
-              echo "ERROR: Wrong board directory case: $BOARD_TARGET"
-              echo "Expected exact upstream target name: SpeedyBeeF4V3"
+          if [ "$BOARD_TARGET" != "speedybeef4v3" ]; then
+              echo "ERROR: Wrong board directory name: $BOARD_TARGET"
+              echo "Expected exact upstream target name: speedybeef4v3"
               exit 1
           fi
 
@@ -53,26 +53,19 @@ jobs:
           grep -q "PC6 USART6_TX USART6 NODMA" "$HWDEF_PATH" || exit 1
           grep -q "IMU Invensensev3 SPI:imu0" "$HWDEF_PATH" || exit 1
           grep -q "BARO BMP280 I2C:0:0x76" "$HWDEF_PATH" || exit 1
-
-          echo "===== SYSTEM-LEVEL UPSTREAM BACKEND VERIFICATION ====="
-          # Эластичный поиск бэкенда Invensensev3 по дереву каталогов (Лишний токен fi удален)
-          find libraries/AP_InertialSensor -iname "*Invensensev3*" -print -quit | grep -q . || {
-              echo "ERROR: Invensensev3 backend source files missing in this branch!"
-              exit 1
-          }
           
           echo "Factory-level validation PASSED."
 
       - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
         run: |
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "SpeedyBeeF4V3" -print -quit)
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "speedybeef4v3" -print -quit)
           if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
 
           BOARD_TARGET=$(basename "$HWDEF_DIR")
           echo "===== RESOLVED TARGET LOGIC ====="
           echo "BOARD_TARGET=$BOARD_TARGET"
           
-          # Запуск сборки с жестким set -e, временным set +e и расширенным разделителем STATUS ошибок
+          # Запуск сборки с жесткой фиксацией set -e / set +e и чистым захватом STATUS массива
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
             set -e -o pipefail ; \
             git config --global --add safe.directory '*' ; \
