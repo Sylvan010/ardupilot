@@ -19,8 +19,8 @@ jobs:
         run: |
           echo "Running hardened factory-safe validation..."
           
-          # Безопасный пошаговый поиск папки, защищенный от дубликатов с помощью head -n1
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
+          # Надежный пошаговый поиск папки платы с флагом -print -quit (Зафиксирован верхний регистр папки)
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "SpeedyBeeF4V3" -print -quit)
           HWDEF_PATH=$HWDEF_DIR/hwdef.dat
           echo "Found hwdef target path: $HWDEF_PATH"
           
@@ -29,36 +29,62 @@ jobs:
             exit 1
           fi
 
-          # Сувора промислова верифікація рантайм-токенів під нову структуру
+          # Сувора промислова верифікація рантайм-токенів під нову структуру (Жорсткий виробничий лок)
           grep -q "AP_HW_SPEEDYBEEF4V3" "$HWDEF_PATH" || exit 1
           grep -q "SerialProtocol_CRSF" "$HWDEF_PATH" || exit 1
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
           grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
-          grep -q "SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6" "$HWDEF_PATH" || exit 1
+          grep -q "PC6 USART6_TX USART6 NODMA" "$HWDEF_PATH" || exit 1
+          grep -q "IMU Invensensev3 SPI:imu0" "$HWDEF_PATH" || exit 1
+          grep -q "BARO BMP280 I2C:0:0x76" "$HWDEF_PATH" || exit 1
           
           echo "Factory-level validation PASSED."
 
-      - name: Compile Firmware inside Docker (ArduPilot 4.6.3 Branch Environment)
+      - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
         run: |
-          # Автоматическое определение точного имени папки платы без коллизий бэкапов
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
-          BOARD_TARGET=$(basename "$HWDEF_DIR")
-          echo "Compiling firmware for board target: $BOARD_TARGET"
+          # Проверка фактического наличия папки в оригинальном верхнем регистре символов
+          echo "===== REPOSITORY HWDEF PATH TREE ====="
+          ls libraries/AP_HAL_ChibiOS/hwdef | grep Speedy || true
           
-          # Полное принудительное уничтожение папки build и вызов distclean
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "SpeedyBeeF4V3" -print -quit)
+          if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
+
+          BOARD_TARGET=$(basename "$HWDEF_DIR")
+          echo "===== RESOLVED TARGET LOGIC ====="
+          echo "BOARD_TARGET=$BOARD_TARGET"
+          
+          # Запуск сборки с жестким перехватом pipefail и сохранением кода возврата Waf
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
-            git config --global --add safe.directory '*' && \
-            rm -rf build && \
-            ./waf distclean && \
-            ./waf configure --board $BOARD_TARGET && \
-            ./waf copter
+            set -o pipefail ; \
+            git config --global --add safe.directory '*' ; \
+            rm -rf build ; \
+            ./waf distclean || true ; \
+            echo '===== BOARD CHECK =====' ; \
+            ./waf list_boards | grep -i speedy || true ; \
+            echo '===== EXECUTING WAF CONFIGURE =====' ; \
+            ./waf configure --board $BOARD_TARGET || exit 1 ; \
+            echo '===== EXECUTING WAF COPTER =====' ; \
+            ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log ; \
+            STATUS=\${PIPESTATUS[0]} ; \
+            echo 'WAF EXIT CODE='\$STATUS ; \
+            echo '===== POST-BUILD ARTIFACT SEARCH =====' ; \
+            find build -type f \( -name '*.apj' -o -name '*.hex' \) -print || true ; \
+            exit \$STATUS
           "
 
       - name: Upload Target Artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: HAKRC-F405V2-ArduCopter-4.6.3
           path: |
-            build/*/bin/arducopter.apj
-            build/*/bin/arducopter.hex
+            build/**/bin/*.apj
+            build/**/bin/*.hex
+
+      - name: Upload Linker Debug Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linker-debug-log
+          path: build.log
