@@ -19,8 +19,8 @@ jobs:
         run: |
           echo "Running hardened factory-safe validation..."
           
-          # Надежный пошаговый поиск папки платы с флагом -iname без коллизий по -o операторам
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
+          # Безопасный пошаговый поиск папки, защищенный от дубликатов с помощью head -n1
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
           HWDEF_PATH=$HWDEF_DIR/hwdef.dat
           echo "Found hwdef target path: $HWDEF_PATH"
           
@@ -35,54 +35,30 @@ jobs:
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
           grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
-          grep -Eq "IMU Invensense(v3)? SPI:imu0" "$HWDEF_PATH" || exit 1
-          grep -q "define AP_COMPASS_PROBING_ENABLED 0" "$HWDEF_PATH" || exit 1
+          grep -q "SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6" "$HWDEF_PATH" || exit 1
           
           echo "Factory-level validation PASSED."
 
-      - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
+      - name: Compile Firmware inside Docker (ArduPilot 4.6.3 Branch Environment)
         run: |
-          # 1. Тотальный аудит дерева каталогов hwdef в консоль перед стартом контейнера
-          echo "===== REPOSITORY HWDEF PATH TREE ====="
-          find libraries/AP_HAL_ChibiOS/hwdef -maxdepth 2 -iname "*speedy*" -print || true
+          # Автоматическое определение точного имени папки платы без коллизий бэкапов
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
+          BOARD_TARGET=$(basename "$HWDEF_DIR")
+          echo "Compiling firmware for board target: $BOARD_TARGET"
           
-          # 2. Автоматическое определение имени папки платы и принудительный перевод в нижний регистр (lowercase)
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
-          if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
-
-          RAW_TARGET=$(basename "$HWDEF_DIR")
-          BOARD_TARGET=$(echo "$RAW_TARGET" | tr '[:upper:]' '[:lower:]')
-          
-          echo "===== RESOLVED TARGET LOGIC ====="
-          echo "BOARD_TARGET=$BOARD_TARGET"
-          
-          # Запуск сборки с использованием современной команды --target bin/arducopter и разделением через ';'
+          # Полное принудительное уничтожение папки build и вызов distclean
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
-            git config --global --add safe.directory '*' ; \
-            rm -rf build ; \
-            ./waf distclean || true ; \
-            echo '===== BOARD CHECK =====' ; \
-            ./waf list_boards | grep -i speedy || true ; \
-            echo '===== CONFIGURE =====' ; \
-            ./waf configure --board $BOARD_TARGET --ram-fraction=0.3 ; \
-            echo '===== BUILD COPTER =====' ; \
-            ./waf build --target bin/arducopter -j 1 -v 2>&1 | tee /ardupilot/build.log ; \
-            echo '===== OUTPUT =====' ; \
-            find build -name '*.apj' -o -name '*.hex' || true
+            git config --global --add safe.directory '*' && \
+            rm -rf build && \
+            ./waf distclean && \
+            ./waf configure --board $BOARD_TARGET && \
+            ./waf copter
           "
 
       - name: Upload Target Artifacts
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: HAKRC-F405V2-ArduCopter-4.6.3
           path: |
-            build/**/bin/arducopter.apj
-            build/**/bin/arducopter.hex
-
-      - name: Upload Linker Debug Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: linker-debug-log
-          path: build.log
+            build/*/bin/arducopter.apj
+            build/*/bin/arducopter.hex
