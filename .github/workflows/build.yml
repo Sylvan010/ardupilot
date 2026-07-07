@@ -28,14 +28,22 @@ jobs:
         run: |
           rm -rf build
 
-      - name: Verify hwdef real source
+      - name: Verify HAKRC clone mapping
         run: |
-          echo "===== HWDEF REAL SOURCE CHECK ====="
-          grep -nE "PC4.*(GYRO_INT|IMU_INT)" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat || true
+          echo "===== HAKRC CLONE MAP ====="
+          grep "PC4.*GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep "PC15.*LED1" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep "PB12.*OSD_CS" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep "PA15.*FLASH_CS" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
 
       - name: Configure Waf Build System
         run: |
           ./waf configure --board MatekF405-TE
+
+      - name: Verify configured board
+        run: |
+          echo "===== BOARD CHECK ====="
+          grep -R "MatekF405-TE" build/MatekF405-TE/config.h || true
 
       - name: Verify scripting disabled
         run: |
@@ -46,7 +54,6 @@ jobs:
         run: |
           echo "===== LED MAP CHECK ====="
           grep -Rni "PC15" build/MatekF405-TE || true
-          grep -Rni "PC14" build/MatekF405-TE || true
 
       - name: Verify IMU interrupt
         run: |
@@ -63,7 +70,7 @@ jobs:
       - name: Dump critical pins configuration
         run: |
           echo "===== CRITICAL PIN DUMP ====="
-          grep -Rni "LED\|PC14\|PC15\|PC4\|EXTI" build/MatekF405-TE || true
+          grep -Rni "LED\|PC15\|PC4\|EXTI" build/MatekF405-TE || true
 
       - name: Build ArduCopter Firmware
         shell: bash
@@ -71,9 +78,15 @@ jobs:
           touch build.log
           set +e
           ./waf copter -v 2>&1 | tee build.log
-          status=${PIPESTATUS[0]}
+          status=${PIPESTATUS}
           set -e
           exit $status
+
+      - name: Inspect build output tree
+        if: always()
+        run: |
+          echo "===== REVEALING ACTUAL BUILD OUTPUT TREE ====="
+          find build/MatekF405-TE -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj|\.hex" || true
 
       - name: Extract failure
         if: failure()
@@ -84,41 +97,21 @@ jobs:
             echo "===== LAST 200 LINES OF BUILD LOG ====="
             tail -n 200 build.log
           else
-            echo "ERROR: build.log was not created. Waf failed on early steps."
+            echo "ERROR: build.log was not created."
           fi
 
       - name: Verify final firmware
         run: |
           echo "===== FINAL ARTIFACT CHECK ====="
-          
-          # Динамический поиск бинарников в папке сборки
-          APJ_PATH=$(find build/ -name "arducopter.apj" | head -n 1)
-          HEX_PATH=$(find build/ -name "arducopter.hex" | head -n 1)
-          ELF_PATH=$(find build/ -name "arducopter.elf" | head -n 1)
-
-          if [ -z "$APJ_PATH" ] || [ -z "$HEX_PATH" ]; then
-            echo "ERROR: Compiled firmware files (.apj/.hex) not found!"
-            exit 1
-          fi
-
-          echo "Found APJ at: $APJ_PATH"
-          echo "Found HEX at: $HEX_PATH"
-
-          # Размер финального эльфа
-          arm-none-eabi-size "$ELF_PATH"
-
-          # Изолируем артефакты и присваиваем им кастомное имя под плату HAKRC
-          mkdir -p output_artifacts
-          cp "$APJ_PATH" output_artifacts/HAKRC_F405V2_ArduCopter.apj
-          cp "$HEX_PATH" output_artifacts/HAKRC_F405V2_ArduCopter.hex
-          
-          BL_HEX_PATH=$(find build/ -name "arducopter_with_bl.hex" | head -n 1)
-          if [ ! -z "$BL_HEX_PATH" ]; then
-            cp "$BL_HEX_PATH" output_artifacts/HAKRC_F405V2_ArduCopter_with_BL.hex
-          fi
+          test -f build/MatekF405-TE/bin/arducopter.apj
+          test -f build/MatekF405-TE/bin/arducopter.elf
+          arm-none-eabi-size build/MatekF405-TE/bin/arducopter.elf
 
       - name: Publish Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HAKRC-F405V2-ArduCopter-Firmware
-          path: output_artifacts/
+          name: MatekF405-TE-ArduCopter-Firmware
+          path: |
+            build/MatekF405-TE/bin/arducopter.apj
+            build/MatekF405-TE/bin/arducopter.hex
+          if-no-files-found: error
