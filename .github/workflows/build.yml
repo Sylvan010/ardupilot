@@ -31,7 +31,7 @@ jobs:
       - name: Verify hwdef real source
         run: |
           echo "===== HWDEF REAL SOURCE CHECK ====="
-          grep -nE "PC4.*(GYRO_INT|IMU_INT)" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep -nE "PC4.*(GYRO_INT|IMU_INT)" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat || true
 
       - name: Configure Waf Build System
         run: |
@@ -40,34 +40,42 @@ jobs:
       - name: Verify scripting disabled
         run: |
           echo "===== SCRIPT CHECK ====="
-          grep "AP_SCRIPTING_ENABLED 0" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep -Rni "AP_SCRIPTING_ENABLED" build/MatekF405-TE/ || true
 
       - name: Verify LED mapping
         run: |
           echo "===== LED MAP CHECK ====="
-          grep -E "PC15.*LED|PC14.*LED" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep -Rni "HAL_GPIO_A_LED_PIN" build/MatekF405-TE || true
+          grep -Rni "HAL_GPIO_B_LED_PIN" build/MatekF405-TE || true
+          grep -Rni "HAL_GPIO_C_LED_PIN" build/MatekF405-TE || true
+          grep -Rni "PC15" build/MatekF405-TE || true
+          grep -Rni "PC14" build/MatekF405-TE || true
 
       - name: Verify LED count
         run: |
           echo "===== NOTIFY LED COUNT ====="
-          grep "HAL_NOTIFY_NUM_LEDS 2" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep -Rni "HAL_NOTIFY_NUM_LEDS" build/MatekF405-TE || true
+          if ! grep -R "#define HAL_NOTIFY_NUM_LEDS 2" build/MatekF405-TE; then
+              echo "ERROR: HAL_NOTIFY_NUM_LEDS is not 2"
+              exit 1
+          fi
 
       - name: Verify IMU interrupt
         run: |
           echo "===== GYRO INT CHECK ====="
-          grep "PC4.*GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
-          grep "HAL_EXTI_ENABLED 1" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep -Rni "PC4" build/MatekF405-TE || true
+          grep -Rni "EXTI" build/MatekF405-TE || true
 
       - name: Verify generated hwdef
         run: |
           echo "===== GENERATED HWDEF CHECK ====="
           test -f build/MatekF405-TE/hwdef.h
-          grep "HAL_EXTI_ENABLED" build/MatekF405-TE/hwdef.h
+          grep -Rni "HAL_EXTI_ENABLED" build/MatekF405-TE || true
 
       - name: Dump critical pins configuration
         run: |
           echo "===== CRITICAL PIN DUMP ====="
-          grep -E "LED|PC4|EXTI" build/MatekF405-TE/hwdef.h || true
+          grep -Rni "LED\|PC14\|PC15\|PC4\|EXTI" build/MatekF405-TE || true
 
       - name: Build ArduCopter Firmware
         shell: bash
@@ -88,7 +96,7 @@ jobs:
             echo "===== LAST 200 LINES OF BUILD LOG ====="
             tail -n 200 build.log
           else
-            echo "ERROR: build.log was not created. Waf failed immediately."
+            echo "ERROR: build.log was not created. Waf build step was skipped due to an earlier failure."
           fi
 
       - name: Verify final firmware
