@@ -121,6 +121,7 @@ jobs:
       - name: Build ArduCopter Firmware
         shell: bash
         run: |
+          touch build.log
           set +e
           ./waf copter -v 2>&1 | tee build.log
           status=${PIPESTATUS[0]}
@@ -131,9 +132,13 @@ jobs:
         if: failure()
         run: |
           echo "===== PARSING COMPILER ERRORS ====="
-          grep -E "error:|fatal error|No such file|unknown|invalid|undeclared|undefined|conflicting|redefinition|expected|mismatch" build.log || true
-          echo "===== LAST 200 LINES OF BUILD LOG ====="
-          tail -n 200 build.log
+          if [ -f build.log ]; then
+            grep -E "error:|fatal error|No such file|unknown|invalid|undeclared|undefined|conflicting|redefinition|expected|mismatch" build.log || true
+            echo "===== LAST 200 LINES OF BUILD LOG ====="
+            tail -n 200 build.log
+          else
+            echo "ERROR: build.log was not created. Waf failed immediately."
+          fi
 
       - name: Show ChibiOS generated files on failure
         if: failure()
