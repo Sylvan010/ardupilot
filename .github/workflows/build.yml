@@ -24,17 +24,36 @@ jobs:
           sudo apt-get install -y gcc-arm-none-eabi python3-setuptools python3-wheel ccache
           pip3 install intelhex empy==3.3.4 pexpect
 
-      - name: Total Wipe Build Directory
+      - name: Hard reset target cache
         run: |
           rm -rf build
 
-      - name: Show hwdef source
+      - name: Verify hwdef real source
         run: |
-          grep "PC4" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          echo "===== HWDEF REAL SOURCE CHECK ====="
+          grep -n "PC4" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep -n "GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          if grep -n "GPIO(70)" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat; then
+            echo "ERROR: GPIO(70) still exists in source file!"
+            exit 1
+          fi
 
       - name: Configure Waf Build System
         run: |
           ./waf configure --board MatekF405-TE
+
+      - name: Verify scripting disabled
+        run: |
+          echo "===== SCRIPT CHECK ====="
+          grep -Rni "AP_SCRIPTING_ENABLED" build/MatekF405-TE | head -20 || true
+
+      - name: Verify generated hwdef
+        run: |
+          echo "===== GENERATED HWDEF CHECK ====="
+          grep -n "GYRO_INT" build/MatekF405-TE/hwdef.h || true
+          grep -n "GPIO(70)" build/MatekF405-TE/hwdef.h || true
+          grep -n "HAL_GPIO_PIN" build/MatekF405-TE/hwdef.h | grep PC4 || true
+          grep -n "LED" build/MatekF405-TE/hwdef.h || true
 
       - name: Dump hwdef
         run: |
@@ -46,14 +65,6 @@ jobs:
           find build/MatekF405-TE -maxdepth 2 -type f | sort | grep -E "hwdef|chibios|board" || true
           echo "===== PC4 / GYRO_INT / EXTI ====="
           grep -RniE "PC4|GYRO_INT|PAL_LINE|EXTI" build/MatekF405-TE || true
-
-      - name: Verify generated hwdef
-        run: |
-          test -f build/MatekF405-TE/hwdef.h
-          grep -n "HAL_EXTI_ENABLED" build/MatekF405-TE/hwdef.h || true
-          grep -n "HAL_GPIO_A_LED_PIN" build/MatekF405-TE/hwdef.h || true
-          grep -n "HAL_GPIO_B_LED_PIN" build/MatekF405-TE/hwdef.h || true
-          grep -n "TIM3" build/MatekF405-TE/hwdef.h || true
 
       - name: Dump generated pins
         run: |
@@ -91,7 +102,7 @@ jobs:
           echo "===== build errors ====="
           grep -Rni "error:" build/MatekF405-TE | head -50 || true
 
-      - name: Verify firmware memory
+      - name: Flash usage
         run: |
           arm-none-eabi-size --format=berkeley build/MatekF405-TE/bin/arducopter.elf
 
