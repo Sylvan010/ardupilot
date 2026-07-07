@@ -71,7 +71,7 @@ jobs:
           touch build.log
           set +e
           ./waf copter -v 2>&1 | tee build.log
-          status=${PIPESTATUS}
+          status=${PIPESTATUS[0]}
           set -e
           exit $status
 
@@ -84,21 +84,41 @@ jobs:
             echo "===== LAST 200 LINES OF BUILD LOG ====="
             tail -n 200 build.log
           else
-            echo "ERROR: build.log was not created. Waf build step was skipped due to an earlier failure."
+            echo "ERROR: build.log was not created. Waf failed on early steps."
           fi
 
       - name: Verify final firmware
         run: |
           echo "===== FINAL ARTIFACT CHECK ====="
-          test -f build/MatekF405-TE/bin/arducopter.apj
-          test -f build/MatekF405-TE/bin/arducopter.hex
-          arm-none-eabi-size build/MatekF405-TE/bin/arducopter.elf
+          
+          # Динамический поиск бинарников в папке сборки
+          APJ_PATH=$(find build/ -name "arducopter.apj" | head -n 1)
+          HEX_PATH=$(find build/ -name "arducopter.hex" | head -n 1)
+          ELF_PATH=$(find build/ -name "arducopter.elf" | head -n 1)
+
+          if [ -z "$APJ_PATH" ] || [ -z "$HEX_PATH" ]; then
+            echo "ERROR: Compiled firmware files (.apj/.hex) not found!"
+            exit 1
+          fi
+
+          echo "Found APJ at: $APJ_PATH"
+          echo "Found HEX at: $HEX_PATH"
+
+          # Размер финального эльфа
+          arm-none-eabi-size "$ELF_PATH"
+
+          # Изолируем артефакты и присваиваем им кастомное имя под плату HAKRC
+          mkdir -p output_artifacts
+          cp "$APJ_PATH" output_artifacts/HAKRC_F405V2_ArduCopter.apj
+          cp "$HEX_PATH" output_artifacts/HAKRC_F405V2_ArduCopter.hex
+          
+          BL_HEX_PATH=$(find build/ -name "arducopter_with_bl.hex" | head -n 1)
+          if [ ! -z "$BL_HEX_PATH" ]; then
+            cp "$BL_HEX_PATH" output_artifacts/HAKRC_F405V2_ArduCopter_with_BL.hex
+          fi
 
       - name: Publish Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: HAKRC-F405V2-ArduCopter-Firmware
-          path: |
-            build/MatekF405-TE/bin/arducopter.apj
-            build/MatekF405-TE/bin/arducopter.hex
-            build/MatekF405-TE/bin/arducopter_with_bl.hex
+          path: output_artifacts/
