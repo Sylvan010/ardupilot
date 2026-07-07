@@ -83,7 +83,7 @@ jobs:
           touch build.log
           set +e
           ./waf copter -v 2>&1 | tee build.log
-          status=${PIPESTATUS[0]}
+          status=${PIPESTATUS}
           set -e
           exit $status
 
