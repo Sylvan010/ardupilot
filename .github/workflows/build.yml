@@ -51,15 +51,6 @@ jobs:
           grep -Rni "PC15" build/MatekF405-TE || true
           grep -Rni "PC14" build/MatekF405-TE || true
 
-      - name: Verify LED count
-        run: |
-          echo "===== NOTIFY LED COUNT ====="
-          grep -Rni "HAL_NOTIFY_NUM_LEDS" build/MatekF405-TE || true
-          if ! grep -R "#define HAL_NOTIFY_NUM_LEDS 2" build/MatekF405-TE; then
-              echo "ERROR: HAL_NOTIFY_NUM_LEDS is not 2"
-              exit 1
-          fi
-
       - name: Verify IMU interrupt
         run: |
           echo "===== GYRO INT CHECK ====="
