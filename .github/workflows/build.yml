@@ -65,7 +65,7 @@ jobs:
           echo "===== RESOLVED TARGET LOGIC ====="
           echo "BOARD_TARGET=$BOARD_TARGET"
           
-          # Запуск Heredoc с фиксацией массива PIPE_STATUS сразу после завершения конвейера компиляции
+          # Запуск Heredoc с сохранением атомарного массива и раздельной проверкой TEE / WAF
           docker run --rm \
             --entrypoint /bin/bash \
             -v "${{ github.workspace }}:/ardupilot" \
@@ -101,6 +101,11 @@ jobs:
 
           echo "WAF EXIT CODE=$WAF_STATUS"
           echo "TEE EXIT CODE=$TEE_STATUS"
+
+          if [ "$TEE_STATUS" -ne 0 ]; then
+              echo "===== LOGGING PIPE FAILED ====="
+              exit "$TEE_STATUS"
+          fi
 
           if [ "$WAF_STATUS" -ne 0 ]; then
               echo "===== BUILD FAILED ====="
