@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "===== HAKRC CLONE MAP ====="
           grep "PC4.*GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
-          grep "PC15.*LED1" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep "PC15.*LED0" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
           grep "PB12.*OSD_CS" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
           grep "PA15.*FLASH_CS" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
 
