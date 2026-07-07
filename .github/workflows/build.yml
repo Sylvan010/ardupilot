@@ -1,57 +1,130 @@
+name: build_arducopter_speedybee
+
+on:
+  push:
+    branches:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - name: Hard Factory-Level 4.6.3 Verification
+        run: |
+          echo "===== DIAGNOSTIC HWDEF DIRECTORY LIST ====="
+          ls -la libraries/AP_HAL_ChibiOS/hwdef/ | grep -i speedy || true
+
+          # Полное выравнивание под lowercase-имя официального апстрима ArduPilot
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "speedybeef4v3" -print -quit)
+          echo "Found hwdef target directory: $HWDEF_DIR"
+          
+          if [ -z "$HWDEF_DIR" ]; then
+              echo "ERROR: speedybeef4v3 hwdef directory not found in repository!"
+              exit 1
+          fi
+
+          BOARD_TARGET=$(basename "$HWDEF_DIR")
+          if [ "$BOARD_TARGET" != "speedybeef4v3" ]; then
+              echo "ERROR: Wrong board directory name: $BOARD_TARGET"
+              echo "Expected exact upstream target name: speedybeef4v3"
+              exit 1
+          fi
+
+          HWDEF_PATH="$HWDEF_DIR/hwdef.dat"
+          echo "Found hwdef target path: $HWDEF_PATH"
+
+          if [ ! -f "$HWDEF_PATH" ]; then
+              echo "ERROR: hwdef.dat missing at path: $HWDEF_PATH"
+              exit 1
+          fi
+
+          # Сувора промислова верифікація рантайм-токенів під нову структуру (Жорсткий виробничий лок)
+          grep -q "AP_HW_SPEEDYBEEF4V3" "$HWDEF_PATH" || exit 1
+          grep -q "SerialProtocol_CRSF" "$HWDEF_PATH" || exit 1
+          grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
+          grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
+          grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
+          grep -q "PC6 USART6_TX USART6 NODMA" "$HWDEF_PATH" || exit 1
+          grep -q "IMU Invensensev3 SPI:imu0" "$HWDEF_PATH" || exit 1
+          grep -q "BARO BMP280 I2C:0:0x76" "$HWDEF_PATH" || exit 1
+          
+          echo "Factory-level validation PASSED."
+
       - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
         run: |
-          docker run --rm \
-            --entrypoint /bin/bash \
-            -v "${{ github.workspace }}:/ardupilot" \
-            -w /ardupilot \
-            ardupilot/ardupilot-dev-chibios:latest \
-            -s <<'DOCKER_SCRIPT'
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "speedybeef4v3" -print -quit)
+          if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
+          BOARD_TARGET=$(basename "$HWDEF_DIR")
 
+          # Написание пуленепробиваемого sh-скрипта на диск хоста ранера для исключения YAML-конфликтов массивов PIPESTATUS
+          cat << 'EOF' > run_build.sh
+          #!/bin/bash
           set -e
           set -o pipefail
 
           git config --global --add safe.directory '*'
-
           rm -rf build
 
           ./waf distclean || true
 
           echo "===== BOARD CHECK ====="
-          ./waf list_boards | grep -i speedybeef4v3
+          ./waf list_boards | grep -i "speedybeef4v3"
 
-          echo "===== CONFIGURE ====="
+          echo "===== EXECUTING WAF CONFIGURE ====="
           ./waf configure --board speedybeef4v3
 
-          echo "===== BUILD COPTER ====="
-
+          echo "===== EXECUTING WAF COPTER ====="
           set +e
 
           ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log
-
-          WAF_STATUS=${PIPESTATUS[0]}
-
+          STATUS=${PIPESTATUS[0]}
+          
           set -e
+          echo "WAF EXIT CODE=$STATUS"
 
-          echo "WAF STATUS=$WAF_STATUS"
-
-          if [ "$WAF_STATUS" -ne 0 ]; then
-
-              echo "===== SIZE CHECK ====="
-
-              find build -name arducopter \
-              -exec arm-none-eabi-size {} \; || true
-
-              echo "===== LAST LOG ====="
-
-              tail -n 100 /ardupilot/build.log
-
-              exit "$WAF_STATUS"
-
+          if [ "$STATUS" -ne 0 ]; then
+              echo "===== SIZE CHECK ON FAILURE ====="
+              find build -name arducopter -exec arm-none-eabi-size {} \; || true
+              echo "===== LAST 100 BUILD LOG LINES ====="
+              tail -n 100 /ardupilot/build.log || true
+              echo "===== BUILD FAILED ====="
+              exit "$STATUS"
           fi
 
           echo "===== BUILD SUCCESS ====="
+          find build -type f \( -name "*.apj" -o -name "*.hex" \) -print || true
+          find build -name arducopter -exec arm-none-eabi-size {} \; || true
+          exit "$STATUS"
+          EOF
 
-          find build -name arducopter \
-          -exec arm-none-eabi-size {} \;
+          chmod +x run_build.sh
 
-          DOCKER_SCRIPT
+          # Проброс и изолированное исполнение sh-скрипта через --entrypoint внутри Docker-контейнера
+          docker run --rm \
+            --entrypoint /bin/bash \
+            -v "${{ github.workspace }}:/ardupilot" \
+            -w /ardupilot \
+            ardupilot/ardupilot-dev-chibios:latest \
+            /ardupilot/run_build.sh
+
+      - name: Upload Target Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAKRC-F405V2-ArduCopter-4.6.3
+          path: |
+            build/**/bin/*.apj
+            build/**/bin/*.hex
+
+      - name: Upload Linker Debug Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linker-debug-log
+          path: build.log
