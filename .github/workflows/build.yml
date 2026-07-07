@@ -103,9 +103,15 @@ jobs:
       - name: Verify final firmware
         run: |
           echo "===== FINAL ARTIFACT CHECK ====="
+          
+          # Строгая проверка существования файлов (исправлено под оригинальный ELF arducopter без расширения)
           test -f build/MatekF405-TE/bin/arducopter.apj
-          test -f build/MatekF405-TE/bin/arducopter.elf
-          arm-none-eabi-size build/MatekF405-TE/bin/arducopter.elf
+          test -f build/MatekF405-TE/bin/arducopter
+          
+          # Чтение размера из оригинального ELF-файла
+          arm-none-eabi-size build/MatekF405-TE/bin/arducopter
+          
+          echo "Firmware OK"
 
       - name: Publish Artifacts
         uses: actions/upload-artifact@v4
@@ -114,4 +120,5 @@ jobs:
           path: |
             build/MatekF405-TE/bin/arducopter.apj
             build/MatekF405-TE/bin/arducopter.hex
+            build/MatekF405-TE/bin/arducopter_with_bl.hex
           if-no-files-found: error
