@@ -31,7 +31,16 @@ jobs:
       - name: Verify HAKRC board database entry
         run: |
           echo "===== BOARD DATABASE ====="
-          grep -E "^AP_HW_HAKRC_F405[[:space:]]+4200$" Tools/AP_Bootloader/board_types.txt
+          grep -E "^AP_HW_HAKRC_F405[[:space:]]+4200([[:space:]]*)$" Tools/AP_Bootloader/board_types.txt
+
+      - name: Validate source hwdef
+        run: |
+          echo "===== SOURCE HWDEF VALIDATION ====="
+          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PA4  GYRO_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PC4  GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PB12 OSD_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PA15 FLASH_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
       - name: Verify HAKRC clone mapping
         run: |
@@ -55,7 +64,15 @@ jobs:
         run: |
           echo "===== HWDEF BOARD ID ====="
           grep -R "APJ_BOARD_ID" build/FoxeerF405v2/
-          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+4200(U)?$" build/FoxeerF405v2/ || exit 1
+          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+4200(U)?[[:space:]]*$" build/FoxeerF405v2/ || exit 1
+
+      - name: Verify final board identity
+        shell: bash
+        run: |
+          echo "===== FINAL BOARD ID ====="
+          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+4200(U)?[[:space:]]*$" build/FoxeerF405v2/
+          echo "===== HAKRC TOKEN ====="
+          grep -E "^AP_HW_HAKRC_F405[[:space:]]+4200([[:space:]]*)$" Tools/AP_Bootloader/board_types.txt
 
       - name: Verify SPI physical mapping
         run: |
