@@ -22,11 +22,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-arm-none-eabi python3-setuptools python3-wheel ccache
-          pip3 install intelhex empy==3.3.4 pexpect
+          pip3 install intelhex empy==3.3.4 pexpect future
 
       - name: Hard reset target cache
         run: |
           rm -rf build
+
+      - name: Verify HAKRC board database entry
+        run: |
+          echo "===== BOARD DATABASE ====="
+          grep -E "^AP_HW_HAKRC_F405[[:space:]]+4200$" Tools/AP_Bootloader/board_types.txt
 
       - name: Verify HAKRC clone mapping
         run: |
@@ -40,22 +45,24 @@ jobs:
         run: |
           ./waf configure --board FoxeerF405v2
 
-      - name: Verify board identity
+      - name: Verify configured board
         run: |
-          echo "===== BOARD ID CHECK ====="
-          grep -R "FoxeerF405v2" build/FoxeerF405v2/config.h
-          grep -E "#define APJ_BOARD_ID 131" build/FoxeerF405v2/hwdef.h || exit 1
+          echo "===== BOARD CHECK ====="
+          test -d build/FoxeerF405v2
+          test -f build/FoxeerF405v2/hwdef.h
 
-      - name: Verify board ID value
+      - name: Verify generated board identity
         run: |
-          echo "===== BOARD ID VALUE ====="
-          grep "#define APJ_BOARD_ID" build/FoxeerF405v2/hwdef.h
+          echo "===== HWDEF BOARD ID ====="
+          grep -R "APJ_BOARD_ID" build/FoxeerF405v2/
+          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+4200(U)?$" build/FoxeerF405v2/ || exit 1
 
-      - name: Verify SPI devices
+      - name: Verify SPI physical mapping
         run: |
-          echo "===== SPI DEVICE CHECK ====="
-          grep -Rni "OSD_CS" build/FoxeerF405v2/hwdef.h
-          grep -Rni "FLASH_CS" build/FoxeerF405v2/hwdef.h
+          echo "===== SPI GPIO CHECK ====="
+          grep -Rni "PB12" build/FoxeerF405v2/
+          grep -Rni "PA15" build/FoxeerF405v2/
+          grep -Rni "PA4" build/FoxeerF405v2/
 
       - name: Verify scripting disabled
         run: |
@@ -90,7 +97,7 @@ jobs:
           touch build.log
           set +e
           ./waf copter -v 2>&1 | tee build.log
-          status=${PIPESTATUS}
+          status=${PIPESTATUS[0]}
           set -e
           exit $status
 
