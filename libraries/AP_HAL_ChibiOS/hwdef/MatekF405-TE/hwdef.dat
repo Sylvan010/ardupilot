@@ -17,13 +17,12 @@ OSCILLATOR_HZ 8000000
 
 define AP_SCRIPTING_ENABLED 0
 
-# Отключаем трехканальный AP_BoardLED2 и переводим систему на 1 штатный LED
+# Одноканальный режим светодиодов для исключения конфликтов в AP_Notify
 define AP_NOTIFY_GPIO_LED_2_ENABLED 0
 define HAL_NOTIFY_NUM_LEDS 1
 
-# Возвращаем стандартные теги, которые ChibiOS корректно скомпилирует в libch.a
+# Только один системный LED для ядра ChibiOS
 PC15 LED1 OUTPUT LOW
-PC14 LED2 OUTPUT LOW
 
 PC8  TIM8_CH3   TIM8  PWM(1)  GPIO(50)
 PC9  TIM8_CH4   TIM8  PWM(2)  GPIO(51)
@@ -42,9 +41,11 @@ PA5  SPI1_SCK  SPI1
 PA6  SPI1_MISO SPI1
 PA7  SPI1_MOSI SPI1
 
+# Глобальный флаг EXTI перенесен наверх для правильной инициализации прерываний IMU
+define HAL_EXTI_ENABLED 1
+
 PA4  GYRO_CS CS
 PC4  GYRO_INT INPUT PULLUP
-define HAL_EXTI_ENABLED 1
 
 SPIDEV icm42688 SPI1 DEVID1 GYRO_CS MODE3 2*MHZ 8*MHZ
 IMU Invensensev3 SPI:icm42688 ROTATION_YAW_90
