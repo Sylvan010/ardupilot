@@ -1,6 +1,6 @@
 # hwdef file for processing by chibios_hwdef.py
 # Target: HAKRC F405 V2 (Specific Revision) mapped as SpeedyBee F4 V3
-# INDUSTRIAL PRODUCTION TARGET FOR ARDUPILOT 4.6.3+ - DMA DISABLE HARDENING
+# INDUSTRIAL PRODUCTION TARGET FOR ARDUPILOT 4.6.3+ - UPSTREAM SAFE COMPILATION
 
 MCU STM32F4xx STM32F405xx
 APJ_BOARD_ID AP_HW_SPEEDYBEEF4V3
@@ -31,7 +31,7 @@ PA4  GYRO1_CS CS
 PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
 
-# SERIAL ORDER (SERIAL0 to SERIAL6 Absolute Hardware Indexes - Fixed Native UART5 Token)
+# SERIAL ORDER (SERIAL0 to SERIAL6 Absolute Hardware Indexes - Fixed Native Tokens)
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
@@ -104,9 +104,9 @@ define HAL_GPIO_B_LED_PIN 91
 
 # --- SPI DEVICE REGISTRY (Canonical Direct Hardware Pin Binding via Aliases) ---
 
-# IMU Target (Hard Target Driver Def for ICM42688 Core - Fully Supported in 4.6.3+)
+# IMU Target (Universal Upstream Invensense Class Driver Token for Maximum Compatibility)
 SPIDEV imu0 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
-IMU ICM42688 SPI:imu0 ROTATION_YAW_90
+IMU Invensense SPI:imu0 ROTATION_YAW_90
 
 # Flash Logger Registry (SPI3 Onboard Memory Partition via FLASH1_CS alias)
 SPIDEV flash SPI3 DEVID1 FLASH1_CS MODE3 21*MHZ 21*MHZ
