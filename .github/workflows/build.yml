@@ -17,16 +17,31 @@ jobs:
 
       - name: Hard Factory-Level 4.6.3 Verification
         run: |
-          echo "Running hardened factory-safe validation..."
-          
+          echo "===== DIAGNOSTIC HWDEF DIRECTORY LIST ====="
+          ls -la libraries/AP_HAL_ChibiOS/hwdef/ | grep -i speedy || true
+
           # Надежный пошаговый поиск папки платы с флагом -print -quit (Зафиксирован верхний регистр папки)
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "SpeedyBeeF4V3" -print -quit)
-          HWDEF_PATH=$HWDEF_DIR/hwdef.dat
-          echo "Found hwdef target path: $HWDEF_PATH"
+          echo "Found hwdef target directory: $HWDEF_DIR"
           
-          if [ -z "$HWDEF_PATH" ] || [ ! -f "$HWDEF_PATH" ]; then
-            echo "Error: Target hwdef.dat not found in repository structure!"
-            exit 1
+          if [ -z "$HWDEF_DIR" ]; then
+              echo "ERROR: SpeedyBeeF4V3 hwdef directory not found in repository!"
+              exit 1
+          fi
+
+          BOARD_TARGET=$(basename "$HWDEF_DIR")
+          if [ "$BOARD_TARGET" != "SpeedyBeeF4V3" ]; then
+              echo "ERROR: Wrong board directory case: $BOARD_TARGET"
+              echo "Expected exact upstream target name: SpeedyBeeF4V3"
+              exit 1
+          fi
+
+          HWDEF_PATH="$HWDEF_DIR/hwdef.dat"
+          echo "Found hwdef target path: $HWDEF_PATH"
+
+          if [ ! -f "$HWDEF_PATH" ]; then
+              echo "ERROR: hwdef.dat missing at path: $HWDEF_PATH"
+              exit 1
           fi
 
           # Сувора промислова верифікація рантайм-токенів під нову структуру (Жорсткий виробничий лок)
@@ -38,15 +53,18 @@ jobs:
           grep -q "PC6 USART6_TX USART6 NODMA" "$HWDEF_PATH" || exit 1
           grep -q "IMU Invensensev3 SPI:imu0" "$HWDEF_PATH" || exit 1
           grep -q "BARO BMP280 I2C:0:0x76" "$HWDEF_PATH" || exit 1
+
+          echo "===== SYSTEM-LEVEL UPSTREAM BACKEND VERIFICATION ====="
+          # Эластичный поиск бэкенда Invensensev3 по дереву каталогов (Лишний токен fi удален)
+          find libraries/AP_InertialSensor -iname "*Invensensev3*" -print -quit | grep -q . || {
+              echo "ERROR: Invensensev3 backend source files missing in this branch!"
+              exit 1
+          }
           
           echo "Factory-level validation PASSED."
 
       - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
         run: |
-          # Проверка фактического наличия папки в оригинальном верхнем регистре символов
-          echo "===== REPOSITORY HWDEF PATH TREE ====="
-          ls libraries/AP_HAL_ChibiOS/hwdef | grep Speedy || true
-          
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "SpeedyBeeF4V3" -print -quit)
           if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
 
@@ -54,9 +72,9 @@ jobs:
           echo "===== RESOLVED TARGET LOGIC ====="
           echo "BOARD_TARGET=$BOARD_TARGET"
           
-          # Запуск сборки с жестким перехватом pipefail и сохранением кода возврата Waf
+          # Запуск сборки с жестким set -e, временным set +e и расширенным разделителем STATUS ошибок
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
-            set -o pipefail ; \
+            set -e -o pipefail ; \
             git config --global --add safe.directory '*' ; \
             rm -rf build ; \
             ./waf distclean || true ; \
@@ -65,9 +83,15 @@ jobs:
             echo '===== EXECUTING WAF CONFIGURE =====' ; \
             ./waf configure --board $BOARD_TARGET || exit 1 ; \
             echo '===== EXECUTING WAF COPTER =====' ; \
+            set +e ; \
             ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log ; \
             STATUS=\${PIPESTATUS[0]} ; \
+            set -e ; \
             echo 'WAF EXIT CODE='\$STATUS ; \
+            if [ '\$STATUS' -ne 0 ]; then \
+                echo '===== BUILD FAILED =====' ; \
+                exit '\$STATUS' ; \
+            fi ; \
             echo '===== POST-BUILD ARTIFACT SEARCH =====' ; \
             find build -type f \( -name '*.apj' -o -name '*.hex' \) -print || true ; \
             exit \$STATUS
