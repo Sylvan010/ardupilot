@@ -19,7 +19,7 @@ jobs:
         run: |
           echo "Running hardened factory-safe validation..."
           
-          # Надійний пошук директорії плати через -print -quit (захист від бэкап папок)
+          # Надежный пошаговый поиск папки платы с флагом -iname без коллизий по -o операторам
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
           HWDEF_PATH=$HWDEF_DIR/hwdef.dat
           echo "Found hwdef target path: $HWDEF_PATH"
@@ -29,12 +29,13 @@ jobs:
             exit 1
           fi
 
-          # Еластична верифікація токенів сумісності за допомогою розширеного регулярного виразу
+          # Сувора промислова верифікація рантайм-токенів під нову структуру
           grep -q "AP_HW_SPEEDYBEEF4V3" "$HWDEF_PATH" || exit 1
           grep -q "SerialProtocol_CRSF" "$HWDEF_PATH" || exit 1
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
           grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
+          grep -q "PC6 USART6_TX USART6 NODMA" "$HWDEF_PATH" || exit 1
           grep -Eq "IMU Invensense(v3)? SPI:imu0" "$HWDEF_PATH" || exit 1
           grep -q "define AP_COMPASS_PROBING_ENABLED 0" "$HWDEF_PATH" || exit 1
           
@@ -42,7 +43,7 @@ jobs:
 
       - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
         run: |
-          # Автоматичне визначення імені таргету
+          # Автоматическое определение точного имени папки платы на основе -iname поиска
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
           
           if [ -z "$HWDEF_DIR" ]; then
@@ -53,13 +54,13 @@ jobs:
           BOARD_TARGET=$(basename "$HWDEF_DIR")
           echo "Compiling firmware for board target: $BOARD_TARGET"
           
-          # Чистий запуск збірки з перенаправленням логів у примонтирований об'єм ранера
+          # Ограничение сборки до 2 потоков (-j 2) для гарантированной защиты от Out-Of-Memory Killer
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
             git config --global --add safe.directory '*' && \
             rm -rf build && \
             ./waf distclean || true && \
             ./waf configure --board $BOARD_TARGET && \
-            ./waf copter -v 2>&1 | tee /ardupilot/build.log
+            ./waf copter -j 2 -v 2>&1 | tee /ardupilot/build.log
           "
 
       - name: Upload Target Artifacts
@@ -68,8 +69,8 @@ jobs:
         with:
           name: HAKRC-F405V2-ArduCopter-4.6.3
           path: |
-            build/**/bin/arducopter.apj
-            build/**/bin/arducopter.hex
+            build/**/arducopter.apj
+            build/**/arducopter.hex
 
       - name: Upload Linker Debug Log
         if: always()
