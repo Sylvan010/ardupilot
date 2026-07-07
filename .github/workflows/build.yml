@@ -24,9 +24,9 @@ jobs:
           path: |
             ~/.ccache
             build
-          key: hakrc-f405v2-build-${{ github.sha }}
+          key: hakrc-f405v2-matekf405-${{ runner.os }}
           restore-keys: |
-            hakrc-f405v2-build-
+            hakrc-f405v2-matekf405-
 
       - name: Install Prerequisite Packages
         run: |
@@ -41,6 +41,10 @@ jobs:
       - name: Build ArduCopter Firmware
         run: |
           ./waf copter
+
+      - name: Verify firmware memory
+        run: |
+          arm-none-eabi-size --format=berkeley build/MatekF405-TE/bin/arducopter.elf
 
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
