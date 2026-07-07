@@ -38,42 +38,76 @@ jobs:
             exit 1
           fi
 
-      - name: Configure Waf Build System (Forced Scripting Disable)
+      - name: Configure Waf Build System
         run: |
-          ./waf configure --board MatekF405-TE --disable-scripting
+          ./waf configure --board MatekF405-TE
 
       - name: Verify scripting disabled
         run: |
           echo "===== SCRIPT CHECK ====="
-          grep -Rni "AP_SCRIPTING_ENABLED" build/MatekF405-TE | head -20 || true
+          grep -Rni "AP_SCRIPTING_ENABLED" build/MatekF405-TE/config.h || true
+
+      - name: Verify LED mapping
+        run: |
+          echo "===== LED MAP CHECK ====="
+          grep -Rni "HAL_GPIO_A_LED_PIN" build/MatekF405-TE || true
+          grep -Rni "HAL_GPIO_B_LED_PIN" build/MatekF405-TE || true
+          grep -Rni "PC15" build/MatekF405-TE || true
+          grep -Rni "PC14" build/MatekF405-TE || true
+
+      - name: Validate no duplicate LED definitions
+        run: |
+          echo "===== LED DUPLICATE CHECK ====="
+          COUNT_A=$(grep -R "HAL_GPIO_A_LED_PIN" build/MatekF405-TE 2>/dev/null | wc -l)
+          COUNT_B=$(grep -R "HAL_GPIO_B_LED_PIN" build/MatekF405-TE 2>/dev/null | wc -l)
+
+          COUNT_A=${COUNT_A:-0}
+          COUNT_B=${COUNT_B:-0}
+
+          echo "LED A definitions: $COUNT_A"
+          echo "LED B definitions: $COUNT_B"
+
+          if [ "$COUNT_A" -gt 1 ]; then
+             echo "ERROR: multiple HAL_GPIO_A_LED_PIN definitions"
+             exit 1
+          fi
+
+          if [ "$COUNT_B" -gt 1 ]; then
+             echo "ERROR: multiple HAL_GPIO_B_LED_PIN definitions"
+             exit 1
+          fi
+
+      - name: Verify IMU interrupt
+        run: |
+          echo "===== GYRO INT CHECK ====="
+          grep -Rni "PC4" build/MatekF405-TE || true
+          grep -Rni "EXTI" build/MatekF405-TE || true
 
       - name: Verify generated hwdef
         run: |
           echo "===== GENERATED HWDEF CHECK ====="
-          grep -n "GYRO_INT" build/MatekF405-TE/hwdef.h || true
-          grep -n "GPIO(70)" build/MatekF405-TE/hwdef.h || true
-          grep -n "HAL_GPIO_PIN" build/MatekF405-TE/hwdef.h | grep PC4 || true
-          grep -n "LED" build/MatekF405-TE/hwdef.h || true
+          test -f build/MatekF405-TE/hwdef.h
+          grep -Rni "HAL_EXTI_ENABLED" build/MatekF405-TE || true
+          grep -Rni "TIM3" build/MatekF405-TE || true
 
-      - name: Dump hwdef
+      - name: Dump critical pins configuration
         run: |
-          sed -n '1,200p' build/MatekF405-TE/hwdef.h
+          echo "===== CRITICAL PIN DUMP ====="
+          grep -Rni "LED\|PC14\|PC15\|PC4\|EXTI" build/MatekF405-TE || true
 
       - name: Inspect generated ChibiOS files
         run: |
           echo "===== GENERATED FILES ====="
           find build/MatekF405-TE -maxdepth 2 -type f | sort | grep -E "hwdef|chibios|board" || true
-          echo "===== PC4 / GYRO_INT / EXTI ====="
-          grep -RniE "PC4|GYRO_INT|PAL_LINE|EXTI" build/MatekF405-TE || true
 
       - name: Dump generated pins
         run: |
           echo "===== GPIO DEFINES ====="
-          grep -n "GPIO" build/MatekF405-TE/hwdef.h | head -100 || true
+          grep -Rni "GPIO" build/MatekF405-TE | head -100 || true
           echo "===== EXTI ====="
-          grep -n "EXTI" build/MatekF405-TE/hwdef.h || true
+          grep -Rni "EXTI" build/MatekF405-TE || true
           echo "===== PWM ====="
-          grep -n "PWM" build/MatekF405-TE/hwdef.h | head -50 || true
+          grep -Rni "PWM" build/MatekF405-TE | head -50 || true
 
       - name: Build ArduCopter Firmware
         shell: bash
@@ -95,10 +129,8 @@ jobs:
       - name: Show ChibiOS generated files on failure
         if: failure()
         run: |
-          echo "===== hwdef.h ====="
-          grep -n "PC4\|GPIO\|EXTI\|LED" build/MatekF405-TE/hwdef.h || true
-          echo "===== chibios_hwdef.c ====="
-          grep -n "PC4\|PAL_LINE\|EXTI" build/MatekF405-TE/chibios_hwdef.c || true
+          echo "===== hwdef components failure status ====="
+          grep -Rni "PC4\|GPIO\|EXTI\|LED" build/MatekF405-TE || true
           echo "===== build errors ====="
           grep -Rni "error:" build/MatekF405-TE | head -50 || true
 
@@ -106,7 +138,7 @@ jobs:
         run: |
           arm-none-eabi-size --format=berkeley build/MatekF405-TE/bin/arducopter.elf
 
-      - name: Upload Firmware Artifacts
+      - name: Publish Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: HAKRC-F405V2-ArduCopter-Firmware
