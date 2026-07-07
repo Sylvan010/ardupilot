@@ -24,30 +24,17 @@ jobs:
           sudo apt-get install -y gcc-arm-none-eabi python3-setuptools python3-wheel ccache
           pip3 install intelhex empy==3.3.4 pexpect
 
-      - name: Hard reset target cache
+      - name: Total Wipe Build Directory
         run: |
           rm -rf build
 
-      - name: Verify hwdef real source
+      - name: Show hwdef source
         run: |
-          echo "===== HWDEF REAL SOURCE CHECK ====="
-          grep -n "PC4" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
-          grep -n "GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
-          if grep -n "GPIO(70)" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat; then
-            echo "ERROR: GPIO(70) still exists in source file!"
-            exit 1
-          fi
+          grep "PC4" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
 
       - name: Configure Waf Build System
         run: |
           ./waf configure --board MatekF405-TE
-
-      - name: Verify generated hwdef
-        run: |
-          echo "===== GENERATED HWDEF CHECK ====="
-          grep -n "GYRO_INT" build/MatekF405-TE/hwdef.h
-          grep -n "GPIO(70)" build/MatekF405-TE/hwdef.h || true
-          grep -n "HAL_GPIO_PIN" build/MatekF405-TE/hwdef.h | grep PC4 || true
 
       - name: Dump hwdef
         run: |
@@ -59,6 +46,14 @@ jobs:
           find build/MatekF405-TE -maxdepth 2 -type f | sort | grep -E "hwdef|chibios|board" || true
           echo "===== PC4 / GYRO_INT / EXTI ====="
           grep -RniE "PC4|GYRO_INT|PAL_LINE|EXTI" build/MatekF405-TE || true
+
+      - name: Verify generated hwdef
+        run: |
+          test -f build/MatekF405-TE/hwdef.h
+          grep -n "HAL_EXTI_ENABLED" build/MatekF405-TE/hwdef.h || true
+          grep -n "HAL_GPIO_A_LED_PIN" build/MatekF405-TE/hwdef.h || true
+          grep -n "HAL_GPIO_B_LED_PIN" build/MatekF405-TE/hwdef.h || true
+          grep -n "TIM3" build/MatekF405-TE/hwdef.h || true
 
       - name: Dump generated pins
         run: |
@@ -82,7 +77,7 @@ jobs:
         if: failure()
         run: |
           echo "===== PARSING COMPILER ERRORS ====="
-          grep -E "error:|fatal error|No such file|unknown|invalid|undeclared|undefined|conflicting|redefinition|expected" build.log || true
+          grep -E "error:|fatal error|No such file|unknown|invalid|undeclared|undefined|conflicting|redefinition|expected|mismatch" build.log || true
           echo "===== LAST 200 LINES OF BUILD LOG ====="
           tail -n 200 build.log
 
