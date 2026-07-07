@@ -44,7 +44,12 @@ jobs:
         run: |
           echo "===== BOARD ID CHECK ====="
           grep -R "FoxeerF405v2" build/FoxeerF405v2/config.h
-          grep -R "APJ_BOARD_ID" build/FoxeerF405v2/ || exit 1
+          grep -E "#define APJ_BOARD_ID 131" build/FoxeerF405v2/hwdef.h || exit 1
+
+      - name: Verify board ID value
+        run: |
+          echo "===== BOARD ID VALUE ====="
+          grep "#define APJ_BOARD_ID" build/FoxeerF405v2/hwdef.h
 
       - name: Verify SPI devices
         run: |
@@ -85,7 +90,7 @@ jobs:
           touch build.log
           set +e
           ./waf copter -v 2>&1 | tee build.log
-          status=${PIPESTATUS[0]}
+          status=${PIPESTATUS}
           set -e
           exit $status
 
