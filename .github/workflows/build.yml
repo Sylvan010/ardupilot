@@ -38,9 +38,9 @@ jobs:
             exit 1
           fi
 
-      - name: Configure Waf Build System
+      - name: Configure Waf Build System (Forced Scripting Disable)
         run: |
-          ./waf configure --board MatekF405-TE
+          ./waf configure --board MatekF405-TE --disable-scripting
 
       - name: Verify scripting disabled
         run: |
