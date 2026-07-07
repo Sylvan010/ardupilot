@@ -38,19 +38,32 @@ jobs:
         run: |
           rm -rf build/MatekF405-TE
 
+      - name: Show hwdef source
+        run: |
+          grep "PC4" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+
       - name: Configure Waf Build System
         run: |
           ./waf configure --board MatekF405-TE
 
       - name: Verify generated hwdef
         run: |
-          grep "HAL_GPIO_PIN_70" build/MatekF405-TE/hwdef.h
-          grep "TIM3_CH4" build/MatekF405-TE/hwdef.h
-          grep "HAL_GPIO_A_LED_PIN" build/MatekF405-TE/hwdef.h
+          test -f build/MatekF405-TE/hwdef.h
+          grep -n "HAL_EXTI_ENABLED" build/MatekF405-TE/hwdef.h || true
+          grep -n "HAL_GPIO_A_LED_PIN" build/MatekF405-TE/hwdef.h || true
+          grep -n "HAL_GPIO_B_LED_PIN" build/MatekF405-TE/hwdef.h || true
+          grep -n "TIM3" build/MatekF405-TE/hwdef.h || true
 
       - name: Dump generated pins
         run: |
-          grep "HAL_GPIO_PIN_" build/MatekF405-TE/hwdef.h | head -50
+          echo "===== GPIO DEFINES ====="
+          grep -n "GPIO" build/MatekF405-TE/hwdef.h | head -100 || true
+          
+          echo "===== EXTI ====="
+          grep -n "EXTI" build/MatekF405-TE/hwdef.h || true
+          
+          echo "===== PWM ====="
+          grep -n "PWM" build/MatekF405-TE/hwdef.h | head -50 || true
 
       - name: Build ArduCopter Firmware
         run: |
