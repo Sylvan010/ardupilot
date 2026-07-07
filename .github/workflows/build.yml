@@ -53,6 +53,10 @@ jobs:
           grep -q "PC6 USART6_TX USART6 NODMA" "$HWDEF_PATH" || exit 1
           grep -q "IMU Invensensev3 SPI:imu0" "$HWDEF_PATH" || exit 1
           grep -q "BARO BMP280 I2C:0:0x76" "$HWDEF_PATH" || exit 1
+
+          echo "===== REPOSITORY INTEGRITY SYSTEM CHECK ====="
+          # Жесткая верификация существования BOARD_ID в ядре ArduPilot до запуска Docker-контейнера
+          grep -R "AP_HW_SPEEDYBEEF4V3" libraries/AP_HAL_ChibiOS -n
           
           echo "Factory-level validation PASSED."
 
@@ -64,7 +68,7 @@ jobs:
           echo "===== RESOLVED TARGET LOGIC ====="
           echo "BOARD_TARGET=$BOARD_TARGET"
           
-          # Пуленепробиваемый запуск Docker через bash -lc '...' исключает съедание знаков доллара $ ранером
+          # Запуск сборки с использованием пуленепробиваемого bash -lc '...' исключает съедание знаков доллара $ ранером
           docker run --rm \
             -v "${{ github.workspace }}:/ardupilot" \
             -w /ardupilot \
@@ -75,22 +79,26 @@ jobs:
             rm -rf build
             ./waf distclean || true
             echo "===== BOARD CHECK ====="
-            ./waf list_boards | grep -i speedybeef4v3 || true
+            ./waf list_boards | grep -i speedybeef4v3
             echo "===== CONFIGURE ====="
             ./waf configure --board speedybeef4v3
             echo "===== BUILD COPTER ====="
             ./waf copter -j 1 -v
-            echo "===== FIRMWARE SIZE METRICS ====="
-            find build -name arducopter -exec arm-none-eabi-size {} \; || true
+            echo "===== FIRMWARE SIZE SEGMENTATION METRICS ====="
+            find build -name arducopter -exec arm-none-eabi-size -A {} \; || true
           '
 
       - name: Advanced Error Diagnostics On Failure
         if: failure()
         run: |
-          echo "===== BUILD DETECTED FAILURE: COPIED NATIVE WAF LOG ====="
-          tail -n 150 build/speedybeef4v3/build.log || true
-          echo "===== SIZE CHECK ON FAILURE ====="
-          find build -name arducopter -exec arm-none-eabi-size {} \; || true
+          echo "===== BUILD TREE ON FAILURE ====="
+          find build -maxdepth 3 -type f | head -n 50 || true
+
+          echo "===== DETAILED SIZE SEGMENTATION ON FAILURE ====="
+          find build -name arducopter -exec arm-none-eabi-size -A {} \; || true
+
+          echo "===== LAST LOGS DIRECT DUMP ====="
+          find build -name "*.log" -exec echo "--- LOG FILE: {} ---" \; -exec tail -n 100 {} \; || true
 
       - name: Upload Target Artifacts
         if: success()
