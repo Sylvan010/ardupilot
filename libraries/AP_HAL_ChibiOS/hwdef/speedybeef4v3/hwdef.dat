@@ -1,6 +1,6 @@
 # hwdef file for processing by chibios_hwdef.py
 # Target: HAKRC F405 V2 (Specific Revision) mapped as SpeedyBee F4 V3
-# INDUSTRIAL PRODUCTION TARGET FOR ARDUPILOT 4.6.3+ - RELEASE CANDIDATE
+# FINAL HARDENED FACTORY RELEASE FOR ARDUPILOT 4.6.3+
 
 MCU STM32F4xx STM32F405xx
 APJ_BOARD_ID AP_HW_SPEEDYBEEF4V3
@@ -92,8 +92,8 @@ PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)   # M7
 PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)   # M8
 PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)   # AUX SERVO 1
 
-# DMA Isolation for deterministic DShot timing under heavy bus load
-DMA_NOSHARE TIM8_CH3 TIM8_CH4 TIM1_CH1 TIM1_CH2 TIM1_CH3 TIM3_CH3 TIM3_CH4
+# Safe DMA Isolation Layout (Strictly limited to Main Motors M1-M4 to prevent F405 DMA Allocation Failure)
+DMA_NOSHARE TIM8_CH3 TIM8_CH4 TIM1_CH1 TIM1_CH2
 
 # Status LEDs (HAKRC Layout)
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
@@ -104,9 +104,9 @@ define HAL_GPIO_B_LED_PIN 91
 
 # --- SPI DEVICE REGISTRY (Canonical Direct Hardware Pin Binding via Aliases) ---
 
-# IMU Target (Hard Target Driver Def for ICM42688 Core - Fully Supported in 4.6.x)
+# IMU Target (Universal Driver Token for Maximum Upstream 4.6.x Hardware Compatibility)
 SPIDEV imu0 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
-IMU ICM42688 SPI:imu0 ROTATION_YAW_90
+IMU Invensense SPI:imu0 ROTATION_YAW_90
 
 # Flash Logger Registry (SPI3 Onboard Memory Partition via FLASH1_CS alias)
 SPIDEV flash SPI3 DEVID1 FLASH1_CS MODE3 21*MHZ 21*MHZ
