@@ -1,6 +1,6 @@
 # hwdef file for processing by chibios_hwdef.py
 # Target: HAKRC F405 V2 (Specific Revision) mapped as SpeedyBee F4 V3
-# INDUSTRIAL PRODUCTION TARGET FOR ARDUPILOT 4.6.3+ - FAST BOOT LOCK
+# INDUSTRIAL PRODUCTION TARGET FOR ARDUPILOT 4.6.3+ - ARCHITECTURAL UART5 LOCK
 
 MCU STM32F4xx STM32F405xx
 APJ_BOARD_ID AP_HW_SPEEDYBEEF4V3
@@ -31,12 +31,12 @@ PA4  GYRO1_CS CS
 PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
 
-# SERIAL ORDER (SERIAL0 to SERIAL6 Absolute Hardware Indexes - Fixed Native UART5 Token)
+# SERIAL ORDER (SERIAL0 to SERIAL6 Absolute Hardware Indexes - Verified NATIVE UART5 Token)
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
 
-# SERIAL1: USART1 (UART1 -> Fixed ELRS / CRSF Protocol Lock)
+# SERIAL1: USART1 (UART1 -> Fixed ELRS / CRSF Receiver Input Link)
 PB6 USART1_TX USART1
 PB7 USART1_RX USART1
 define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_CRSF
@@ -56,18 +56,18 @@ PA0 UART4_TX UART4
 PA1 UART4_RX UART4
 define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_MAVLink2
 
-# SERIAL5: UART5 ESC Telemetry - Forced Polled Mode (Clean Compile Isolation Lock)
+# SERIAL5: UART5 ESC Telemetry - Forced Polled Mode (Symmetric NODMA Pins Matching SERIAL_ORDER)
 PC12 UART5_TX UART5 NODMA
 PD2  UART5_RX UART5 NODMA
-define DEFAULT_SERIAL5_PROTOCOL SerialProtocol_None
+define DEFAULT_SERIAL5_PROTOCOL SerialProtocol_ESCTelemetry
 define DEFAULT_SERIAL5_BAUD 19200
 
-# SERIAL6: USART6 (Auxiliary / Airspeed Extension Port - Hardened Symmetric NODMA Engine)
-PC6 USART6_TX USART6 NODMA
+# SERIAL6: USART6 (Auxiliary / Airspeed Extension Port)
+PC6 USART6_TX USART6
 PC7 USART6_RX USART6 NODMA
 define DEFAULT_SERIAL6_PROTOCOL SerialProtocol_None
 
-# I2C Subsystem Registry (External Compass & External Digital Airspeed Sensors)
+# I2C Subsystem Registry (Compass & Airspeed)
 I2C_ORDER I2C1
 PB8 I2C1_SCL I2C1
 PB9 I2C1_SDA I2C1
@@ -102,9 +102,9 @@ define HAL_GPIO_A_LED_PIN 90
 PC14 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_B_LED_PIN 91
 
-# --- SPI DEVICE REGISTRY ---
+# --- SPI DEVICE REGISTRY (Canonical Direct Hardware Pin Binding via Aliases) ---
 
-# IMU Target (Universal Driver Token for Maximum Upstream Hardware Compatibility)
+# IMU Target (Universal Driver Token for Maximum Upstream 4.6.3+ Hardware Compatibility)
 SPIDEV imu0 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
 IMU Invensense SPI:imu0 ROTATION_YAW_90
 
@@ -129,9 +129,9 @@ define AP_RCPROTOCOL_SBUS_ENABLED 0
 define AP_RCPROTOCOL_PPM_ENABLED 0
 define AP_RCPROTOCOL_IBUS_ENABLED 0
 
-# Core Safety & Navigation Constraints (Fast Boot Configuration)
+# Core Safety & Navigation Constraints
 define ALLOW_ARM_NO_COMPASS
-define AP_COMPASS_PROBING_ENABLED 0
+define AP_COMPASS_PROBING_ENABLED 1
 define HAL_I2C_INTERNAL_MASK 0
 define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 define HAL_DEFAULT_INS_FAST_SAMPLE 2
