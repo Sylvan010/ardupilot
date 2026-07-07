@@ -19,8 +19,8 @@ jobs:
         run: |
           echo "Running hardened factory-safe validation..."
           
-          # Надійний пошук папки плати без чутливості до мінорних колізій регістру у find
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "SpeedyBeeF4V3" -o -name "speedybeef4v3" | head -n1)
+          # Надійний пошук директорії плати через -print -quit (захист від бэкап папок)
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
           HWDEF_PATH=$HWDEF_DIR/hwdef.dat
           echo "Found hwdef target path: $HWDEF_PATH"
           
@@ -29,30 +29,37 @@ jobs:
             exit 1
           fi
 
-          # Сувора промислова верифікація рантайм-токенів під нову структуру
+          # Еластична верифікація токенів сумісності за допомогою розширеного регулярного виразу
           grep -q "AP_HW_SPEEDYBEEF4V3" "$HWDEF_PATH" || exit 1
           grep -q "SerialProtocol_CRSF" "$HWDEF_PATH" || exit 1
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
           grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
-          grep -q "IMU Invensense" "$HWDEF_PATH" || exit 1
+          grep -Eq "IMU Invensense(v3)? SPI:imu0" "$HWDEF_PATH" || exit 1
+          grep -q "define AP_COMPASS_PROBING_ENABLED 0" "$HWDEF_PATH" || exit 1
           
           echo "Factory-level validation PASSED."
 
-      - name: Compile Firmware inside Docker (ArduPilot 4.6.3 Isolated Environment)
+      - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
         run: |
-          # Автоматичне визначення точного імені папки плати без колізій бекіпів
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "SpeedyBeeF4V3" -o -name "speedybeef4v3" | head -n1)
+          # Автоматичне визначення імені таргету
+          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -iname "SpeedyBeeF4V3" -print -quit)
+          
+          if [ -z "$HWDEF_DIR" ]; then
+            echo "ERROR: hwdef directory not found"
+            exit 1
+          fi
+
           BOARD_TARGET=$(basename "$HWDEF_DIR")
           echo "Compiling firmware for board target: $BOARD_TARGET"
           
-          # Запуск збірки строго всередині контейнера версії 4.6.3 із перенаправленням логів лінкера в файл за вашою схемою
-          docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:4.6.3 /bin/bash -c "
+          # Чистий запуск збірки з перенаправленням логів у примонтирований об'єм ранера
+          docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
             git config --global --add safe.directory '*' && \
             rm -rf build && \
-            ./waf distclean && \
+            ./waf distclean || true && \
             ./waf configure --board $BOARD_TARGET && \
-            ./waf copter -v 2>&1 | tee build.log
+            ./waf copter -v 2>&1 | tee /ardupilot/build.log
           "
 
       - name: Upload Target Artifacts
