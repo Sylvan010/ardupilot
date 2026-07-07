@@ -62,69 +62,50 @@ jobs:
           if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
           BOARD_TARGET=$(basename "$HWDEF_DIR")
 
-          # Написание пуленепробиваемого sh-скрипта на диск хоста ранера для исключения YAML-конфликтов массивов PIPESTATUS
-          cat << 'EOF' > run_build.sh
-          #!/bin/bash
+          # Запуск контейнера со строгим $$ экранированием и фиксацией WAF_STATUS на той же строке
+          docker run --rm \
+            -v "${{ github.workspace }}:/ardupilot" \
+            -w /ardupilot \
+            ardupilot/ardupilot-dev-chibios:latest \
+            /bin/bash -c '
+
           set -e
           set -o pipefail
 
-          git config --global --add safe.directory '*'
+          git config --global --add safe.directory "*"
           rm -rf build
 
           ./waf distclean || true
 
           echo "===== BOARD CHECK ====="
-          ./waf list_boards | grep -i "speedybeef4v3"
+          ./waf list_boards | grep -i speedybeef4v3 || true
 
-          echo "===== EXECUTING WAF CONFIGURE ====="
+          echo "===== CONFIGURE ====="
           ./waf configure --board speedybeef4v3
 
-          echo "===== EXECUTING WAF COPTER ====="
+          echo "===== BUILD COPTER ====="
           set +e
 
-          ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log
-          STATUS=${PIPESTATUS[0]}
-          
-          set -e
-          echo "WAF EXIT CODE=$STATUS"
+          ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log ; WAF_STATUS=$${PIPESTATUS[0]}
 
-          if [ "$STATUS" -ne 0 ]; then
+          set -e
+
+          echo "WAF STATUS=$${WAF_STATUS}"
+
+          if [ "$${WAF_STATUS}" != "0" ]; then
+
+              echo "===== LAST 100 LOG ====="
+              tail -n 100 /ardupilot/build.log || true
+
               echo "===== SIZE CHECK ON FAILURE ====="
               find build -name arducopter -exec arm-none-eabi-size {} \; || true
-              echo "===== LAST 100 BUILD LOG LINES ====="
-              tail -n 100 /ardupilot/build.log || true
+
               echo "===== BUILD FAILED ====="
-              exit "$STATUS"
+              exit $${WAF_STATUS}
           fi
 
-          echo "===== BUILD SUCCESS ====="
+          echo "===== SUCCESS ====="
           find build -type f \( -name "*.apj" -o -name "*.hex" \) -print || true
           find build -name arducopter -exec arm-none-eabi-size {} \; || true
-          exit "$STATUS"
-          EOF
 
-          chmod +x run_build.sh
-
-          # Проброс и изолированное исполнение sh-скрипта через --entrypoint внутри Docker-контейнера
-          docker run --rm \
-            --entrypoint /bin/bash \
-            -v "${{ github.workspace }}:/ardupilot" \
-            -w /ardupilot \
-            ardupilot/ardupilot-dev-chibios:latest \
-            /ardupilot/run_build.sh
-
-      - name: Upload Target Artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: HAKRC-F405V2-ArduCopter-4.6.3
-          path: |
-            build/**/bin/*.apj
-            build/**/bin/*.hex
-
-      - name: Upload Linker Debug Log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: linker-debug-log
-          path: build.log
+          '
