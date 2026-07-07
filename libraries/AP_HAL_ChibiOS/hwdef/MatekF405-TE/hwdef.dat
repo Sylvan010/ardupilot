@@ -24,9 +24,9 @@ define HAL_GPIO_C_LED_PIN 46
 define HAL_NOTIFY_NUM_LEDS 2
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
 
-# Конфигурация физических ног процессора
-PC15 OUTPUT LOW
-PC14 OUTPUT LOW
+# Конфигурация физических ног процессора с жестким указанием GPIO каналов
+PC15 GPIO(47) OUTPUT LOW
+PC14 GPIO(46) OUTPUT LOW
 
 PC8  TIM8_CH3   TIM8  PWM(1)  GPIO(50)
 PC9  TIM8_CH4   TIM8  PWM(2)  GPIO(51)
