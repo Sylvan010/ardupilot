@@ -64,50 +64,39 @@ jobs:
           echo "===== RESOLVED TARGET LOGIC ====="
           echo "BOARD_TARGET=$BOARD_TARGET"
           
-          # Запуск сборки с использованием пуленепробиваемого $$ экранирования внутри одинарных кавычек
+          # Пуленепробиваемый запуск Docker через bash -lc '...' исключает съедание знаков доллара $ ранером
           docker run --rm \
             -v "${{ github.workspace }}:/ardupilot" \
             -w /ardupilot \
             ardupilot/ardupilot-dev-chibios:latest \
-            /bin/bash -c '
+            /bin/bash -lc '
+            set -e
+            git config --global --add safe.directory "*"
+            rm -rf build
+            ./waf distclean || true
+            echo "===== BOARD CHECK ====="
+            ./waf list_boards | grep -i speedybeef4v3 || true
+            echo "===== CONFIGURE ====="
+            ./waf configure --board speedybeef4v3
+            echo "===== BUILD COPTER ====="
+            ./waf copter -j 1 -v
+            echo "===== FIRMWARE SIZE METRICS ====="
+            find build -name arducopter -exec arm-none-eabi-size {} \; || true
+          '
 
-          set -e
-          set -o pipefail
-
-          git config --global --add safe.directory "*"
-          rm -rf build
-
-          ./waf distclean || true
-
-          echo "===== BOARD CHECK ====="
-          ./waf list_boards | grep -i speedybeef4v3 || true
-
-          echo "===== CONFIGURE ====="
-          ./waf configure --board speedybeef4v3
-
-          echo "===== BUILD COPTER ====="
-          set +e
-
-          ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log ; WAF_STATUS=$${PIPESTATUS}
-
-          set -e
-
-          echo "WAF STATUS=$${WAF_STATUS}"
-
-          if [ "$${WAF_STATUS}" != "0" ]; then
-
-              echo "===== LAST 150 LOG ====="
-              tail -n 150 /ardupilot/build.log || true
-
-              echo "===== SIZE CHECK ON FAILURE ====="
-              find build -name arducopter -exec arm-none-eabi-size {} \; || true
-
-              echo "===== BUILD FAILED ====="
-              exit $${WAF_STATUS}
-          fi
-
-          echo "===== SUCCESS ====="
-          find build -type f \( -name "*.apj" -o -name "*.hex" \) -print || true
+      - name: Advanced Error Diagnostics On Failure
+        if: failure()
+        run: |
+          echo "===== BUILD DETECTED FAILURE: COPIED NATIVE WAF LOG ====="
+          tail -n 150 build/speedybeef4v3/build.log || true
+          echo "===== SIZE CHECK ON FAILURE ====="
           find build -name arducopter -exec arm-none-eabi-size {} \; || true
 
-          '
+      - name: Upload Target Artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAKRC-F405V2-ArduCopter-4.6.3
+          path: |
+            build/**/bin/*.apj
+            build/**/bin/*.hex
