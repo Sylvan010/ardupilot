@@ -61,8 +61,10 @@ jobs:
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "speedybeef4v3" -print -quit)
           if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
           BOARD_TARGET=$(basename "$HWDEF_DIR")
-
-          # Запуск контейнера со строгим $$ экранированием и фиксацией WAF_STATUS на той же строке
+          echo "===== RESOLVED TARGET LOGIC ====="
+          echo "BOARD_TARGET=$BOARD_TARGET"
+          
+          # Запуск сборки с использованием пуленепробиваемого $$ экранирования внутри одинарных кавычек
           docker run --rm \
             -v "${{ github.workspace }}:/ardupilot" \
             -w /ardupilot \
@@ -86,7 +88,7 @@ jobs:
           echo "===== BUILD COPTER ====="
           set +e
 
-          ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log ; WAF_STATUS=$${PIPESTATUS[0]}
+          ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log ; WAF_STATUS=$${PIPESTATUS}
 
           set -e
 
@@ -94,8 +96,8 @@ jobs:
 
           if [ "$${WAF_STATUS}" != "0" ]; then
 
-              echo "===== LAST 100 LOG ====="
-              tail -n 100 /ardupilot/build.log || true
+              echo "===== LAST 150 LOG ====="
+              tail -n 150 /ardupilot/build.log || true
 
               echo "===== SIZE CHECK ON FAILURE ====="
               find build -name arducopter -exec arm-none-eabi-size {} \; || true
