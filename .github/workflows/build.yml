@@ -29,12 +29,13 @@ jobs:
             exit 1
           fi
 
-          # Строгая промышленная верификация рантайм-токенов под ArduPilot 4.6.3+
+          # Сувора промислова верифікація рантайм-токенів під нову структуру
           grep -q "AP_HW_SPEEDYBEEF4V3" "$HWDEF_PATH" || exit 1
           grep -q "SerialProtocol_CRSF" "$HWDEF_PATH" || exit 1
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
-          grep -q "DMA_NOSHARE TIM8_CH3 TIM8_CH4 TIM1_CH1 TIM1_CH2" "$HWDEF_PATH" || exit 1
+          grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
+          grep -q "IMU ICM42688" "$HWDEF_PATH" || exit 1
           
           echo "Factory-level validation PASSED."
 
@@ -45,8 +46,11 @@ jobs:
           BOARD_TARGET=$(basename "$HWDEF_DIR")
           echo "Compiling firmware for board target: $BOARD_TARGET"
           
+          # Полное принудительное уничтожение папки build и вызов distclean
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
             git config --global --add safe.directory '*' && \
+            rm -rf build && \
+            ./waf distclean && \
             ./waf configure --board $BOARD_TARGET && \
             ./waf copter
           "
