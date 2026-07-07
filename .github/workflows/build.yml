@@ -19,7 +19,7 @@ jobs:
         run: |
           echo "Running hardened factory-safe validation..."
           
-          # Безопасный пошаговый поиск папки, защищенный от дубликатов с помощью head -n1
+          # Безпечний покроковий пошук папки, застрахований за допомогою head -n1
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
           HWDEF_PATH=$HWDEF_DIR/hwdef.dat
           echo "Found hwdef target path: $HWDEF_PATH"
@@ -35,18 +35,18 @@ jobs:
           grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
           grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
           grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
-          grep -q "IMU ICM42688" "$HWDEF_PATH" || exit 1
+          grep -q "IMU Invensense" "$HWDEF_PATH" || exit 1
           
           echo "Factory-level validation PASSED."
 
       - name: Compile Firmware inside Docker (ArduPilot 4.6.3 Branch Environment)
         run: |
-          # Автоматическое определение точного имени папки платы без коллизий бэкапов
+          # Автоматичне визначення точного імені папки плати без колізій бэкапов
           HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -iname "SpeedyBeeF4V3" -type d | head -n1)
           BOARD_TARGET=$(basename "$HWDEF_DIR")
           echo "Compiling firmware for board target: $BOARD_TARGET"
           
-          # Полное принудительное уничтожение папки build и вызов distclean
+          # Повне примусове знищення папки build і визов distclean
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
             git config --global --add safe.directory '*' && \
             rm -rf build && \
