@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "===== HAKRC CLONE MAP ====="
           grep "PC4.*GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep "PC15.*LED0" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PC14.*LED0" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           grep "PB12.*OSD_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           grep "PA15.*FLASH_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
@@ -40,10 +40,17 @@ jobs:
         run: |
           ./waf configure --board FoxeerF405v2
 
-      - name: Verify configured board
+      - name: Verify board identity
         run: |
-          echo "===== BOARD CHECK ====="
+          echo "===== BOARD ID CHECK ====="
           grep -R "FoxeerF405v2" build/FoxeerF405v2/config.h
+          grep -R "APJ_BOARD_ID" build/FoxeerF405v2/ || exit 1
+
+      - name: Verify SPI devices
+        run: |
+          echo "===== SPI DEVICE CHECK ====="
+          grep -Rni "OSD_CS" build/FoxeerF405v2/hwdef.h
+          grep -Rni "FLASH_CS" build/FoxeerF405v2/hwdef.h
 
       - name: Verify scripting disabled
         run: |
@@ -53,7 +60,7 @@ jobs:
       - name: Verify LED mapping
         run: |
           echo "===== LED MAP CHECK ====="
-          grep -Rni "PC15" build/FoxeerF405v2/ || true
+          grep -Rni "PC14" build/FoxeerF405v2/ || true
 
       - name: Verify IMU interrupt
         run: |
@@ -70,7 +77,7 @@ jobs:
       - name: Dump critical pins configuration
         run: |
           echo "===== CRITICAL PIN DUMP ====="
-          grep -Rni "LED\|PC15\|PC4\|EXTI" build/FoxeerF405v2/ || true
+          grep -Rni "LED\|PC14\|PC4\|EXTI" build/FoxeerF405v2/ || true
 
       - name: Build ArduCopter Firmware
         shell: bash
