@@ -31,46 +31,46 @@ jobs:
       - name: Verify HAKRC clone mapping
         run: |
           echo "===== HAKRC CLONE MAP ====="
-          grep "PC4.*GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
-          grep "PC15.*LED0" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
-          grep "PB12.*OSD_CS" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
-          grep "PA15.*FLASH_CS" libraries/AP_HAL_ChibiOS/hwdef/MatekF405-TE/hwdef.dat
+          grep "PC4.*GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PC15.*LED0" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PB12.*OSD_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PA15.*FLASH_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
       - name: Configure Waf Build System
         run: |
-          ./waf configure --board MatekF405-TE
+          ./waf configure --board FoxeerF405v2
 
       - name: Verify configured board
         run: |
           echo "===== BOARD CHECK ====="
-          grep -R "MatekF405-TE" build/MatekF405-TE/config.h || true
+          grep -R "FoxeerF405v2" build/FoxeerF405v2/config.h
 
       - name: Verify scripting disabled
         run: |
           echo "===== SCRIPT CHECK ====="
-          grep -Rni "AP_SCRIPTING_ENABLED" build/MatekF405-TE/ || true
+          grep -Rni "AP_SCRIPTING_ENABLED" build/FoxeerF405v2/ || true
 
       - name: Verify LED mapping
         run: |
           echo "===== LED MAP CHECK ====="
-          grep -Rni "PC15" build/MatekF405-TE || true
+          grep -Rni "PC15" build/FoxeerF405v2/ || true
 
       - name: Verify IMU interrupt
         run: |
           echo "===== GYRO INT CHECK ====="
-          grep -Rni "PC4" build/MatekF405-TE || true
-          grep -Rni "EXTI" build/MatekF405-TE || true
+          grep -Rni "PC4" build/FoxeerF405v2/ || true
+          grep -Rni "EXTI" build/FoxeerF405v2/ || true
 
       - name: Verify generated hwdef
         run: |
           echo "===== GENERATED HWDEF CHECK ====="
-          test -f build/MatekF405-TE/hwdef.h
-          grep -Rni "HAL_EXTI_ENABLED" build/MatekF405-TE || true
+          test -f build/FoxeerF405v2/hwdef.h
+          grep -Rni "HAL_EXTI_ENABLED" build/FoxeerF405v2/ || true
 
       - name: Dump critical pins configuration
         run: |
           echo "===== CRITICAL PIN DUMP ====="
-          grep -Rni "LED\|PC15\|PC4\|EXTI" build/MatekF405-TE || true
+          grep -Rni "LED\|PC15\|PC4\|EXTI" build/FoxeerF405v2/ || true
 
       - name: Build ArduCopter Firmware
         shell: bash
@@ -86,7 +86,7 @@ jobs:
         if: always()
         run: |
           echo "===== REVEALING ACTUAL BUILD OUTPUT TREE ====="
-          find build/MatekF405-TE -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj|\.hex" || true
+          find build/FoxeerF405v2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj|\.hex" || true
 
       - name: Extract failure
         if: failure()
@@ -104,19 +104,19 @@ jobs:
         run: |
           echo "===== FINAL ARTIFACT CHECK ====="
           
-          test -f build/MatekF405-TE/bin/arducopter.apj
-          test -f build/MatekF405-TE/bin/arducopter
+          test -f build/FoxeerF405v2/bin/arducopter.apj
+          test -f build/FoxeerF405v2/bin/arducopter
           
-          arm-none-eabi-size build/MatekF405-TE/bin/arducopter
+          arm-none-eabi-size build/FoxeerF405v2/bin/arducopter
           
           echo "Firmware OK"
 
       - name: Publish Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: MatekF405-TE-ArduCopter-Firmware
+          name: FoxeerF405v2-ArduCopter-Firmware
           path: |
-            build/MatekF405-TE/bin/arducopter.apj
-            build/MatekF405-TE/bin/arducopter.hex
-            build/MatekF405-TE/bin/arducopter_with_bl.hex
+            build/FoxeerF405v2/bin/arducopter.apj
+            build/FoxeerF405v2/bin/arducopter.hex
+            build/FoxeerF405v2/bin/arducopter_with_bl.hex
           if-no-files-found: error
