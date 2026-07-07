@@ -78,7 +78,7 @@ jobs:
           touch build.log
           set +e
           ./waf copter -v 2>&1 | tee build.log
-          status=${PIPESTATUS}
+          status=${PIPESTATUS[0]}
           set -e
           exit $status
 
@@ -104,11 +104,9 @@ jobs:
         run: |
           echo "===== FINAL ARTIFACT CHECK ====="
           
-          # Строгая проверка существования файлов (исправлено под оригинальный ELF arducopter без расширения)
           test -f build/MatekF405-TE/bin/arducopter.apj
           test -f build/MatekF405-TE/bin/arducopter
           
-          # Чтение размера из оригинального ELF-файла
           arm-none-eabi-size build/MatekF405-TE/bin/arducopter
           
           echo "Firmware OK"
