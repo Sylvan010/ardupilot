@@ -24,7 +24,7 @@ jobs:
           path: |
             ~/.ccache
             build
-          key: hakrc-f405v2-matekf405-${{ runner.os }}
+          key: hakrc-f405v2-matekf405-${{ github.sha }}
           restore-keys: |
             hakrc-f405v2-matekf405-
 
@@ -34,9 +34,23 @@ jobs:
           sudo apt-get install -y gcc-arm-none-eabi python3-setuptools python3-wheel ccache
           pip3 install intelhex empy==3.3.4 pexpect
 
+      - name: Clean target cache
+        run: |
+          rm -rf build/MatekF405-TE
+
       - name: Configure Waf Build System
         run: |
           ./waf configure --board MatekF405-TE
+
+      - name: Verify generated hwdef
+        run: |
+          grep "HAL_GPIO_PIN_70" build/MatekF405-TE/hwdef.h
+          grep "TIM3_CH4" build/MatekF405-TE/hwdef.h
+          grep "HAL_GPIO_A_LED_PIN" build/MatekF405-TE/hwdef.h
+
+      - name: Dump generated pins
+        run: |
+          grep "HAL_GPIO_PIN_" build/MatekF405-TE/hwdef.h | head -50
 
       - name: Build ArduCopter Firmware
         run: |
