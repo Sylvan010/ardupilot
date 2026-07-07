@@ -65,59 +65,21 @@ jobs:
           echo "===== RESOLVED TARGET LOGIC ====="
           echo "BOARD_TARGET=$BOARD_TARGET"
           
-          # Запуск Heredoc с сохранением атомарного массива и раздельной проверкой TEE / WAF
-          docker run --rm \
-            --entrypoint /bin/bash \
-            -v "${{ github.workspace }}:/ardupilot" \
-            -w /ardupilot \
-            ardupilot/ardupilot-dev-chibios:latest \
-            -s <<'DOCKER_SCRIPT'
-
-          set -e
-          set -o pipefail
-
-          git config --global --add safe.directory '*'
-
-          rm -rf build
-
-          ./waf distclean || true
-
-          echo "===== BOARD CHECK ====="
-          ./waf list_boards | grep -i speedy || true
-
-          echo "===== EXECUTING WAF CONFIGURE ====="
-          ./waf configure --board speedybeef4v3
-
-          echo "===== EXECUTING WAF COPTER ====="
-          set +e
-
-          ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log
-          PIPE_STATUS=("${PIPESTATUS[@]}")
-          
-          WAF_STATUS=${PIPE_STATUS[0]}
-          TEE_STATUS=${PIPE_STATUS[1]}
-          
-          set -e
-
-          echo "WAF EXIT CODE=$WAF_STATUS"
-          echo "TEE EXIT CODE=$TEE_STATUS"
-
-          if [ "$TEE_STATUS" -ne 0 ]; then
-              echo "===== LOGGING PIPE FAILED ====="
-              exit "$TEE_STATUS"
-          fi
-
-          if [ "$WAF_STATUS" -ne 0 ]; then
-              echo "===== BUILD FAILED ====="
-              exit "$WAF_STATUS"
-          fi
-
-          echo "===== POST-BUILD ARTIFACT SEARCH ====="
-          find build -type f \( -name "*.apj" -o -name "*.hex" \) -print
-
-          exit "$WAF_STATUS"
-
-DOCKER_SCRIPT
+          # Пуленепробиваемый запуск без Heredoc и кавычек. Лог пишется напрямую скриптом Waf в Waf-потоке.
+          docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
+            set -e -o pipefail ; \
+            git config --global --add safe.directory '*' ; \
+            rm -rf build ; \
+            ./waf distclean || true ; \
+            echo '===== BOARD CHECK =====' ; \
+            ./waf list_boards | grep -i speedy || true ; \
+            echo '===== EXECUTING WAF CONFIGURE =====' ; \
+            ./waf configure --board $BOARD_TARGET || exit 1 ; \
+            echo '===== EXECUTING WAF COPTER =====' ; \
+            ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log ; \
+            echo '===== POST-BUILD ARTIFACT SEARCH =====' ; \
+            find build -type f \( -name '*.apj' -o -name '*.hex' \) -print || true
+          "
 
       - name: Upload Target Artifacts
         if: success()
