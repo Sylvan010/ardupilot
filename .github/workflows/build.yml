@@ -54,14 +54,20 @@ jobs:
           BOARD_TARGET=$(basename "$HWDEF_DIR")
           echo "Compiling firmware for board target: $BOARD_TARGET"
           
-          # Ограничение сборки до 2 потоков (-j 2) для гарантированной защиты от Out-Of-Memory Killer
+          # Вывод текущего состояния оперативной памяти хост-машины перед стартом
+          free -m
+          
+          # Запуск сборки в ОДИН поток (-j 1) с жестким ограничением RAM (--ram-fraction=0.3)
           docker run --rm -v ${{ github.workspace }}:/ardupilot -w /ardupilot ardupilot/ardupilot-dev-chibios:latest /bin/bash -c "
             git config --global --add safe.directory '*' && \
             rm -rf build && \
             ./waf distclean || true && \
-            ./waf configure --board $BOARD_TARGET && \
-            ./waf copter -j 2 -v 2>&1 | tee /ardupilot/build.log
+            ./waf configure --board $BOARD_TARGET --ram-fraction=0.3 && \
+            ./waf copter -j 1 -v 2>&1 | tee /ardupilot/build.log
           "
+          
+          echo "===== POST-BUILD RAM STATUS ====="
+          free -m
 
       - name: Upload Target Artifacts
         if: success()
@@ -71,6 +77,7 @@ jobs:
           path: |
             build/**/arducopter.apj
             build/**/arducopter.hex
+            build/**/bin/*
 
       - name: Upload Linker Debug Log
         if: always()
