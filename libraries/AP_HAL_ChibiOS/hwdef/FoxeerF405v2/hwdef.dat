@@ -1,3 +1,7 @@
+# HAKRC F405 V2
+# Hardware compatible profile based on FoxeerF405v2 ChibiOS target
+# Board ID: AP_HW_HAKRC_F405 (4200)
+
 MCU STM32F4xx STM32F405xx
 
 define STM32_JTAG_DISABLE
@@ -8,8 +12,8 @@ FLASH_SIZE_KB 1024
 STORAGE_FLASH_PAGE 2
 define HAL_STORAGE_SIZE 15360
 
-# Прямое числовое сопоставление ID для обхода ValueError без правки board_types.txt
-APJ_BOARD_ID 131
+# Официальный токен Board ID из вашей базы board_types.txt (ID = 4200)
+APJ_BOARD_ID AP_HW_HAKRC_F405
 
 define STM32_ST_USE_TIMER 5
 define CH_CFG_ST_RESOLUTION 32
