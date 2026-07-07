@@ -46,6 +46,17 @@ jobs:
         run: |
           ./waf configure --board MatekF405-TE
 
+      - name: Dump hwdef
+        run: |
+          sed -n '1,200p' build/MatekF405-TE/hwdef.h
+
+      - name: Inspect generated ChibiOS files
+        run: |
+          echo "===== GENERATED FILES ====="
+          find build/MatekF405-TE -maxdepth 2 -type f | sort | grep -E "hwdef|chibios|board" || true
+          echo "===== PC4 / GPIO70 / EXTI ====="
+          grep -RniE "PC4|GPIO70|GPIO\(70\)|PAL_LINE|EXTI" build/MatekF405-TE || true
+
       - name: Verify generated hwdef
         run: |
           test -f build/MatekF405-TE/hwdef.h
@@ -58,16 +69,37 @@ jobs:
         run: |
           echo "===== GPIO DEFINES ====="
           grep -n "GPIO" build/MatekF405-TE/hwdef.h | head -100 || true
-          
           echo "===== EXTI ====="
           grep -n "EXTI" build/MatekF405-TE/hwdef.h || true
-          
           echo "===== PWM ====="
           grep -n "PWM" build/MatekF405-TE/hwdef.h | head -50 || true
 
       - name: Build ArduCopter Firmware
+        shell: bash
         run: |
-          ./waf copter
+          set +e
+          ./waf copter -v 2>&1 | tee build.log
+          status=${PIPESTATUS[0]}
+          set -e
+          exit $status
+
+      - name: Extract failure
+        if: failure()
+        run: |
+          echo "===== PARSING COMPILER ERRORS ====="
+          grep -E "error:|fatal error|No such file|unknown|invalid|undeclared|undefined|conflicting|redefinition|expected" build.log || true
+          echo "===== LAST 200 LINES OF BUILD LOG ====="
+          tail -n 200 build.log
+
+      - name: Show ChibiOS generated files on failure
+        if: failure()
+        run: |
+          echo "===== hwdef.h ====="
+          grep -n "PC4\|GPIO\|EXTI\|LED\|BUZZER" build/MatekF405-TE/hwdef.h || true
+          echo "===== chibios_hwdef.c ====="
+          grep -n "PC4\|PAL_LINE\|EXTI" build/MatekF405-TE/chibios_hwdef.c || true
+          echo "===== build errors ====="
+          grep -Rni "error:" build/MatekF405-TE | head -50 || true
 
       - name: Verify firmware memory
         run: |
