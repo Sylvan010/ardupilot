@@ -1,110 +1,52 @@
-name: build_arducopter_speedybee
+name: Build HAKRC F405V2 Firmware
 
 on:
-  push:
-    branches:
-      - '*'
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  build-copter:
+    runs-on: ubuntu-22.04
+
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      - name: Hard Factory-Level 4.6.3 Verification
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Cache ArduPilot build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.ccache
+            build
+          key: hakrc-f405v2-build-${{ github.sha }}
+          restore-keys: |
+            hakrc-f405v2-build-
+
+      - name: Install Prerequisite Packages
         run: |
-          echo "===== DIAGNOSTIC HWDEF DIRECTORY LIST ====="
-          ls -la libraries/AP_HAL_ChibiOS/hwdef/ | grep -i speedy || true
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi python3-setuptools python3-wheel ccache
+          pip3 install intelhex empy==3.3.4 pexpect
 
-          # Полное выравнивание под lowercase-имя официального апстрима ArduPilot
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "speedybeef4v3" -print -quit)
-          echo "Found hwdef target directory: $HWDEF_DIR"
-          
-          if [ -z "$HWDEF_DIR" ]; then
-              echo "ERROR: speedybeef4v3 hwdef directory not found in repository!"
-              exit 1
-          fi
-
-          BOARD_TARGET=$(basename "$HWDEF_DIR")
-          if [ "$BOARD_TARGET" != "speedybeef4v3" ]; then
-              echo "ERROR: Wrong board directory name: $BOARD_TARGET"
-              echo "Expected exact upstream target name: speedybeef4v3"
-              exit 1
-          fi
-
-          HWDEF_PATH="$HWDEF_DIR/hwdef.dat"
-          echo "Found hwdef target path: $HWDEF_PATH"
-
-          if [ ! -f "$HWDEF_PATH" ]; then
-              echo "ERROR: hwdef.dat missing at path: $HWDEF_PATH"
-              exit 1
-          fi
-
-          # Сувора промислова верифікація рантайм-токенів під нову структуру (Жорсткий виробничий лок)
-          grep -q "AP_HW_SPEEDYBEEF4V3" "$HWDEF_PATH" || exit 1
-          grep -q "SerialProtocol_CRSF" "$HWDEF_PATH" || exit 1
-          grep -q "define AP_NAV_EKF3_ENABLED 1" "$HWDEF_PATH" || exit 1
-          grep -q "define STM32_ST_USE_TIMER 5" "$HWDEF_PATH" || exit 1
-          grep -q "PC12 UART5_TX UART5 NODMA" "$HWDEF_PATH" || exit 1
-          grep -q "PC6 USART6_TX USART6 NODMA" "$HWDEF_PATH" || exit 1
-          grep -q "IMU Invensensev3 SPI:imu0" "$HWDEF_PATH" || exit 1
-          grep -q "BARO BMP280 I2C:0:0x76" "$HWDEF_PATH" || exit 1
-
-          echo "===== REPOSITORY INTEGRITY SYSTEM CHECK ====="
-          # Жесткая верификация существования BOARD_ID в ядре ArduPilot до запуска Docker-контейнера
-          grep -R "AP_HW_SPEEDYBEEF4V3" libraries/AP_HAL_ChibiOS -n
-          
-          echo "Factory-level validation PASSED."
-
-      - name: Compile Firmware inside Docker (ArduPilot ChibiOS Environment)
+      - name: Configure Waf Build System
         run: |
-          HWDEF_DIR=$(find libraries/AP_HAL_ChibiOS/hwdef/ -type d -name "speedybeef4v3" -print -quit)
-          if [ -z "$HWDEF_DIR" ]; then echo "ERROR: hwdef directory not found"; exit 1; fi
-          BOARD_TARGET=$(basename "$HWDEF_DIR")
-          echo "===== RESOLVED TARGET LOGIC ====="
-          echo "BOARD_TARGET=$BOARD_TARGET"
-          
-          # Запуск сборки с использованием пуленепробиваемого bash -lc '...' исключает съедание знаков доллара $ ранером
-          docker run --rm \
-            -v "${{ github.workspace }}:/ardupilot" \
-            -w /ardupilot \
-            ardupilot/ardupilot-dev-chibios:latest \
-            /bin/bash -lc '
-            set -e
-            git config --global --add safe.directory "*"
-            rm -rf build
-            ./waf distclean || true
-            echo "===== BOARD CHECK ====="
-            ./waf list_boards | grep -i speedybeef4v3
-            echo "===== CONFIGURE ====="
-            ./waf configure --board speedybeef4v3
-            echo "===== BUILD COPTER ====="
-            ./waf copter -j 1 -v
-            echo "===== FIRMWARE SIZE SEGMENTATION METRICS ====="
-            find build -name arducopter -exec arm-none-eabi-size -A {} \; || true
-          '
+          ./waf configure --board MatekF405-TE
 
-      - name: Advanced Error Diagnostics On Failure
-        if: failure()
+      - name: Build ArduCopter Firmware
         run: |
-          echo "===== BUILD TREE ON FAILURE ====="
-          find build -maxdepth 3 -type f | head -n 50 || true
+          ./waf copter
 
-          echo "===== DETAILED SIZE SEGMENTATION ON FAILURE ====="
-          find build -name arducopter -exec arm-none-eabi-size -A {} \; || true
-
-          echo "===== LAST LOGS DIRECT DUMP ====="
-          find build -name "*.log" -exec echo "--- LOG FILE: {} ---" \; -exec tail -n 100 {} \; || true
-
-      - name: Upload Target Artifacts
-        if: success()
+      - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HAKRC-F405V2-ArduCopter-4.6.3
+          name: HAKRC-F405V2-ArduCopter-Firmware
           path: |
-            build/**/bin/*.apj
-            build/**/bin/*.hex
+            build/MatekF405-TE/bin/arducopter.apj
+            build/MatekF405-TE/bin/arducopter.hex
+            build/MatekF405-TE/bin/arducopter_with_bl.hex
