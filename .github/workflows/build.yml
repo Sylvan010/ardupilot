@@ -57,9 +57,9 @@ jobs:
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Configure Waf Build System For Main Firmware (ПРИНУДИТЕЛЬНОЕ ИСКЛЮЧЕНИЕ СБОЙНЫХ КЛАССОВ)
+      - name: Configure Waf Build System (ПРАВИЛЬНЫЙ СИНТАКСИС ВЫРЕЗАНИЯ КЛАССОВ)
         run: |
-          ./waf configure --board HAKRCF405V2 --cxxflags="-DAP_ATTITUDE_CONTROL_SUB_ENABLED=0 -DAP_ATTITUDE_CONTROL_TS_ENABLED=0 -DAP_ATTITUDE_CONTROL_HELI_ENABLED=0" --cflags="-DAP_ATTITUDE_CONTROL_SUB_ENABLED=0 -DAP_ATTITUDE_CONTROL_TS_ENABLED=0 -DAP_ATTITUDE_CONTROL_HELI_ENABLED=0"
+          ./waf configure --board HAKRCF405V2 --define="AP_ATTITUDE_CONTROL_SUB_ENABLED=0" --define="AP_ATTITUDE_CONTROL_TS_ENABLED=0" --define="AP_ATTITUDE_CONTROL_HELI_ENABLED=0"
 
       - name: Verify configured board
         run: |
@@ -95,16 +95,14 @@ jobs:
           echo "===== REVEALING ACTUAL BUILD OUTPUT TREE ====="
           find build/HAKRCF405V2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj" || true
 
-      - name: Extract failure
+      - name: Extract first compiler error
         if: failure()
         run: |
-          echo "===== PARSING COMPILER ERRORS ====="
-          if [ -f build.log ]; then
-            grep -E "error:|fatal error|No such file|unknown|invalid|undeclared|undefined|conflicting|redefinition|expected|mismatch" build.log || true
-            tail -n 200 build.log
-          else
-            echo "ERROR: build.log was not created."
-          fi
+          echo "===== FIRST ERROR ====="
+          grep -n -m 20 -E "error:|fatal error:" build.log || true
+          
+          echo "===== LAST 300 LINES ====="
+          tail -300 build.log
 
       - name: Verify final firmware
         run: |
