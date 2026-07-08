@@ -76,7 +76,8 @@ jobs:
         run: |
           echo "===== HWDEF BOARD ID ====="
           grep -R "APJ_BOARD_ID" build/FoxeerF405v2/
-          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+AP_HW_FOXEERF405_V2[[:space:]]*$" build/FoxeerF405v2/ || exit 1
+          # Поиск Си-макроса ID 1157, генерируемого для профиля FoxeerF405v2
+          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+1157[[:space:]]*$" build/FoxeerF405v2/ || exit 1
 
       - name: Verify SPI physical mapping
         run: |
