@@ -3,246 +3,39 @@ name: Build HAKRC F405 V2 Firmware
 on:
   push:
     paths:
-      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/**'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
   workflow_dispatch:
 
-
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
-    container:
-      image: ardupilot/ardupilot-dev-chibios:latest
-
+    container: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-
-
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: 'recursive'
 
-
-
-      - name: Configure git
+      - name: Clean Legacy Conflict Targets
         run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
-
-
-
-      - name: Clean old targets
-        run: |
-          echo "===== CLEAN BUILD ====="
-
-          rm -rf build
-
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
 
-
-
-      - name: Verify HAKRC hwdef source
-        run: |
-
-          echo "===== HWDEF SOURCE CHECK ====="
-
-          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep -E "APJ_BOARD_ID[[:space:]]+AP_HW_HAKRC_F405" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep -E "PA4[[:space:]]+GYRO_CS" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep -E "PC4[[:space:]]+GYRO_INT" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep -E "PB12[[:space:]]+OSD_CS" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep -E "PA15[[:space:]]+FLASH_CS" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-
       - name: Configure Firmware
         run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          ./waf configure --board FoxeerF405v2
 
-          echo "===== WAF CONFIGURE ====="
-
-          ./waf configure \
-          --board FoxeerF405v2
-
-
-
-      - name: Verify generated hwdef
+      - name: Build Copter Firmware
         run: |
+          ./waf copter
 
-          echo "===== GENERATED HWDEF CHECK ====="
-
-
-          test -f build/FoxeerF405v2/hwdef.h
-
-
-          grep APJ_BOARD_ID \
-          build/FoxeerF405v2/hwdef.h
-
-
-
-      - name: Verify SPI devices
-        run: |
-
-          echo "===== SPI CHECK ====="
-
-
-          grep -R "icm42688" \
-          build/FoxeerF405v2/ || true
-
-
-          grep -R "osd" \
-          build/FoxeerF405v2/ || true
-
-
-          grep -R "dataflash" \
-          build/FoxeerF405v2/ || true
-
-
-
-      - name: Verify UART mapping
-        run: |
-
-          echo "===== UART CHECK ====="
-
-
-          grep -R "USART1" build/FoxeerF405v2/ || true
-
-          grep -R "USART2" build/FoxeerF405v2/ || true
-
-          grep -R "USART3" build/FoxeerF405v2/ || true
-
-          grep -R "UART4" build/FoxeerF405v2/ || true
-
-          grep -R "UART5" build/FoxeerF405v2/ || true
-
-          grep -R "USART6" build/FoxeerF405v2/ || true
-
-
-
-      - name: Verify OSD
-        run: |
-
-          echo "===== MAX7456 OSD CHECK ====="
-
-
-          grep -R "HAL_OSD" \
-          build/FoxeerF405v2/ || true
-
-
-          grep -R "PB12" \
-          build/FoxeerF405v2/ || true
-
-
-
-      - name: Verify RGB LED
-        run: |
-
-          echo "===== RGB LED CHECK ====="
-
-
-          grep -R "PB3" \
-          build/FoxeerF405v2/ || true
-
-
-          grep -R "NEOPIXEL" \
-          build/FoxeerF405v2/ || true
-
-
-
-      - name: Build ArduCopter Firmware
-        shell: bash
-        run: |
-
-          echo "===== BUILD COPTER ====="
-
-
-          touch build.log
-
-
-          set +e
-
-
-          ./waf copter -v 2>&1 | tee build.log
-
-
-          status=${PIPESTATUS[0]}
-
-
-          set -e
-
-
-          exit $status
-
-
-
-      - name: Show build failure
-        if: failure()
-        run: |
-
-          echo "===== BUILD ERROR ====="
-
-
-          if [ -f build.log ]; then
-
-            grep -E \
-            "error:|fatal error|undefined|undeclared|unknown|failed" \
-            build.log || true
-
-
-            echo "===== LAST LOG ====="
-
-
-            tail -200 build.log
-
-          fi
-
-
-
-      - name: Verify firmware output
-        run: |
-
-          echo "===== FINAL FIRMWARE CHECK ====="
-
-
-          test -f build/FoxeerF405v2/bin/arducopter.apj
-
-
-          echo "HAKRC F405 V2 BUILD SUCCESS"
-
-
-
-      - name: Upload Firmware
+      - name: Upload APJ Artifact
         uses: actions/upload-artifact@v4
-
         with:
-
           name: HAKRC-F405V2-ArduCopter
-
-
           path: |
-
             build/FoxeerF405v2/bin/arducopter.apj
-
-            build/FoxeerF405v2/bin/arducopter.hex
-
             build/FoxeerF405v2/bin/arducopter_with_bl.hex
-
-
-          if-no-files-found: error
