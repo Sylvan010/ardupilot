@@ -1,185 +1,135 @@
-name: Build ArduPilot Production for HAKRC F405 V2
+name: Build HAKRC F405 V2 Firmware
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    paths:
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/**'
   workflow_dispatch:
 
 jobs:
-  build-firmware:
-    runs-on: ubuntu-22.04
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Скачивание репозитория ArduPilot
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
-          fetch-depth: 0
+          submodules: recursive
 
-      # 2. Устранение ошибки safe.directory для Git в контейнере GitHub Actions
-      - name: Configure Git Safe Directory
+      - name: Configure git
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
-          git config --global --add safe.directory /github/workspace
 
-      # 3. Создание родной папки и запись Production-конфигурации HAKRC
-      # Используем строго легитимный APJ_BOARD_ID AP_HW_HAKRC_F405 (ID 4200)
-      - name: Inject HAKRC Production Hardware Definition
+      - name: Clean build & Purge legacy directories
         run: |
-          mkdir -p libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405
-          cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405/hwdef.dat
-          # HAKRC F405 V2 (Production Light Version - Native Build)
-          # Hardware compatible profile based on FoxeerF405v2 ChibiOS target
+          rm -rf build
+          # Тотальная зачистка старых папок, из-за которых парсер ChibiOS сходил с ума
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
 
-          MCU STM32F4xx STM32F405xx
-
-          define STM32_JTAG_DISABLE
-
-          APJ_BOARD_ID AP_HW_HAKRC_F405
-
-          OSCILLATOR_HZ 8000000
-
-          FLASH_SIZE_KB 1024
-          FLASH_RESERVE_START_KB 48
-
-          define HAL_STORAGE_SIZE 16384
-          define STORAGE_FLASH_PAGE 1
-          define STM32_ST_USE_TIMER 5
-
-          # --- SPI HW ПІНИ (HAKRC Layout) ---
-          PA5 SPI1_SCK SPI1
-          PA6 SPI1_MISO SPI1
-          PA7 SPI1_MOSI SPI1
-
-          PB13 SPI2_SCK SPI2
-          PB14 SPI2_MISO SPI2
-          PB15 SPI2_MOSI SPI2
-
-          # Chip select pins
-          PA4  GYRO1_CS CS
-          PC4  GYRO1_EXTI INPUT
-          PB12 OSD1_CS CS
-
-          # SERIAL ports
-          SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
-          PA11 OTG_FS_DM OTG1
-          PA12 OTG_FS_DP OTG1
-
-          # USART1 (UART1 -> ELRS / CRSF Приймач)
-          PB7 USART1_RX USART1
-          PB6 USART1_TX USART1
-          define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_RCIN
-
-          # USART2 (UART2 -> Вільний, без апаратного інвертора)
-          PA3 USART2_RX USART2
-          PA2 USART2_TX USART2
-
-          # USART3 (UART3 -> GPS модуль)
-          PB11 USART3_RX USART3
-          PB10 USART3_TX USART3
-          define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_GPS
-
-          # UART4 (UART4 -> Вільний)
-          PA1 UART4_RX UART4
-          PA0 UART4_TX UART4
-
-          # UART5 (UART5 -> Вільний)
-          PD2 UART5_RX UART5 NODMA
-          PC12 UART5_TX UART5 NODMA
-
-          # USART6 (UART6 -> Вільний)
-          PC7 USART6_RX USART6 NODMA
-          PC6 USART6_TX USART6 NODMA
-
-          # I2C ports
-          I2C_ORDER I2C1
-          PB8 I2C1_SCL I2C1
-          PB9 I2C1_SDA I2C1
-
-          # ADC ports (HAKRC PC1 / PC3)
-          PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
-          PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
-
-          define HAL_BATT_MONITOR_DEFAULT 4
-          define HAL_BATT_VOLT_SCALE 21.0
-          define HAL_BATT_CURR_SCALE 66.7
-
-          # MOTORS (Повністю виправлена та безконфліктна карта апаратних таймерів STM32F405)
-          PC8  TIM3_CH3 TIM3 PWM(1) GPIO(50)   # M1
-          PC9  TIM3_CH4 TIM3 PWM(2) GPIO(51)   # M2
-          PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)   # M3
-          PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)   # M4
-          PA10 TIM1_CH3 TIM1 PWM(5) GPIO(54)   # M5
-          PB4  TIM3_CH1 TIM3 PWM(6) GPIO(55)   # M6
-          PB0  TIM8_CH2N TIM8 PWM(7) GPIO(56)  # M7
-          PB1  TIM8_CH3N TIM8 PWM(8) GPIO(57)  # M8
-
-          # LEDs (HAKRC PC15 / PC14)
-          define AP_NOTIFY_GPIO_LED_1_ENABLED 1
-          define AP_NOTIFY_GPIO_LED_2_ENABLED 1
-          define HAL_NOTIFY_NUM_LEDS 2
-
-          PC15 LED1 OUTPUT LOW GPIO(90)
-          define AP_NOTIFY_GPIO_LED_1_PIN 90
-          define HAL_GPIO_A_LED_PIN 90
-
-          PC14 LED2 OUTPUT LOW GPIO(91)
-          define AP_NOTIFY_GPIO_LED_2_PIN 91
-          define HAL_GPIO_B_LED_PIN 91
-
-          # OSD setup (Remapped to SPI2 according to hardware lines)
-          SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
-          define OSD_ENABLED 1
-          define HAL_OSD_TYPE_DEFAULT 1
-          ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
-
-          # Barometer setup (Тільки DPS310, без конфліктів адрес)
-          BARO DPS310 I2C:0:0x76
-
-          # IMU setup
-          SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 2*MHZ 8*MHZ
-          IMU Invensensev3 SPI:imu1 ROTATION_YAW_180
-
-          # Compass and safety configurations
-          define ALLOW_ARM_NO_COMPASS 1
-          define AP_COMPASS_PROBING_ENABLED 1
-          define HAL_I2C_INTERNAL_MASK 0
-          define HAL_COMPASS_AUTO_ROT_DEFAULT 2
-          define HAL_DEFAULT_INS_FAST_SAMPLE 3
-          define HAL_DEFAULT_AIRSPEED_TYPE 0
-          define HAL_FRAME_TYPE_DEFAULT 18
-          define HAL_FRAME_CLASS_DEFAULT 1
-
-          DMA_PRIORITY ADC1 SPI1* SPI2* TIM1* TIM3* TIM8*
-
-          include ../include/bootloader.inc
-          EOF
-
-      # 4. Установка необходимых системных dependencies и компилятора GCC ARM
-      - name: Install Toolchain and Prerequisites
+      - name: Check HWDEF exists
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-pip python3-setuptools python3-wheel gcc-arm-none-eabi libncurses5 lzma
+          echo "===== HWDEF LOCATION ====="
+          pwd
+          ls -la libraries/AP_HAL_ChibiOS/hwdef/
+          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
+          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm
+          echo "===== HWDEF FOUND ====="
 
-      # 5. Очистка кэша и запуск конфигурации под официальное имя HAKRC_F405
-      - name: Configure Waf Board Target
+      - name: Show hardware mapping
+        shell: bash
         run: |
-          rm -rf build/
-          ./waf configure --board HAKRC_F405
+          echo "===== BOARD IDENTITY ====="
+          grep -E "^APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
-      # 6. Компиляция облегченной прошивки ArduCopter
-      - name: Compile ArduCopter Firmware
+          echo "===== SPI1 IMU CONFIG ====="
+          grep -E "SPI1|imu1" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+
+          echo "===== MAX7456 OSD CONFIG ====="
+          grep -E "SPI2|osd" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+
+      - name: Validate source hwdef
         run: |
-          ./waf copter
+          echo "===== SOURCE HWDEF VALIDATION ====="
+          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PA4  GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PC4  GYRO1_EXTI" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
-      # 7. Выгрузка готовых нативных файлов в артефакты GitHub
-      - name: Upload Compiled Firmware Artifacts
+      - name: Configure Waf Build System
+        run: |
+          ./waf configure --board FoxeerF405v2
+
+      - name: Verify configured board
+        run: |
+          echo "===== BOARD CHECK ====="
+          test -d build/FoxeerF405v2
+          test -f build/FoxeerF405v2/hwdef.h
+
+      - name: Verify generated board identity
+        run: |
+          echo "===== HWDEF BOARD ID ====="
+          grep -R "APJ_BOARD_ID" build/FoxeerF405v2/
+          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+AP_HW_FOXEERF405_V2[[:space:]]*$" build/FoxeerF405v2/ || exit 1
+
+      - name: Verify SPI physical mapping
+        run: |
+          echo "===== SPI GPIO CHECK ====="
+          grep -Rni "PB12" build/FoxeerF405v2/hwdef.h
+          grep -Rni "PA4" build/FoxeerF405v2/hwdef.h
+
+      - name: Build ArduCopter
+        shell: bash
+        run: |
+          touch build.log
+          set +e
+          ./waf copter -v 2>&1 | tee build.log
+          status=${PIPESTATUS}
+          set -e
+          exit $status
+
+      - name: Inspect build output tree
+        if: always()
+        run: |
+          echo "===== REVEALING ACTUAL BUILD OUTPUT TREE ====="
+          find build/FoxeerF405v2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj|\.hex" || true
+
+      - name: Extract failure
+        if: failure()
+        run: |
+          echo "===== PARSING COMPILER ERRORS ====="
+          if [ -f build.log ]; then
+            grep -E "error:|fatal error|No such file|unknown|invalid|undeclared|undefined|conflicting|redefinition|expected|mismatch" build.log || true
+            tail -n 200 build.log
+          else
+            echo "ERROR: build.log was not created."
+          fi
+
+      - name: Verify final firmware
+        run: |
+          echo "===== FINAL ARTIFACT CHECK ====="
+          test -f build/FoxeerF405v2/bin/arducopter.apj
+          test -f build/FoxeerF405v2/bin/arducopter
+          test -f build/FoxeerF405v2/bin/arducopter_with_bl.hex
+          
+          arm-none-eabi-size build/FoxeerF405v2/bin/arducopter
+          
+          echo "=================================="
+          echo "    HAKRC F405 V2 BUILD OK "
+          echo "=================================="
+
+      - name: Publish Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HAKRC_F405_V2_Native_Production_Firmware
+          name: HAKRC-F405V2-Production-Firmware
           path: |
-            build/HAKRC_F405/bin/arducopter.apj
-            build/HAKRC_F405/bin/arducopter.hex
+            build/FoxeerF405v2/bin/arducopter.apj
+            build/FoxeerF405v2/bin/arducopter_with_bl.hex
+          if-no-files-found: error
