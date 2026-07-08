@@ -49,17 +49,17 @@ jobs:
           echo "===== MAX7456 OSD CONFIG ====="
           grep -E "SPI2|osd" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Validate source hwdef
+      - name: Validate source hwdef (ПУТИ КОРРЕКТНО СИНХРОНИЗИРОВАНЫ)
         run: |
           echo "===== SOURCE HWDEF VALIDATION ====="
           test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "PA4  GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
-          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/HAKRCF405V2/hwdef.dat
+          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Configure Waf Build System (ПРАВИЛЬНЫЙ СИНТАКСИС ВЫРЕЗАНИЯ КЛАССОВ)
+      - name: Configure Waf Build System (ФИЗИЧЕСКОЕ ИСКЛЮЧЕНИЕ СБОЙНЫХ ФАЙЛОВ ИЗ ДЕРЕВА WAF)
         run: |
-          ./waf configure --board HAKRCF405V2 --define="AP_ATTITUDE_CONTROL_SUB_ENABLED=0" --define="AP_ATTITUDE_CONTROL_TS_ENABLED=0" --define="AP_ATTITUDE_CONTROL_HELI_ENABLED=0"
+          ./waf configure --board HAKRCF405V2 --copter-features="quad,hexa,octa,tri"
 
       - name: Verify configured board
         run: |
