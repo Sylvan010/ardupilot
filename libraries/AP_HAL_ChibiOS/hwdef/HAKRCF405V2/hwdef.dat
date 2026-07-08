@@ -119,13 +119,11 @@ PC2 PINIO2 OUTPUT LOW
 define AP_BOOTLOADER_FLASHING_ENABLED 0
 
 # ==============================================================================
-# ШТАТНОЕ ЛОГИРОВАНИЕ BLACKBOX ДЛЯ АВТОНОМНЫХ МИССИЙ (SPI3)
+# ПОЛНОЕ СОГЛАСОВАНИЕ С БАЗОВОЙ ПОЛИТИКОЙ ВЕТКИ (Исключаем переопределение макроса)
 # ==============================================================================
-SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
-define HAL_LOGGING_DATAFLASH_ENABLED 1
-define HAL_Storage_Type StorageType_Flash
+SPIDEV flash_raw SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
 
-# OSD ПОВНОЦЕННЫЙ РЕЖИМ (Gradica, шрифты и сайдбары сохранены на 100%)
+# OSD ПОВНОЦЕННЫЙ РЕЖИМ (Графіка, шрифти та сайдбары збережені на 100%)
 SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
 define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
