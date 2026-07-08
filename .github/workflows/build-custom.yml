@@ -1,44 +1,46 @@
-name: Build Custom Firmware
+name: Build Custom ArduPilot Firmware
 
+# Воркфлоу запускається автоматично при пуші в master/main або вручну кнопкою з інтерфейсу
 on:
   push:
     branches: [ master, main ]
-  workflow_dispatch: # Додає кнопку ручного запуску
+  workflow_dispatch:
 
 jobs:
   build_firmware:
-    runs-on: ubuntu-latest
-    # Використовуємо офіційний докер-контейнер ArduPilot зі встановленими компіляторами
-    container: ardupilot/ardupilot-dev-chibios:v3
+    runs-on: ubuntu-22.04
 
     steps:
-      # 1. Скачуємо код репозиторію з усіма підмодулями (ChibiOS)
+      # 1. Завантажуємо вихідний сод вашого репозиторію разом із ядром ChibiOS
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Дозволяємо Git роботу всередині контейнера під root користувачем
-      - name: Fix Git Safe Directory
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+      # 2. Встановлюємо залежності та актуальний GCC компілятор через офіційний скрипт ArduPilot
+      - name: Install Prerequisites
+        run: |
+          sudo apt-get update
+          USER=runner USER_HOME=/home/runner ./Tools/environment_install/install-prereqs-ubuntu.sh -y
+          echo "PATH=$PATH:/home/runner/.local/bin" >> $GITHUB_ENV
 
-      # 3. Налаштовуємо ccache для швидкої збірки
-      - name: Setup ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ${{ runner.os }}-ccache
+      # 3. Конфігуруємо та збираємо завантажувач (Bootloader) для плати FoxeerF405v2
+      - name: Build Bootloader
+        run: |
+          ./waf configure --board FoxeerF405v2 --bootloader
+          ./waf bootloader
 
-      # 4. Конфігуруємо збірку під плату FoxeerF405v2
-      - name: Configure Board
-        run: ./waf configure --board FoxeerF405v2
-
-      # 5. Компілюємо прошивку для квадрокоптера (Copter)
+      # 4. Конфігуруємо та збираємо основну прошивку квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
-        run: ./waf copter
+        run: |
+          ./waf configure --board FoxeerF405v2
+          ./waf copter
 
-      # 6. Завантажуємо готовий файл у сховище артефактів GitHub
-      - name: Upload Firmware Artifact
+      # 5. Завантажуємо готові стабільні бінарні файли у сховище артефактів GitHub
+      - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FoxeerF405v2-HAKRC-Firmware
-          path: build/FoxeerF405v2/bin/arducopter.apj
+          path: |
+            build/FoxeerF405v2/bin/arducopter.apj
+            build/FoxeerF405v2/bin/bootloader.bin
