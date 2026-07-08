@@ -104,11 +104,11 @@ PC14 LED2 OUTPUT LOW GPIO(91)
 define AP_NOTIFY_GPIO_LED_2_PIN 91
 define HAL_GPIO_B_LED_PIN 91
 
-# Dataflash setup (Стандартное имя и включение логирования для AUTO-миссий)
-SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
-define HAL_LOGGING_DATAFLASH_ENABLED 1
+# ЖЕСТКОЕ ОТКЛЮЧЕНИЕ ЗАПИСИ ЛОГОВ (Освобождает максимум Flash и RAM)
+define HAL_LOGGING_ENABLED 0
+define HAL_LOGGING_DATAFLASH_ENABLED 0
 
-# OSD ПОЛНОЦЕННЫЙ РЕЖИМ (Без минимизации графики)
+# OSD ПОЛНОЦЕННЫЙ РЕЖИМ (Графика, шрифты и сайдбары сохранены на 100%)
 SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
 define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
@@ -118,9 +118,9 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 BARO DPS310 I2C:0:0x77
 BARO SPL06  I2C:0:0x76
 
-# IMU setup
+# IMU setup (Плата аппаратно развернута вверх ногами на уровне ядра)
 SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 2*MHZ 8*MHZ
-IMU Invensensev3 SPI:imu1 ROTATION_YAW_180
+IMU Invensensev3 SPI:imu1 ROTATION_ROLL_180
 
 # Compass and safety configurations
 define ALLOW_ARM_NO_COMPASS 1
@@ -136,22 +136,37 @@ define HAL_FRAME_CLASS_DEFAULT 1
 # =====================================================
 define HAL_MINIMIZE_FEATURES 1
 
-# Отключение других типов транспорта
+# Навигация и калибровки (СТРОГО сохраняем EKF3, вырезаем легаси EKF2)
+define AP_NAV_EKF2_ENABLED 0
+define AP_NAV_EKF3_ENABLED 1
+define AP_SCRIPTING_ENABLED 0
+define AP_TEMP_CALIBRATION_ENABLED 0
+define AP_OPTICALFLOW_ENABLED 0
+
+# Системные шины и протоколы телеметрии (ВЫРЕЗАНО)
+define AP_CAN_ENABLED 0
+define AP_FRSKY_TELEM_ENABLED 0
+define AP_CRSF_TELEM_TEXT_ENABLED 0
+define AP_MSP_ENABLED 0
+define AP_DEOTG_ENABLED 0
+
+# Отключение других типов транспорта (ВЫРЕЗАНО)
 define AP_PLANE_ENABLED 0
 define AP_ROVER_ENABLED 0
 define AP_SUB_ENABLED 0
 define AP_HELI_ENABLED 0
 
-# Отключение тяжелой коммерческой периферии
+# Отключение тяжелой коммерческой периферии (ВЫРЕЗАНО)
 define AP_ADSB_ENABLED 0
 define AP_PROXIMITY_ENABLED 0
 define AP_BEACON_ENABLED 0
 define AP_MOUNT_ENABLED 0
-define AP_CAMERA_ENABLED 0
 define AP_AIS_ENABLED 0
+define AP_RPM_ENABLED 0
+define AP_WINDVANE_ENABLED 0
 
-# Отключение вспомогательных систем
-define AP_SCRIPTING_ENABLED 0
+# Отключение вспомогательных систем (ВЫРЕЗАНО)
+define AP_CAMERA_ENABLED 0
 define AP_GRIPPER_ENABLED 0
 define AP_PARACHUTE_ENABLED 0
 define AP_GENERATOR_ENABLED 0
