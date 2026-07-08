@@ -57,9 +57,9 @@ jobs:
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Configure Waf Build System For Main Firmware
+      - name: Configure Waf Build System For Main Firmware (ПРИНУДИТЕЛЬНОЕ ИСКЛЮЧЕНИЕ СБОЙНЫХ КЛАССОВ)
         run: |
-          ./waf configure --board HAKRCF405V2
+          ./waf configure --board HAKRCF405V2 --cxxflags="-DAP_ATTITUDE_CONTROL_SUB_ENABLED=0 -DAP_ATTITUDE_CONTROL_TS_ENABLED=0 -DAP_ATTITUDE_CONTROL_HELI_ENABLED=0" --cflags="-DAP_ATTITUDE_CONTROL_SUB_ENABLED=0 -DAP_ATTITUDE_CONTROL_TS_ENABLED=0 -DAP_ATTITUDE_CONTROL_HELI_ENABLED=0"
 
       - name: Verify configured board
         run: |
