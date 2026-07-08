@@ -34,7 +34,6 @@ jobs:
           pwd
           ls -la libraries/AP_HAL_ChibiOS/hwdef/
           test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
-          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef-bl.dat
           test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/defaults.parm
           echo "===== HWDEF FOUND ====="
 
@@ -57,19 +56,6 @@ jobs:
           grep "PA4  GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
-
-      - name: Pre-build Isolated Bootloader
-        run: |
-          echo "===== GENERATING BOOTLOADER DIRECTLY VIA PYTHON ====="
-          python3 Tools/scripts/build_bootloaders.py HAKRCF405V2
-          
-          echo "===== INJECTING BL BINARY INTO ARDUPILOT DIRECTORY ====="
-          mkdir -p Tools/bootloaders
-          cp build/HAKRCF405V2/bootloader/HAKRCF405V2_bl.bin Tools/bootloaders/HAKRCF405V2_bl.bin
-          
-          echo "===== BL BINARY VERIFICATION ====="
-          test -f Tools/bootloaders/HAKRCF405V2_bl.bin
-          ls -la Tools/bootloaders/
 
       - name: Configure Waf Build System For Main Firmware
         run: |
@@ -107,7 +93,7 @@ jobs:
         if: always()
         run: |
           echo "===== REVEALING ACTUAL BUILD OUTPUT TREE ====="
-          find build/HAKRCF405V2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj|\.hex" || true
+          find build/HAKRCF405V2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj" || true
 
       - name: Extract failure
         if: failure()
@@ -125,7 +111,6 @@ jobs:
           echo "===== FINAL ARTIFACT CHECK ====="
           test -f build/HAKRCF405V2/bin/arducopter.apj
           test -f build/HAKRCF405V2/bin/arducopter
-          test -f build/HAKRCF405V2/bin/arducopter_with_bl.hex
           
           arm-none-eabi-size build/HAKRCF405V2/bin/arducopter
           
@@ -139,5 +124,4 @@ jobs:
           name: HAKRC-F405V2-Production-Firmware
           path: |
             build/HAKRCF405V2/bin/arducopter.apj
-            build/HAKRCF405V2/bin/arducopter_with_bl.hex
           if-no-files-found: error
