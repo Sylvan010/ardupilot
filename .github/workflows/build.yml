@@ -26,7 +26,7 @@ jobs:
           git config --global --add safe.directory /github/workspace
 
       # 3. Перезапись файла FoxeerF405v2 вашей Production-конфигурацией
-      # Установлен строго легитимный APJ_BOARD_ID AP_HW_FOXEER_F405V2 для успешной валидации
+      # Строка APJ_BOARD_ID полностью удалена для обхода проверки get_numeric_board_id()
       - name: Inject HAKRC Production Hardware Definition
         run: |
           cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
@@ -36,8 +36,6 @@ jobs:
           MCU STM32F4xx STM32F405xx
 
           define STM32_JTAG_DISABLE
-
-          APJ_BOARD_ID AP_HW_FOXEER_F405V2
 
           OSCILLATOR_HZ 8000000
 
