@@ -12,7 +12,7 @@ OSCILLATOR_HZ 8000000
 
 FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 0
-define FLASH_BOOTLOADER_LOAD_KB 48
+FLASH_BOOTLOADER_LOAD_KB 48
 
 define HAL_USE_SERIAL_USB 1
 
@@ -30,6 +30,6 @@ PB7 USART1_RX USART1
 PC14 LED1 OUTPUT LOW GPIO(90)
 define HAL_GPIO_A_LED_PIN 90
 
-# Базовые директивы для успешной линковки загрузчика строго по новым правилам
+# Базовые директивы для успешной линковки загрузчика
 define HAL_BOOTLOADER_BUILD 1
 define HAL_LOGGING_ENABLED 0
