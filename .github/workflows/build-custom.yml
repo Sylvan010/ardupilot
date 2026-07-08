@@ -12,24 +12,29 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
+      # 1. Завантажуємо код твого репозиторію з субмодулями
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
+      # 2. Фікс прав безпеки Git всередині сесії Docker
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
+      # 3. Збірка завантажувача (Bootloader) для FoxeerF405v2
       - name: Build Bootloader
         run: |
           ./waf configure --board FoxeerF405v2 --bootloader
           ./waf bootloader
 
+      # 4. Компіляція основної прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: |
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
+      # 5. Завантажуємо готові .apj та .bin файли в артефакти GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
