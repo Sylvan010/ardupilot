@@ -1,11 +1,12 @@
 # =====================================================
 # HAKRC F405 V2
-# Production ArduPilot ChibiOS Target
-# Full resource mapping
+# ArduPilot ChibiOS
+# Based on Betaflight resource map
 # =====================================================
 
 
 MCU STM32F4xx STM32F405xx
+
 
 define STM32_JTAG_DISABLE
 
@@ -28,20 +29,11 @@ define HAL_STORAGE_SIZE 16384
 
 
 # =====================================================
-# USB
-# =====================================================
-
-define HAL_USE_SERIAL_USB 1
-
-
-
-# =====================================================
 # SYSTEM LED
 # =====================================================
 
 define AP_NOTIFY_GPIO_LED_1_ENABLED 1
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
-define HAL_NOTIFY_NUM_LEDS 2
 
 
 PC14 LED0 OUTPUT HIGH GPIO(90)
@@ -55,27 +47,25 @@ define HAL_GPIO_B_LED_PIN 91
 
 
 # =====================================================
-# RGB WS2812
+# RGB LED STRIP
 # =====================================================
 
-PB3 LED_STRIP OUTPUT GPIO(92)
-
-define AP_NOTIFY_RCOUTPUTRGBLED_LED_ENABLED 1
-
-define HAL_RCOUT_RGBLED 1
+PB3 TIM2_CH2 TIM2 PWM(9) GPIO(92)
 
 
 
 # =====================================================
-# SPI1 - ICM42688P
+# SPI1 IMU ICM42688P
 # =====================================================
 
-PA5 SPI1_SCK  SPI1
+
+PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
 
 
 PA4 GYRO_CS CS
+
 
 PC4 GYRO_INT INPUT PULLUP
 
@@ -93,8 +83,9 @@ define HAL_DEFAULT_INS_FAST_SAMPLE 3
 
 
 # =====================================================
-# SPI2 - MAX7456 OSD
+# SPI2 MAX7456 OSD
 # =====================================================
+
 
 PB13 SPI2_SCK SPI2
 
@@ -106,7 +97,7 @@ PB15 SPI2_MOSI SPI2
 PB12 OSD_CS CS
 
 
-SPIDEV osd SPI2 DEVID2 OSD_CS MODE0 10*MHZ 10*MHZ
+SPIDEV osd SPI2 DEVID1 OSD_CS MODE0 10*MHZ 10*MHZ
 
 
 define OSD_ENABLED 1
@@ -119,8 +110,7 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
 
 # =====================================================
-# SPI3 - FLASH
-# DISABLED LOGGING
+# SPI3 FLASH W25Q
 # =====================================================
 
 
@@ -134,7 +124,11 @@ PB5 SPI3_MOSI SPI3
 PA15 FLASH_CS CS
 
 
-# логування вимкнено
+SPIDEV dataflash SPI3 DEVID1 FLASH_CS MODE3 32*MHZ 32*MHZ
+
+
+# вимкнути логування
+
 undef HAL_LOGGING_DATAFLASH_ENABLED
 
 
@@ -154,7 +148,7 @@ PB9 I2C1_SDA I2C1
 
 
 # =====================================================
-# UART
+# SERIAL PORTS
 # =====================================================
 
 
@@ -163,12 +157,11 @@ SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 
 
 PA11 OTG_FS_DM OTG1
-
 PA12 OTG_FS_DP OTG1
 
 
 
-# UART1 запас
+# UART1
 
 PB6 USART1_TX USART1
 
@@ -182,6 +175,7 @@ PA2 USART2_TX USART2
 
 PA3 USART2_RX USART2 ALT(1)
 
+
 PC0 INVERTER_UART2 INPUT PULLUP
 
 
@@ -189,7 +183,7 @@ define DEFAULT_SERIAL2_PROTOCOL SerialProtocol_RCIN
 
 
 
-# UART3 запас
+# UART3
 
 PB10 USART3_TX USART3
 
@@ -208,7 +202,7 @@ define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_VTX
 
 
 
-# UART5 ESC TELEMETRY
+# UART5 ESC telemetry
 
 PC12 UART5_TX UART5 NODMA
 
@@ -276,13 +270,26 @@ PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
 
 
 # =====================================================
-# PARAMETERS
+# BARO
+# =====================================================
+
+
+BARO DPS310 I2C:0:0x76
+
+BARO BMP280 I2C:0:0x76
+
+
+
+# =====================================================
+# FEATURES
 # =====================================================
 
 
 define ALLOW_ARM_NO_COMPASS
 
+
 define AP_COMPASS_PROBING_ENABLED 1
+
 
 define HAL_I2C_INTERNAL_MASK 0
 
@@ -294,7 +301,7 @@ define HAL_FRAME_CLASS_DEFAULT 1
 
 
 
-DMA_PRIORITY ADC1 SPI1* SPI2* TIM1* TIM3*
+DMA_PRIORITY ADC1 SPI1* SPI2* SPI3* TIM1* TIM3*
 
 
 
