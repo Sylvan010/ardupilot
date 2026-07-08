@@ -76,8 +76,7 @@ jobs:
         run: |
           echo "===== HWDEF BOARD ID ====="
           grep -R "APJ_BOARD_ID" build/FoxeerF405v2/
-          # Тест исправлен: ищем сгенерированный числовой ID 4200, который выдает ядро
-          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+4200[[:space:]]*$" build/FoxeerF405v2/ || exit 1
+          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+AP_HW_FOXEERF405_V2[[:space:]]*$" build/FoxeerF405v2/ || exit 1
 
       - name: Verify SPI physical mapping
         run: |
