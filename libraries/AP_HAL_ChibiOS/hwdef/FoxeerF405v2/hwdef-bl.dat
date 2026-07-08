@@ -1,17 +1,22 @@
 # =====================================================
-# HAKRC F405 V2 Bootloader Configuration
+# HAKRC-F405V2 Bootloader
+# Based on FoxeerF405v2 bootloader
 # =====================================================
 
+
 MCU STM32F4xx STM32F405xx
+
 
 define STM32_JTAG_DISABLE
 
 
 # =====================================================
-# Board identification
+# Board ID
+# залишаємо Foxeer для сумісності
 # =====================================================
 
-APJ_BOARD_ID AP_HW_HAKRC_F405
+APJ_BOARD_ID AP_HW_FOXEERF405_V2
+
 
 
 # =====================================================
@@ -20,63 +25,111 @@ APJ_BOARD_ID AP_HW_HAKRC_F405
 
 OSCILLATOR_HZ 8000000
 
+
 FLASH_SIZE_KB 1024
 
 
+FLASH_RESERVE_START_KB 48
+
+
+
 # =====================================================
-# Parameter storage
+# Storage
 # =====================================================
 
 STORAGE_FLASH_PAGE 1
+
 define HAL_STORAGE_SIZE 8192
 
 
-# =====================================================
-# Timer
-# =====================================================
-
-define STM32_ST_USE_TIMER 5
-
 
 # =====================================================
-# USB VCP
+# USB
 # =====================================================
 
 define HAL_USE_SERIAL_USB 1
 
 
+PA11 OTG_FS_DM OTG1
+
+PA12 OTG_FS_DP OTG1
+
+
+
 # =====================================================
-# Bootloader serial ports
-# USB + UART1
+# Bootloader UART
+# Foxeer mapping
 # =====================================================
 
-SERIAL_ORDER OTG1 USART1
+SERIAL_ORDER OTG1 USART1 USART3
 
 
 # USB
 
 PA11 OTG_FS_DM OTG1
+
 PA12 OTG_FS_DP OTG1
 
 
-# UART1
+
+# UART1 ELRS / CRSF
 
 PB6 USART1_TX USART1
+
 PB7 USART1_RX USART1
 
 
+
+# UART3 GPS
+
+PB10 USART3_TX USART3
+
+PB11 USART3_RX USART3
+
+
+
 # =====================================================
-# Status LEDs
+# System LEDs
+# HAKRC
 # =====================================================
 
-PC14 LED0 OUTPUT LOW GPIO(91)
-
-PC15 LED1 OUTPUT LOW GPIO(90)
-
-
-define AP_NOTIFY_GPIO_LED_1_ENABLED 1
-define AP_NOTIFY_GPIO_LED_2_ENABLED 1
-
+PC15 LED0 OUTPUT LOW GPIO(90)
 
 define HAL_GPIO_A_LED_PIN 90
+
+
+PC14 LED1 OUTPUT LOW GPIO(91)
+
 define HAL_GPIO_B_LED_PIN 91
+
+
+
+define AP_NOTIFY_GPIO_LED_1_PIN 90
+
+define AP_NOTIFY_GPIO_LED_2_PIN 91
+
+
+
+# =====================================================
+# Safety timer
+# =====================================================
+
+STM32_ST_USE_TIMER 5
+
+
+
+# =====================================================
+# Disable unused bootloader features
+# економія пам'яті
+# =====================================================
+
+undef HAL_SCRIPTING_ENABLED
+
+undef HAL_CAN_ENABLED
+
+
+# =====================================================
+# DFU / VCP
+# =====================================================
+
+define HAL_USE_SERIAL_USB 1
