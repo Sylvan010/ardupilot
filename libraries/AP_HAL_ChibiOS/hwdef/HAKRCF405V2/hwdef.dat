@@ -1,6 +1,7 @@
 # =====================================================
 # HAKRC F405 V2
-# Production ArduPilot ChibiOS target
+# Full resource production target
+# STM32F405
 # =====================================================
 
 
@@ -17,7 +18,6 @@ OSCILLATOR_HZ 8000000
 
 
 FLASH_SIZE_KB 1024
-
 FLASH_RESERVE_START_KB 48
 
 
@@ -31,12 +31,17 @@ define HAL_STORAGE_SIZE 16384
 # =====================================================
 
 define AP_SCRIPTING_ENABLED 0
+
 define HAL_LOGGING_DISABLED 1
 
 define AP_TERRAIN_AVAILABLE 0
+
 define AP_CAMERA_ENABLED 0
+
 define AP_GRIPPER_ENABLED 0
+
 define AP_PARACHUTE_ENABLED 0
+
 
 
 
@@ -49,9 +54,16 @@ define HAL_USE_SERIAL_USB 1
 
 
 # =====================================================
-# STATUS LED
+# BEEPER
 # =====================================================
 
+PC13 BUZZER OUTPUT LOW
+
+
+
+# =====================================================
+# STATUS LED
+# =====================================================
 
 define AP_NOTIFY_GPIO_LED_1_ENABLED 1
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
@@ -70,35 +82,36 @@ define HAL_GPIO_B_LED_PIN 91
 
 
 # =====================================================
-# RGB WS2812
+# RGB LED STRIP WS2812
+# Betaflight LED_STRIP PB3
 # =====================================================
+
 
 PB3 LED_STRIP OUTPUT GPIO(92)
 
 define HAL_WITH_WS2812 1
 
-define AP_NOTIFY_GPIO_LED_RGB_ENABLED 1
-
-define AP_NOTIFY_GPIO_LED_RGB_BLUE_PIN 92
-
 
 
 # =====================================================
-# SPI1 IMU ICM42688
+# SPI1 IMU ICM42688P
 # =====================================================
 
 
-PA5 SPI1_SCK SPI1
+PA5 SPI1_SCK  SPI1
+
 PA6 SPI1_MISO SPI1
+
 PA7 SPI1_MOSI SPI1
 
 
 PA4 GYRO_CS CS
 
+
 PC4 GYRO_INT INPUT PULLUP
 
 
-SPIDEV imu1 SPI1 DEVID1 GYRO_CS MODE3 2*MHZ 8*MHZ
+SPIDEV imu1 SPI1 DEVID1 GYRO_CS MODE3 1*MHZ 8*MHZ
 
 
 IMU Invensensev3 SPI:imu1 ROTATION_YAW_180
@@ -113,6 +126,12 @@ define HAL_DEFAULT_INS_FAST_SAMPLE 3
 
 # =====================================================
 # SPI2 MAX7456 OSD
+#
+# MAX7456:
+# CS   PB12
+# DIN  PB15
+# CLK  PB13
+# DOUT PB14
 # =====================================================
 
 
@@ -141,6 +160,11 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
 # =====================================================
 # SPI3 W25Q FLASH
+#
+# CS   PA15
+# CLK  PC10
+# DO   PC11
+# DI   PB5
 # =====================================================
 
 
@@ -173,9 +197,26 @@ PB9 I2C1_SDA I2C1
 
 
 
+# =====================================================
+# BAROMETER
+# =====================================================
+
+
+BARO BMP280 I2C:0:0x76
+
+BARO DPS310 I2C:0:0x76
+
+
+
 
 # =====================================================
-# UART
+# SERIAL
+#
+# UART2  -> ELRS
+# UART4  -> VTX
+# UART5  -> ESC telemetry
+# UART6  -> GPS
+# USART1/3 free
 # =====================================================
 
 
@@ -203,7 +244,9 @@ PA2 USART2_TX USART2
 
 PA3 USART2_RX USART2 ALT(1)
 
+
 PC0 INVERTER_UART2 INPUT PULLUP
+
 
 
 
@@ -215,6 +258,7 @@ PB11 USART3_RX USART3
 
 
 
+
 # UART4 VTX
 
 PA0 UART4_TX UART4 NODMA
@@ -223,11 +267,13 @@ PA1 UART4_RX UART4 NODMA
 
 
 
-# UART5 ESC Telemetry
+
+# UART5 ESC TELEMETRY
 
 PC12 UART5_TX UART5 NODMA
 
 PD2 UART5_RX UART5 NODMA
+
 
 
 
@@ -261,7 +307,8 @@ define HAL_BATT_CURR_SCALE 66.7
 
 
 # =====================================================
-# MOTORS FRAME 18
+# MOTORS
+# FRAME TYPE 18
 # =====================================================
 
 
@@ -269,18 +316,40 @@ PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
 
 PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
 
+
 PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
 
 PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)
+
 
 PB0  TIM3_CH3 TIM3 PWM(5) GPIO(54)
 
 PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)
 
+
 PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)
 
 PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
 
+
+
+# =====================================================
+# SERVO / AUX
+# =====================================================
+
+PB3 TIM2_CH2 TIM2 PWM(9) GPIO(58)
+
+
+
+
+# =====================================================
+# PINIO
+# =====================================================
+
+
+PC2 PINIO1 OUTPUT LOW
+
+PC5 PINIO2 OUTPUT LOW
 
 
 
@@ -306,6 +375,7 @@ define AP_COMPASS_PROBING_ENABLED 1
 
 define HAL_I2C_INTERNAL_MASK 0
 
+define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 
 
 
@@ -314,7 +384,7 @@ define HAL_I2C_INTERNAL_MASK 0
 # =====================================================
 
 
-DMA_PRIORITY ADC1 SPI1* SPI2* SPI3* TIM1* TIM3*
+DMA_PRIORITY ADC1 SPI1* SPI2* SPI3* TIM1* TIM3* TIM8*
 
 
 
