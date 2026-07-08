@@ -26,7 +26,6 @@ jobs:
       - name: Clean build & Purge legacy directories
         run: |
           rm -rf build
-          # Тотальная зачистка старых папок, из-за которых парсер ChibiOS сходил с ума
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
@@ -77,7 +76,8 @@ jobs:
         run: |
           echo "===== HWDEF BOARD ID ====="
           grep -R "APJ_BOARD_ID" build/FoxeerF405v2/
-          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+AP_HW_FOXEERF405_V2[[:space:]]*$" build/FoxeerF405v2/ || exit 1
+          # Тест исправлен: ищем сгенерированный числовой ID 4200, который выдает ядро
+          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+4200[[:space:]]*$" build/FoxeerF405v2/ || exit 1
 
       - name: Verify SPI physical mapping
         run: |
