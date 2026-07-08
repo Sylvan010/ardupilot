@@ -1,6 +1,5 @@
 # =====================================================
 # HAKRC F405 V2 BOOTLOADER
-# Based on FoxeerF405v2
 # =====================================================
 
 
@@ -19,7 +18,6 @@ FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 48
 
 
-
 define HAL_STORAGE_SIZE 4096
 
 define STORAGE_FLASH_PAGE 1
@@ -29,14 +27,12 @@ STM32_ST_USE_TIMER 5
 
 
 
-# =====================================================
 # USB
-# =====================================================
 
 define HAL_USE_SERIAL_USB 1
 
 
-SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
+SERIAL_ORDER OTG1 USART3 USART1
 
 
 
@@ -46,31 +42,7 @@ PA12 OTG_FS_DP OTG1
 
 
 
-# =====================================================
-# UART1
-# =====================================================
-
-PB7 USART1_RX USART1
-
-PB6 USART1_TX USART1
-
-
-
-# =====================================================
-# UART2
-# =====================================================
-
-PA3 USART2_RX USART2
-
-PA2 USART2_TX USART2
-
-PC0 INVERTER_UART2 OUTPUT LOW
-
-
-
-# =====================================================
-# UART3 GPS
-# =====================================================
+# GPS UART3
 
 PB11 USART3_RX USART3
 
@@ -78,54 +50,17 @@ PB10 USART3_TX USART3
 
 
 
-# =====================================================
-# UART4
-# =====================================================
+# ELRS UART1
 
-PA1 UART4_RX UART4
+PB7 USART1_RX USART1
 
-PA0 UART4_TX UART4
+PB6 USART1_TX USART1
 
 
 
-# =====================================================
-# UART5
-# =====================================================
-
-PD2 UART5_RX UART5 NODMA
-
-PC12 UART5_TX UART5 NODMA
-
-
-
-# =====================================================
-# UART6
-# =====================================================
-
-PC7 USART6_RX USART6 NODMA
-
-PC6 USART6_TX USART6 NODMA
-
-
-
-# =====================================================
-# BOOT LED
-# =====================================================
+# LED boot
 
 PC15 LED1 OUTPUT LOW GPIO(90)
 
-define AP_NOTIFY_GPIO_LED_1_PIN 90
 
 define HAL_GPIO_A_LED_PIN 90
-
-
-
-# =====================================================
-# MEMORY OPTIMIZATION
-# =====================================================
-
-define HAL_MINIMIZE_FEATURES 1
-
-define AP_SCRIPTING_ENABLED 0
-
-define HAL_LOGGING_DATAFLASH_ENABLED 0
