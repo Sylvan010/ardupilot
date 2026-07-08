@@ -58,9 +58,9 @@ jobs:
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Configure Waf Build System
+      - name: Configure Waf Build System (С ИЗОЛЯЦИЕЙ РАЗДЕЛОВ)
         run: |
-          ./waf configure --board HAKRCF405V2
+          ./waf configure --board HAKRCF405V2 --bootloader
 
       - name: Verify configured board
         run: |
@@ -80,10 +80,14 @@ jobs:
           grep -Rni "PB12" build/HAKRCF405V2/hwdef.h
           grep -Rni "PA4" build/HAKRCF405V2/hwdef.h
 
-      - name: Build Bootloader Independent Target (ВИПРАВЛЕНО НА TOOL)
+      - name: Build Bootloader Target (БЕЗ СКРИПТОВ И MAVGEN)
         run: |
-          echo "===== BUILDING BOOTLOADER APJ/HEX ARTIFACTS ====="
-          ./waf tool
+          echo "===== BUILDING BOOTLOADER BIN/HEX ====="
+          ./waf bootloader
+
+      - name: Re-Configure Waf System For Main Firmware
+        run: |
+          ./waf configure --board HAKRCF405V2
 
       - name: Build ArduCopter
         shell: bash
