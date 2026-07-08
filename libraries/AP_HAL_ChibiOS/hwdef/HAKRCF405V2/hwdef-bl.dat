@@ -27,3 +27,12 @@ PB7 USART1_RX USART1
 
 PC14 LED1 OUTPUT LOW GPIO(90)
 define HAL_GPIO_A_LED_PIN 90
+
+# ==============================================================================
+# ЖЕСТКИЙ СБРОС ДУБЛИКАТОВ СИ-МАКРОСОВ ДЛЯ УСТРАНЕНИЯ ОШИБКИ REDEFINED В WAF
+# ==============================================================================
+#undef HAL_USE_SERIAL_USB
+#undef HAL_BOOTLOADER_BUILD
+
+define HAL_USE_SERIAL_USB 1
+define HAL_BOOTLOADER_BUILD 1
