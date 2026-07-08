@@ -33,6 +33,7 @@ PB5  SPI3_MOSI SPI3
 PA4  GYRO1_CS CS
 PC4  GYRO1_EXTI INPUT
 
+PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
 
 # SERIAL ports
@@ -118,13 +119,11 @@ PC2 PINIO2 OUTPUT LOW
 define AP_BOOTLOADER_FLASHING_ENABLED 0
 
 # ==============================================================================
-# РЕШЕНИЕ ОШИБКИ REDEFINED: ПРИНУДИТЕЛЬНОЕ СТИРАНИЕ МАКРОСОВ И ОТКЛЮЧЕНИЕ БЛЭКБОКСА
+# ЛОГИРОВАНИЕ И ХРАНЕНИЕ ПАРАМЕТРОВ (ВОЗВРАЩЕНО ДЛЯ ИСКЛЮЧЕНИЯ КЛИНЧА МАКРОСОВ)
 # ==============================================================================
-#undef HAL_LOGGING_DATAFLASH_ENABLED
-#undef HAL_LOGGING_ENABLED
-
-define HAL_LOGGING_ENABLED 0
-define HAL_LOGGING_DATAFLASH_ENABLED 0
+SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
+define HAL_LOGGING_DATAFLASH_ENABLED 1
+define HAL_Storage_Type StorageType_Flash
 
 # OSD ПОВНОЦЕННЫЙ РЕЖИМ (Графіка, шрифти та сайдбары збережені на 100%)
 SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
@@ -165,7 +164,7 @@ define AP_CAN_ENABLED 0
 define AP_FRSKY_TELEM_ENABLED 0
 define AP_MSP_ENABLED 0
 
-# Відключення інших типів транспорта (ВИРІЗАНО)
+# Відключення других типів транспорта (ВИРІЗАНО)
 define AP_PLANE_ENABLED 0
 define AP_ROVER_ENABLED 0
 define AP_SUB_ENABLED 0
@@ -180,7 +179,7 @@ define AP_AIS_ENABLED 0
 define AP_RPM_ENABLED 0
 define AP_WINDVANE_ENABLED 0
 
-# Відключення допоміжних систем (ВИРІЗАНО)
+# Відключення допоміжних...
 define AP_CAMERA_ENABLED 0
 define AP_GRIPPER_ENABLED 0
 define AP_PARACHUTE_ENABLED 0
