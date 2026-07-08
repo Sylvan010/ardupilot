@@ -5,7 +5,7 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Позволяет запускать сборку вручную кнопкой в интерфейсе GitHub
+  workflow_dispatch:
 
 jobs:
   build-firmware:
@@ -25,20 +25,20 @@ jobs:
           git config --global --add safe.directory $GITHUB_WORKSPACE
           git config --global --add safe.directory /github/workspace
 
-      # 3. Принудительная перезапись файла FoxeerF405v2 вашей Production-конфигурацией
-      # Это решает проблему "Invalid board", сохраняя все ваши кастомные настройки железа.
+      # 3. Перезапись файла FoxeerF405v2 вашей Production-конфигурацией
+      # Идентификатор APJ_BOARD_ID изменен на оригинальный AP_HW_FoxeerF405v2 для валидации
       - name: Inject HAKRC Production Hardware Definition
         run: |
           cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           # HAKRC F405 V2 (Production Light Version - DFU Build via Foxeer Target)
           # Hardware compatible profile based on FoxeerF405v2 ChibiOS target
-          # Board ID: AP_HW_FOXEER_F405V2 (4105)
+          # Board ID: AP_HW_FoxeerF405v2 (4105)
 
           MCU STM32F4xx STM32F405xx
 
           define STM32_JTAG_DISABLE
 
-          APJ_BOARD_ID AP_HW_FOXEER_F405V2
+          APJ_BOARD_ID AP_HW_FoxeerF405v2
 
           OSCILLATOR_HZ 8000000
 
@@ -149,6 +149,7 @@ jobs:
           define HAL_I2C_INTERNAL_MASK 0
           define HAL_COMPASS_AUTO_ROT_DEFAULT 2
           define HAL_DEFAULT_INS_FAST_SAMPLE 3
+          define HAL_DEFAULT_AIRSPEED_TYPE 0
           define HAL_FRAME_TYPE_DEFAULT 18
           define HAL_FRAME_CLASS_DEFAULT 1
 
@@ -163,7 +164,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-pip python3-setuptools python3-wheel gcc-arm-none-eabi libncurses5 lzma
 
-      # 5. Очистка кэша и запуск конфигурации под валидное имя платы FoxeerF405v2
+      # 5. Очистка кэша и запуск конфигурации под имя платы FoxeerF405v2
       - name: Configure Waf Board Target
         run: |
           rm -rf build/
@@ -174,7 +175,7 @@ jobs:
         run: |
           ./waf copter
 
-      # 7. Выгрузка готового .hex файла в артефакты GitHub (загрузка через DFU)
+      # 7. Выгрузка готового .hex файла в артефакты GitHub
       - name: Upload Compiled Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
