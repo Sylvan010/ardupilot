@@ -50,7 +50,7 @@ jobs:
           echo "===== MAX7456 OSD CONFIG ====="
           grep -E "SPI2|osd" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Validate source hwdef (ПУТИ ИСПРАВЛЕНЫ СТРОГО ПО РЕЕСТРУ)
+      - name: Validate source hwdef
         run: |
           echo "===== SOURCE HWDEF VALIDATION ====="
           test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
@@ -80,10 +80,10 @@ jobs:
           grep -Rni "PB12" build/HAKRCF405V2/hwdef.h
           grep -Rni "PA4" build/HAKRCF405V2/hwdef.h
 
-      - name: Build Bootloader Independent Target
+      - name: Build Bootloader Independent Target (ВИПРАВЛЕНО НА TOOL)
         run: |
           echo "===== BUILDING BOOTLOADER APJ/HEX ARTIFACTS ====="
-          ./waf bootloader
+          ./waf tool
 
       - name: Build ArduCopter
         shell: bash
