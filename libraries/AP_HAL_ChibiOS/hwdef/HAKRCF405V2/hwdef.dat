@@ -119,12 +119,13 @@ PC2 PINIO2 OUTPUT LOW
 define AP_BOOTLOADER_FLASHING_ENABLED 0
 
 # ==============================================================================
-# ОБХОД КЛИНЧА МАКРОСОВ WAF: ОБЪЯВЛЯЕМ ЧИП КАК РЕЗЕРВНЫЙ, ИСКЛЮЧАЯ AUTO-DATAFLASH
+# ШТАТНОЕ ЛОГИРОВАНИЕ BLACKBOX ДЛЯ АВТОНОМНЫХ МИССИЙ (SPI3)
 # ==============================================================================
-SPIDEV flash_raw SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
-define HAL_LOGGING_ENABLED 0
+SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
+define HAL_LOGGING_DATAFLASH_ENABLED 1
+define HAL_Storage_Type StorageType_Flash
 
-# OSD ПОВНОЦЕННЫЙ РЕЖИМ (Графіка, шрифти та сайдбары збережені на 100%)
+# OSD ПОВНОЦЕННЫЙ РЕЖИМ (Gradica, шрифты и сайдбары сохранены на 100%)
 SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
 define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
@@ -133,7 +134,7 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 # BAROMETER (Суворо один реальний датчик на I2C адресі 0x76 без дублювання)
 BARO DPS310 I2C:0:0x76
 
-# IMU setup (Ускоренная каноническая initialization ICM42688P)
+# IMU setup (Ускоренная каноническая инициализация ICM42688P)
 define HAL_EXTI_ENABLED 1
 define INS_PRIMARY 0
 define HAL_INS_DEFAULT HAL_INS_INVENSENSEV3
