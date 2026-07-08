@@ -56,12 +56,7 @@ jobs:
           test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "PA4  GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
-          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
-
-      - name: Pre-build independent Bootloader
-        run: |
-          echo "===== GENERATING HAKRCF405V2_bl.bin FOR WAF CONFIG ====="
-          ./Tools/scripts/build_bootloaders.py HAKRCF405V2
+          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/HAKRCF405V2/hwdef.dat
 
       - name: Configure Waf Build System
         run: |
@@ -84,6 +79,11 @@ jobs:
           echo "===== SPI GPIO CHECK ====="
           grep -Rni "PB12" build/HAKRCF405V2/hwdef.h
           grep -Rni "PA4" build/HAKRCF405V2/hwdef.h
+
+      - name: Build Bootloader Independent Target
+        run: |
+          echo "===== BUILDING BOOTLOADER APJ/HEX ARTIFACTS ====="
+          ./waf bootloader
 
       - name: Build ArduCopter
         shell: bash
