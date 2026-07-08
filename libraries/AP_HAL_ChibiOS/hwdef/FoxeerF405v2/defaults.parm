@@ -11,7 +11,7 @@ SCR_ENABLE 0
 # Frame
 # =====================================================
 FRAME_CLASS 1
-FRAME_TYPE 18
+FRAME_TYPE 12
 
 # =====================================================
 # GPS u-blox
@@ -29,10 +29,10 @@ COMPASS_AUTO_ROT 2
 # Battery
 # =====================================================
 BATT_MONITOR 4
-BATT_VOLT_PIN 1
-BATT_CURR_PIN 3
-BATT_VOLT_MULT 21.0
-BATT_AMP_PERVLT 66.7
+BATT_VOLT_PIN 11
+BATT_CURR_PIN 13
+BATT_VOLT_MULT 11.0
+BATT_AMP_PERVLT 142.9
 
 # =====================================================
 # Safety
@@ -42,9 +42,9 @@ FENCE_ENABLE 0
 LAND_SPEED 50
 
 # =====================================================
-# Performance (Логирование в бэкенде полностью отключено)
+# Performance
 # =====================================================
-LOG_BACKEND_TYPE 0
+LOG_BACKEND_TYPE 1
 SCHED_LOOP_RATE 400
 
 # =====================================================
