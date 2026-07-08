@@ -119,11 +119,10 @@ PC2 PINIO2 OUTPUT LOW
 define AP_BOOTLOADER_FLASHING_ENABLED 0
 
 # ==============================================================================
-# ЛОГИРОВАНИЕ И ХРАНЕНИЕ ПАРАМЕТРОВ (ВОЗВРАЩЕНО ДЛЯ ИСКЛЮЧЕНИЯ КЛИНЧА МАКРОСОВ)
+# ОБХОД КЛИНЧА МАКРОСОВ WAF: ОБЪЯВЛЯЕМ ЧИП КАК РЕЗЕРВНЫЙ, ИСКЛЮЧАЯ AUTO-DATAFLASH
 # ==============================================================================
-SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
-define HAL_LOGGING_DATAFLASH_ENABLED 1
-define HAL_Storage_Type StorageType_Flash
+SPIDEV flash_raw SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
+define HAL_LOGGING_ENABLED 0
 
 # OSD ПОВНОЦЕННЫЙ РЕЖИМ (Графіка, шрифти та сайдбары збережені на 100%)
 SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
@@ -134,7 +133,7 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 # BAROMETER (Суворо один реальний датчик на I2C адресі 0x76 без дублювання)
 BARO DPS310 I2C:0:0x76
 
-# IMU setup (Ускоренная каноническая инициализация ICM42688P)
+# IMU setup (Ускоренная каноническая initialization ICM42688P)
 define HAL_EXTI_ENABLED 1
 define INS_PRIMARY 0
 define HAL_INS_DEFAULT HAL_INS_INVENSENSEV3
@@ -164,7 +163,7 @@ define AP_CAN_ENABLED 0
 define AP_FRSKY_TELEM_ENABLED 0
 define AP_MSP_ENABLED 0
 
-# Відключення других типів транспорта (ВИРІЗАНО)
+# Відключення інших типів транспорта (ВИРІЗАНО)
 define AP_PLANE_ENABLED 0
 define AP_ROVER_ENABLED 0
 define AP_SUB_ENABLED 0
@@ -179,7 +178,7 @@ define AP_AIS_ENABLED 0
 define AP_RPM_ENABLED 0
 define AP_WINDVANE_ENABLED 0
 
-# Відключення допоміжних...
+# Відключення допоміжних систем (ВИРІЗАНО)
 define AP_CAMERA_ENABLED 0
 define AP_GRIPPER_ENABLED 0
 define AP_PARACHUTE_ENABLED 0
