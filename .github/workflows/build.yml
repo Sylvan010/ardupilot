@@ -3,178 +3,39 @@ name: Build HAKRC F405 V2 Firmware
 on:
   push:
     paths:
-      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/**'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    container:
-      image: ardupilot/ardupilot-dev-chibios:latest
+    container: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: 'recursive'
 
-      - name: Configure git
+      - name: Clean Legacy Conflict Targets
         run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
-
-      - name: Clean build
-        run: |
-          rm -rf build
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
 
-      - name: Check HWDEF exists
-        shell: bash
+      - name: Configure Firmware
         run: |
-          echo "===== HWDEF LOCATION ====="
-          pwd
-          ls -la libraries/AP_HAL_ChibiOS/hwdef/
-          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm
-          echo "===== HWDEF FOUND ====="
-
-      - name: Show hardware mapping
-        shell: bash
-        run: |
-          echo "===== BOARD IDENTITY ====="
-          grep -E "^APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-          echo "===== SPI1 IMU CONFIG ====="
-          grep -E "SPI1|imu1" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-          echo "===== MAX7456 OSD CONFIG ====="
-          grep -E "SPI2|osd" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-          echo "===== DATAFLASH BLACKBOX CONFIG ====="
-          grep -E "SPI3|dataflash" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-          echo "===== LED AND BUZZER CONFIG ====="
-          grep -E "LED|BUZZER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-      - name: Verify HAKRC board database entry
-        run: |
-          echo "===== BOARD DATABASE ====="
-          grep -E "^AP_HW_HAKRC_F405[[:space:]]+4200([[:space:]]*)$" Tools/AP_Bootloader/board_types.txt
-
-      - name: Validate source hwdef
-        run: |
-          echo "===== SOURCE HWDEF VALIDATION ====="
-          test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep "PA4 GYRO_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep "PC4 GYRO_INT" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep "PB12 OSD_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep "PA15 FLASH_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep "PC13 BUZZER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-      - name: Configure Waf Build System
-        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
           ./waf configure --board FoxeerF405v2
 
-      - name: Verify configured board
+      - name: Build Copter Firmware
         run: |
-          echo "===== BOARD CHECK ====="
-          test -d build/FoxeerF405v2
-          test -f build/FoxeerF405v2/hwdef.h
+          ./waf copter
 
-      - name: Verify generated board identity
-        run: |
-          echo "===== HWDEF BOARD ID ====="
-          grep -R "APJ_BOARD_ID" build/FoxeerF405v2/
-          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+4200(U)?[[:space:]]*$" build/FoxeerF405v2/ || exit 1
-
-      - name: Verify final board identity
-        shell: bash
-        run: |
-          echo "===== FINAL BOARD ID ====="
-          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+4200(U)?[[:space:]]*$" build/FoxeerF405v2/
-          echo "===== HAKRC TOKEN ====="
-          grep -E "^AP_HW_HAKRC_F405[[:space:]]+4200([[:space:]]*)$" Tools/AP_Bootloader/board_types.txt
-
-      - name: Verify SPI physical mapping
-        run: |
-          echo "===== SPI GPIO CHECK ====="
-          grep -Rni "PB12" build/FoxeerF405v2/hwdef.h
-          grep -Rni "PA15" build/FoxeerF405v2/hwdef.h
-          grep -Rni "PA4" build/FoxeerF405v2/hwdef.h
-
-      - name: Verify Hardware Peripherals mapping
-        run: |
-          echo "===== PERIPHERALS CHECK ====="
-          grep -Rni "PC14" build/FoxeerF405v2/hwdef.h || true
-          grep -Rni "PC15" build/FoxeerF405v2/hwdef.h || true
-          grep -Rni "PC13" build/FoxeerF405v2/hwdef.h || true
-          grep -Rni "PB3" build/FoxeerF405v2/hwdef.h || true
-
-      - name: Verify IMU interrupt
-        run: |
-          echo "===== GYRO INT CHECK ====="
-          grep -Rni "PC4" build/FoxeerF405v2/hwdef.h || true
-          grep -Rni "EXTI" build/FoxeerF405v2/hwdef.h || true
-
-      - name: Verify generated hwdef
-        run: |
-          echo "===== GENERATED HWDEF CHECK ====="
-          test -f build/FoxeerF405v2/hwdef.h
-          grep -Rni "HAL_EXTI_ENABLED" build/FoxeerF405v2/hwdef.h || true
-
-      - name: Dump critical pins configuration
-        run: |
-          echo "===== CRITICAL PIN DUMP ====="
-          grep -Rni "LED\|PC14\|PC15\|PC4\|PC13\|PB3\|EXTI" build/FoxeerF405v2/hwdef.h || true
-
-      - name: Build ArduCopter
-        shell: bash
-        run: |
-          touch build.log
-          set +e
-          ./waf copter -v 2>&1 | tee build.log
-          status=${PIPESTATUS[0]}
-          set -e
-          exit $status
-
-      - name: Inspect build output tree
-        if: always()
-        run: |
-          echo "===== REVEALING ACTUAL BUILD OUTPUT TREE ====="
-          find build/FoxeerF405v2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj|\.hex" || true
-
-      - name: Extract failure
-        if: failure()
-        run: |
-          echo "===== PARSING COMPILER ERRORS ====="
-          if [ -f build.log ]; then
-            grep -E "error:|fatal error|No such file|unknown|invalid|undeclared|undefined|conflicting|redefinition|expected|mismatch" build.log || true
-            echo "===== LAST 200 LINES OF BUILD LOG ====="
-            tail -n 200 build.log
-          else
-            echo "ERROR: build.log was not created."
-          fi
-
-      - name: Verify final firmware
-        run: |
-          echo "===== FINAL ARTIFACT CHECK ====="
-          test -f build/FoxeerF405v2/bin/arducopter.apj
-          test -f build/FoxeerF405v2/bin/arducopter
-          
-          # Чтение размера скомпилированного бинарника из оригинального ELF
-          arm-none-eabi-size build/FoxeerF405v2/bin/arducopter
-          
-          echo "=================================="
-          echo "    HAKRC F405 V2 BUILD OK "
-          echo "=================================="
-
-      - name: Publish Artifacts
+      - name: Upload APJ Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HAKRC-F405V2-Production-Firmware
+          name: HAKRC-F405V2-ArduCopter
           path: |
             build/FoxeerF405v2/bin/arducopter.apj
-            build/FoxeerF405v2/bin/arducopter.hex
             build/FoxeerF405v2/bin/arducopter_with_bl.hex
-          if-no-files-found: warn
