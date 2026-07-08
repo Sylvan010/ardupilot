@@ -1,41 +1,54 @@
-name: Build HAKRC F405 V2 Firmware
+name: Build ArduPilot Production for HAKRC F405 V2
 
 on:
   push:
-    paths:
-      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
-      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
-  workflow_dispatch:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Добавляет кнопку ручного запуска в интерфейсе GitHub
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    container: ardupilot/ardupilot-dev-chibios:latest
+  build-firmware:
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout Repository
+      # 1. Скачивание репозитория со ВСЕМИ субмодулями (ChibiOS, папка include)
+      # Параметр submodules: recursive гарантирует, что папка include будет создана
+      - name: Checkout Repository with Submodules
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
+          fetch-depth: 0
 
-      - name: Clean Legacy Conflict Targets
-        run: |
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
-
-      - name: Configure Firmware
+      # 2. Исправление ошибки safe.directory для Git в контейнере GitHub Actions
+      # Добавляем пути в глобальный конфиг Git до начала конфигурации Waf
+      - name: Configure Git Safe Directory
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
-          ./waf configure --board FoxeerF405v2
+          git config --global --add safe.directory /github/workspace
 
-      - name: Build Copter Firmware
+      # 3. Установка необходимых системных компиляторов и библиотек
+      - name: Install Toolchain and Prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip python3-setuptools python3-wheel gcc-arm-none-eabi libncurses5 lzma
+
+      # 4. Конфигурация компилятора под вашу плату HAKRC F405
+      - name: Configure Waf Board Target
+        run: |
+          ./waf configure --board HAKRC_F405
+
+      # 5. Сборка облегченной Production прошивки (Copter)
+      - name: Compile ArduCopter Firmware
         run: |
           ./waf copter
 
-      - name: Upload APJ Artifact
+      # 6. Сохранение скомпилированных файлов (.apj и .hex) в артефакты сборки
+      # Вы сможете скачать готовые файлы прямо из интерфейса GitHub после завершения
+      - name: Upload Compiled Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HAKRC-F405V2-ArduCopter
+          name: HAKRC_F405_V2_Production_Firmware
           path: |
-            build/FoxeerF405v2/bin/arducopter.apj
-            build/FoxeerF405v2/bin/arducopter_with_bl.hex
+            build/HAKRC_F405/bin/arducopter.apj
+            build/HAKRC_F405/bin/arducopter.hex
