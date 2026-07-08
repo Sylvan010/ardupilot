@@ -1,7 +1,6 @@
 # =====================================================
 # HAKRC F405 V2
-# ArduPilot ChibiOS Production Configuration
-# STM32F405
+# Production ArduPilot ChibiOS target
 # =====================================================
 
 
@@ -23,37 +22,27 @@ FLASH_RESERVE_START_KB 48
 
 
 STORAGE_FLASH_PAGE 1
-
 define HAL_STORAGE_SIZE 16384
 
 
 
 # =====================================================
-# PERFORMANCE / MEMORY
+# MEMORY OPTIMIZATION
 # =====================================================
 
-
 define AP_SCRIPTING_ENABLED 0
+define HAL_LOGGING_DISABLED 1
 
 define AP_TERRAIN_AVAILABLE 0
-
-define AP_MOUNT_ENABLED 0
-
-define HAL_ADSB_ENABLED 0
-
-define AP_OPTICALFLOW_ENABLED 0
-
-
-define HAL_FRAME_TYPE_DEFAULT 18
-
-define HAL_FRAME_CLASS_DEFAULT 1
+define AP_CAMERA_ENABLED 0
+define AP_GRIPPER_ENABLED 0
+define AP_PARACHUTE_ENABLED 0
 
 
 
 # =====================================================
 # USB
 # =====================================================
-
 
 define HAL_USE_SERIAL_USB 1
 
@@ -84,25 +73,23 @@ define HAL_GPIO_B_LED_PIN 91
 # RGB WS2812
 # =====================================================
 
-
 PB3 LED_STRIP OUTPUT GPIO(92)
 
+define HAL_WITH_WS2812 1
 
-define AP_NOTIFY_NEOPIXEL_ENABLED 1
+define AP_NOTIFY_GPIO_LED_RGB_ENABLED 1
 
-define HAL_NEOPIXEL_ENABLED 1
+define AP_NOTIFY_GPIO_LED_RGB_BLUE_PIN 92
 
 
 
 # =====================================================
-# IMU ICM42688P SPI1
+# SPI1 IMU ICM42688
 # =====================================================
 
 
 PA5 SPI1_SCK SPI1
-
 PA6 SPI1_MISO SPI1
-
 PA7 SPI1_MOSI SPI1
 
 
@@ -119,20 +106,14 @@ IMU Invensensev3 SPI:imu1 ROTATION_YAW_180
 
 define HAL_EXTI_ENABLED 1
 
-define HAL_DEFAULT_INS_FAST_SAMPLE 2
+define HAL_DEFAULT_INS_FAST_SAMPLE 3
+
 
 
 
 # =====================================================
-# MAX7456 OSD SPI2
+# SPI2 MAX7456 OSD
 # =====================================================
-
-
-# MAX7456:
-# CS   PB12
-# SCK  PB13
-# MISO PB14
-# MOSI PB15
 
 
 PB13 SPI2_SCK SPI2
@@ -157,13 +138,11 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
 
 
+
 # =====================================================
-# DATAFLASH W25Q
-# Logging disabled
+# SPI3 W25Q FLASH
 # =====================================================
 
-
-# SPI3 pins
 
 PC10 SPI3_SCK SPI3
 
@@ -175,9 +154,7 @@ PB5 SPI3_MOSI SPI3
 PA15 FLASH_CS CS
 
 
-# intentionally disabled
-# SPIDEV dataflash SPI3 DEVID1 FLASH_CS MODE3 32*MHZ 32*MHZ
-# define HAL_LOGGING_DATAFLASH_ENABLED 1
+SPIDEV dataflash SPI3 DEVID1 FLASH_CS MODE3 32*MHZ 32*MHZ
 
 
 
@@ -196,8 +173,9 @@ PB9 I2C1_SDA I2C1
 
 
 
+
 # =====================================================
-# SERIAL
+# UART
 # =====================================================
 
 
@@ -205,15 +183,13 @@ SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 
 
 
-# USB
-
 PA11 OTG_FS_DM OTG1
 
 PA12 OTG_FS_DP OTG1
 
 
 
-# UART1 spare
+# USART1
 
 PB6 USART1_TX USART1
 
@@ -227,12 +203,11 @@ PA2 USART2_TX USART2
 
 PA3 USART2_RX USART2 ALT(1)
 
-
 PC0 INVERTER_UART2 INPUT PULLUP
 
 
 
-# UART3 spare
+# USART3
 
 PB10 USART3_TX USART3
 
@@ -265,6 +240,7 @@ PC7 USART6_RX USART6 NODMA
 
 
 
+
 # =====================================================
 # ADC
 # =====================================================
@@ -283,30 +259,53 @@ define HAL_BATT_CURR_SCALE 66.7
 
 
 
+
 # =====================================================
-# MOTORS
+# MOTORS FRAME 18
 # =====================================================
 
 
-PC8 TIM8_CH3 TIM8 PWM(1) GPIO(50)
+PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
 
-PC9 TIM8_CH4 TIM8 PWM(2) GPIO(51)
+PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
 
+PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
 
-PA8 TIM1_CH1 TIM1 PWM(3) GPIO(52)
+PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)
 
-PA9 TIM1_CH2 TIM1 PWM(4) GPIO(53)
+PB0  TIM3_CH3 TIM3 PWM(5) GPIO(54)
 
-
-PB0 TIM3_CH3 TIM3 PWM(5) GPIO(54)
-
-PB1 TIM3_CH4 TIM3 PWM(6) GPIO(55)
-
+PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)
 
 PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)
 
+PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
 
-PB4 TIM3_CH1 TIM3 PWM(8) GPIO(57)
+
+
+
+# =====================================================
+# FRAME
+# =====================================================
+
+
+define HAL_FRAME_TYPE_DEFAULT 18
+
+define HAL_FRAME_CLASS_DEFAULT 1
+
+
+
+# =====================================================
+# COMPASS
+# =====================================================
+
+
+define ALLOW_ARM_NO_COMPASS
+
+define AP_COMPASS_PROBING_ENABLED 1
+
+define HAL_I2C_INTERNAL_MASK 0
+
 
 
 
