@@ -157,8 +157,9 @@ define AP_NAV_EKF2_ENABLED 0
 define AP_NAV_EKF3_ENABLED 1
 define AP_SCRIPTING_ENABLED 0
 
-# Вырезаем тяжелую экспериментальную структуру вектора тяги (УСТРАНЯЕТ ПАДЕНИЕ ОБЪЕКТНИКА)
+# Вырезаем тяжелые смежные классы управления (УСТРАНЯЕТ ПАДЕНИЯ ЛИНКОВЩИКА)
 define AP_ATTITUDE_CONTROL_TS_ENABLED 0
+define AP_ATTITUDE_CONTROL_SUB_ENABLED 0
 
 # Системні шины та протоколы телеметрії (ВИРІЗАНО)
 define AP_CAN_ENABLED 0
