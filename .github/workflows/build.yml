@@ -1,54 +1,49 @@
-name: Build ArduPilot Production for HAKRC F405 V2
+name: Build ArduPilot Production DFU for HAKRC F405 V2
 
 on:
   push:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
-  workflow_dispatch: # Добавляет кнопку ручного запуска в интерфейсе GitHub
+  workflow_dispatch:
 
 jobs:
   build-firmware:
     runs-on: ubuntu-22.04
 
     steps:
-      # 1. Скачивание репозитория со ВСЕМИ субмодулями (ChibiOS, папка include)
-      # Параметр submodules: recursive гарантирует, что папка include будет создана
-      - name: Checkout Repository with Submodules
+      # 1. Скачивание репозитория
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
           fetch-depth: 0
 
-      # 2. Исправление ошибки safe.directory для Git в контейнере GitHub Actions
-      # Добавляем пути в глобальный конфиг Git до начала конфигурации Waf
+      # 2. Устранение ошибки safe.directory
       - name: Configure Git Safe Directory
         run: |
           git config --global --add safe.directory $GITHUB_WORKSPACE
           git config --global --add safe.directory /github/workspace
 
-      # 3. Установка необходимых системных компиляторов и библиотек
+      # 3. Зависимости компилятора
       - name: Install Toolchain and Prerequisites
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-pip python3-setuptools python3-wheel gcc-arm-none-eabi libncurses5 lzma
 
-      # 4. Конфигурация компилятора под вашу плату HAKRC F405
+      # 4. Конфигурация под ПРАВИЛЬНУЮ плату (теперь она будет брать данные из hwdef/HAKRC_F405/)
       - name: Configure Waf Board Target
         run: |
           ./waf configure --board HAKRC_F405
 
-      # 5. Сборка облегченной Production прошивки (Copter)
+      # 5. Сборка прошивки
       - name: Compile ArduCopter Firmware
         run: |
           ./waf copter
 
-      # 6. Сохранение скомпилированных файлов (.apj и .hex) в артефакты сборки
-      # Вы сможете скачать готовые файлы прямо из интерфейса GitHub после завершения
+      # 6. Выгрузка собранного .hex файла (так как бутлоадера нет, шьем плату в режиме DFU)
       - name: Upload Compiled Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HAKRC_F405_V2_Production_Firmware
-          path: |
-            build/HAKRC_F405/bin/arducopter.apj
-            build/HAKRC_F405/bin/arducopter.hex
+          name: HAKRC_F405_V2_Production_DFU
+          path: build/HAKRC_F405/bin/arducopter.hex
