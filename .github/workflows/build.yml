@@ -50,13 +50,13 @@ jobs:
           echo "===== MAX7456 OSD CONFIG ====="
           grep -E "SPI2|osd" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Validate source hwdef
+      - name: Validate source hwdef (ПУТИ ИСПРАВЛЕНЫ СТРОГО ПО РЕЕСТРУ)
         run: |
           echo "===== SOURCE HWDEF VALIDATION ====="
           test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "PA4  GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
-          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/HAKRCF405V2/hwdef.dat
+          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
       - name: Configure Waf Build System
         run: |
