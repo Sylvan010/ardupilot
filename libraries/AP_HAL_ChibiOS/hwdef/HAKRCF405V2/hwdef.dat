@@ -1,46 +1,28 @@
 # HAKRC F405 V2
 # Production ArduPilot ChibiOS target
-# Based on FoxeerF405v2
+
 
 MCU STM32F4xx STM32F405xx
 
+
 define STM32_JTAG_DISABLE
+
 
 APJ_BOARD_ID AP_HW_HAKRC_F405
 
 
-# =========================
-# FLASH
-# =========================
-
-FLASH_SIZE_KB 1024
-FLASH_RESERVE_START_KB 48
-
-STORAGE_FLASH_PAGE 1
-define HAL_STORAGE_SIZE 16384
-
-
-# =========================
-# CPU
-# =========================
-
 OSCILLATOR_HZ 8000000
 
-define STM32_ST_USE_TIMER 5
-define CH_CFG_ST_RESOLUTION 32
+
+FLASH_SIZE_KB 1024
+
+FLASH_RESERVE_START_KB 48
 
 
-# =========================
-# FEATURES MEMORY SAVE
-# =========================
+STORAGE_FLASH_PAGE 1
 
-define AP_SCRIPTING_ENABLED 0
-define AP_TERRAIN_AVAILABLE 0
-define AP_MOUNT_ENABLED 0
-define HAL_ADSB_ENABLED 0
-define AP_OPTICALFLOW_ENABLED 0
+define HAL_STORAGE_SIZE 8192
 
-define HAL_FRAME_TYPE_DEFAULT 18
 
 
 # =========================
@@ -56,11 +38,18 @@ define HAL_USE_SERIAL_USB 1
 # =========================
 
 define AP_NOTIFY_GPIO_LED_1_ENABLED 1
-define HAL_NOTIFY_NUM_LEDS 1
+define AP_NOTIFY_GPIO_LED_2_ENABLED 1
+
+define HAL_NOTIFY_NUM_LEDS 2
+
 
 PC15 LED0 OUTPUT LOW GPIO(90)
 
+PC14 LED1 OUTPUT LOW GPIO(91)
+
+
 define HAL_GPIO_A_LED_PIN 90
+define HAL_GPIO_B_LED_PIN 91
 
 
 
@@ -68,22 +57,22 @@ define HAL_GPIO_A_LED_PIN 90
 # RGB WS2812
 # =========================
 
-PB3 LED_STRIP OUTPUT GPIO(91)
+PB3 LED_STRIP OUTPUT GPIO(92)
+
 
 define HAL_NEOPIXEL_ENABLED 1
-define AP_NOTIFY_LED_NEOPIXEL_ENABLED 1
-
-define HAL_GPIO_B_LED_PIN 91
 
 
 
 # =========================
-# SPI1 ICM42688P
+# SPI1 ICM42688
 # =========================
 
-PA5 SPI1_SCK  SPI1
+
+PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
+
 
 PA4 GYRO_CS CS
 
@@ -92,11 +81,14 @@ PC4 GYRO_INT INPUT PULLUP
 
 SPIDEV imu1 SPI1 DEVID1 GYRO_CS MODE3 2*MHZ 8*MHZ
 
+
 IMU Invensensev3 SPI:imu1 ROTATION_YAW_180
 
 
 define HAL_EXTI_ENABLED 1
+
 define HAL_DEFAULT_INS_FAST_SAMPLE 3
+
 
 
 
@@ -104,39 +96,53 @@ define HAL_DEFAULT_INS_FAST_SAMPLE 3
 # SPI2 MAX7456 OSD
 # =========================
 
-PB13 SPI2_SCK  SPI2
+
+PB13 SPI2_SCK SPI2
+
 PB14 SPI2_MISO SPI2
+
 PB15 SPI2_MOSI SPI2
 
 
 PB12 OSD_CS CS
 
 
-SPIDEV osd SPI2 DEVID1 OSD_CS MODE0 10*MHZ 10*MHZ
+SPIDEV osd SPI2 DEVID2 OSD_CS MODE0 10*MHZ 10*MHZ
 
 
 define OSD_ENABLED 1
+
 define HAL_OSD_TYPE_DEFAULT 1
+
 
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
 
 
+
+
 # =========================
 # SPI3 FLASH
-# LOGGING OFF
 # =========================
 
-PC10 SPI3_SCK  SPI3
+
+PC10 SPI3_SCK SPI3
+
 PC11 SPI3_MISO SPI3
-PB5  SPI3_MOSI SPI3
+
+PB5 SPI3_MOSI SPI3
+
 
 PA15 FLASH_CS CS
 
 
-# Логи вимкнені
+# логування вимкнено
+
 # SPIDEV dataflash SPI3 DEVID1 FLASH_CS MODE3 32*MHZ 32*MHZ
+
 # define HAL_LOGGING_DATAFLASH_ENABLED 1
+
+
 
 
 
@@ -144,10 +150,15 @@ PA15 FLASH_CS CS
 # I2C
 # =========================
 
+
 I2C_ORDER I2C1
 
+
 PB8 I2C1_SCL I2C1
+
 PB9 I2C1_SDA I2C1
+
+
 
 
 
@@ -155,48 +166,67 @@ PB9 I2C1_SDA I2C1
 # UART
 # =========================
 
+
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 
 
-# USB
+
 PA11 OTG_FS_DM OTG1
+
 PA12 OTG_FS_DP OTG1
 
 
-# UART1 spare
+
+# UART1
+
 PB6 USART1_TX USART1
+
 PB7 USART1_RX USART1
 
 
+
 # UART2 ELRS
+
 PA2 USART2_TX USART2
+
 PA3 USART2_RX USART2 ALT(1)
+
 
 PC0 INVERTER_UART2 INPUT PULLUP
 
 
 
-# UART3 spare
+# UART3
+
 PB10 USART3_TX USART3
+
 PB11 USART3_RX USART3
 
 
 
 # UART4 VTX
+
 PA0 UART4_TX UART4 NODMA
+
 PA1 UART4_RX UART4 NODMA
 
 
 
-# UART5 ESC TELEMETRY
+# UART5 ESC Telemetry
+
 PC12 UART5_TX UART5 NODMA
+
 PD2 UART5_RX UART5 NODMA
 
 
 
 # UART6 GPS
+
 PC6 USART6_TX USART6 NODMA
+
 PC7 USART6_RX USART6 NODMA
+
+
 
 
 
@@ -204,9 +234,11 @@ PC7 USART6_RX USART6 NODMA
 # ADC
 # =========================
 
+
 PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
 
 PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
+
 
 
 define HAL_BATT_MONITOR_DEFAULT 4
@@ -217,35 +249,67 @@ define HAL_BATT_CURR_SCALE 66.7
 
 
 
+
+
 # =========================
 # MOTORS
 # =========================
 
-PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
-PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
 
-PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
-PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)
+PC8 TIM8_CH3 TIM8 PWM(1) GPIO(50)
 
-PB0  TIM3_CH3 TIM3 PWM(5) GPIO(54)
-PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)
+PC9 TIM8_CH4 TIM8 PWM(2) GPIO(51)
+
+
+PA8 TIM1_CH1 TIM1 PWM(3) GPIO(52)
+
+PA9 TIM1_CH2 TIM1 PWM(4) GPIO(53)
+
+
+PB0 TIM3_CH3 TIM3 PWM(5) GPIO(54)
+
+PB1 TIM3_CH4 TIM3 PWM(6) GPIO(55)
+
 
 PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)
+
 
 PB4 TIM3_CH1 TIM3 PWM(8) GPIO(57)
 
 
 
+
+
 # =========================
-# DMA
+# FRAME
 # =========================
+
+
+define HAL_FRAME_TYPE_DEFAULT 18
+
+define HAL_FRAME_CLASS_DEFAULT 1
+
+
+
+# =========================
+# FEATURES
+# =========================
+
+
+define ALLOW_ARM_NO_COMPASS
+
+
+define AP_COMPASS_PROBING_ENABLED 1
+
+
+define HAL_I2C_INTERNAL_MASK 0
+
+
+
+# швидкість DMA
 
 DMA_PRIORITY ADC1 SPI1* SPI2* SPI3* TIM1* TIM3*
 
 
-
-# =========================
-# BOOT
-# =========================
 
 include ../include/no_bootloader_DFU.inc
