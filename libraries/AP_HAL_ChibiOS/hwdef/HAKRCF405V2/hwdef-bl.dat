@@ -30,6 +30,6 @@ PB7 USART1_RX USART1
 PC14 LED1 OUTPUT LOW GPIO(90)
 define HAL_GPIO_A_LED_PIN 90
 
-# Базовые директивы для успешной линковки загрузчика без внешних зависимостей
+# Базовые директивы для успешной линковки загрузчика строго по новым правилам
 define HAL_BOOTLOADER_BUILD 1
-define HAL_NO_LOGGING 1
+define HAL_LOGGING_ENABLED 0
