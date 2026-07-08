@@ -116,6 +116,15 @@ define HAL_BUZZER_PIN 92
 PC0 PINIO1 OUTPUT LOW
 PC2 PINIO2 OUTPUT LOW
 
+# ЗАПРЕТ АВТОПОИСКА ГОТОВОГО БИНАРНИКА (Устраняет ошибку "Bootloader does not exist")
+define AP_BOOTLOADER_FLASHING_ENABLED 0
+
+# =====================================================
+# LOGGING DISABLED - NO BLACKBOX / NO DATAFLASH
+# =====================================================
+define HAL_LOGGING_ENABLED 0
+define HAL_LOGGING_DATAFLASH_ENABLED 0
+
 # ПОЛНОЦЕННОЕ ЛОГИРОВАНИЕ BLACKBOX ДЛЯ АВТОНОМНЫХ МИССИЙ (SPI3)
 SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
 define HAL_LOGGING_DATAFLASH_ENABLED 1
