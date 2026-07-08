@@ -1,12 +1,11 @@
 # =====================================================
 # HAKRC F405 V2
-# Full resource production target
-# STM32F405
+# Production ArduPilot ChibiOS Target
+# Full resource mapping
 # =====================================================
 
 
 MCU STM32F4xx STM32F405xx
-
 
 define STM32_JTAG_DISABLE
 
@@ -18,30 +17,13 @@ OSCILLATOR_HZ 8000000
 
 
 FLASH_SIZE_KB 1024
+
 FLASH_RESERVE_START_KB 48
 
 
 STORAGE_FLASH_PAGE 1
+
 define HAL_STORAGE_SIZE 16384
-
-
-
-# =====================================================
-# MEMORY OPTIMIZATION
-# =====================================================
-
-define AP_SCRIPTING_ENABLED 0
-
-define HAL_LOGGING_DISABLED 1
-
-define AP_TERRAIN_AVAILABLE 0
-
-define AP_CAMERA_ENABLED 0
-
-define AP_GRIPPER_ENABLED 0
-
-define AP_PARACHUTE_ENABLED 0
-
 
 
 
@@ -54,26 +36,17 @@ define HAL_USE_SERIAL_USB 1
 
 
 # =====================================================
-# BEEPER
-# =====================================================
-
-PC13 BUZZER OUTPUT LOW
-
-
-
-# =====================================================
-# STATUS LED
+# SYSTEM LED
 # =====================================================
 
 define AP_NOTIFY_GPIO_LED_1_ENABLED 1
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
-
 define HAL_NOTIFY_NUM_LEDS 2
 
 
-PC14 LED0 OUTPUT LOW GPIO(90)
+PC14 LED0 OUTPUT HIGH GPIO(90)
 
-PC15 LED1 OUTPUT LOW GPIO(91)
+PC15 LED1 OUTPUT HIGH GPIO(91)
 
 
 define HAL_GPIO_A_LED_PIN 90
@@ -82,31 +55,27 @@ define HAL_GPIO_B_LED_PIN 91
 
 
 # =====================================================
-# RGB LED STRIP WS2812
-# Betaflight LED_STRIP PB3
+# RGB WS2812
 # =====================================================
-
 
 PB3 LED_STRIP OUTPUT GPIO(92)
 
-define HAL_WITH_WS2812 1
+define AP_NOTIFY_RCOUTPUTRGBLED_LED_ENABLED 1
+
+define HAL_RCOUT_RGBLED 1
 
 
 
 # =====================================================
-# SPI1 IMU ICM42688P
+# SPI1 - ICM42688P
 # =====================================================
-
 
 PA5 SPI1_SCK  SPI1
-
 PA6 SPI1_MISO SPI1
-
 PA7 SPI1_MOSI SPI1
 
 
 PA4 GYRO_CS CS
-
 
 PC4 GYRO_INT INPUT PULLUP
 
@@ -123,17 +92,9 @@ define HAL_DEFAULT_INS_FAST_SAMPLE 3
 
 
 
-
 # =====================================================
-# SPI2 MAX7456 OSD
-#
-# MAX7456:
-# CS   PB12
-# DIN  PB15
-# CLK  PB13
-# DOUT PB14
+# SPI2 - MAX7456 OSD
 # =====================================================
-
 
 PB13 SPI2_SCK SPI2
 
@@ -145,7 +106,7 @@ PB15 SPI2_MOSI SPI2
 PB12 OSD_CS CS
 
 
-SPIDEV osd SPI2 DEVID1 OSD_CS MODE0 10*MHZ 10*MHZ
+SPIDEV osd SPI2 DEVID2 OSD_CS MODE0 10*MHZ 10*MHZ
 
 
 define OSD_ENABLED 1
@@ -157,14 +118,9 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
 
 
-
 # =====================================================
-# SPI3 W25Q FLASH
-#
-# CS   PA15
-# CLK  PC10
-# DO   PC11
-# DI   PB5
+# SPI3 - FLASH
+# DISABLED LOGGING
 # =====================================================
 
 
@@ -178,8 +134,8 @@ PB5 SPI3_MOSI SPI3
 PA15 FLASH_CS CS
 
 
-SPIDEV dataflash SPI3 DEVID1 FLASH_CS MODE3 32*MHZ 32*MHZ
-
+# логування вимкнено
+undef HAL_LOGGING_DATAFLASH_ENABLED
 
 
 
@@ -198,25 +154,7 @@ PB9 I2C1_SDA I2C1
 
 
 # =====================================================
-# BAROMETER
-# =====================================================
-
-
-BARO BMP280 I2C:0:0x76
-
-BARO DPS310 I2C:0:0x76
-
-
-
-
-# =====================================================
-# SERIAL
-#
-# UART2  -> ELRS
-# UART4  -> VTX
-# UART5  -> ESC telemetry
-# UART6  -> GPS
-# USART1/3 free
+# UART
 # =====================================================
 
 
@@ -230,7 +168,7 @@ PA12 OTG_FS_DP OTG1
 
 
 
-# USART1
+# UART1 запас
 
 PB6 USART1_TX USART1
 
@@ -244,18 +182,18 @@ PA2 USART2_TX USART2
 
 PA3 USART2_RX USART2 ALT(1)
 
-
 PC0 INVERTER_UART2 INPUT PULLUP
 
 
+define DEFAULT_SERIAL2_PROTOCOL SerialProtocol_RCIN
 
 
-# USART3
+
+# UART3 запас
 
 PB10 USART3_TX USART3
 
 PB11 USART3_RX USART3
-
 
 
 
@@ -266,6 +204,8 @@ PA0 UART4_TX UART4 NODMA
 PA1 UART4_RX UART4 NODMA
 
 
+define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_VTX
+
 
 
 # UART5 ESC TELEMETRY
@@ -274,6 +214,8 @@ PC12 UART5_TX UART5 NODMA
 
 PD2 UART5_RX UART5 NODMA
 
+
+define DEFAULT_SERIAL5_PROTOCOL SerialProtocol_ESC_TELEM
 
 
 
@@ -284,6 +226,7 @@ PC6 USART6_TX USART6 NODMA
 PC7 USART6_RX USART6 NODMA
 
 
+define DEFAULT_SERIAL6_PROTOCOL SerialProtocol_GPS
 
 
 
@@ -299,16 +242,15 @@ PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
 
 define HAL_BATT_MONITOR_DEFAULT 4
 
+
 define HAL_BATT_VOLT_SCALE 21.0
 
 define HAL_BATT_CURR_SCALE 66.7
 
 
 
-
 # =====================================================
 # MOTORS
-# FRAME TYPE 18
 # =====================================================
 
 
@@ -334,38 +276,7 @@ PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
 
 
 # =====================================================
-# SERVO / AUX
-# =====================================================
-
-PB3 TIM2_CH2 TIM2 PWM(9) GPIO(58)
-
-
-
-
-# =====================================================
-# PINIO
-# =====================================================
-
-
-PC2 PINIO1 OUTPUT LOW
-
-PC5 PINIO2 OUTPUT LOW
-
-
-
-# =====================================================
-# FRAME
-# =====================================================
-
-
-define HAL_FRAME_TYPE_DEFAULT 18
-
-define HAL_FRAME_CLASS_DEFAULT 1
-
-
-
-# =====================================================
-# COMPASS
+# PARAMETERS
 # =====================================================
 
 
@@ -375,22 +286,16 @@ define AP_COMPASS_PROBING_ENABLED 1
 
 define HAL_I2C_INTERNAL_MASK 0
 
-define HAL_COMPASS_AUTO_ROT_DEFAULT 2
+
+define HAL_FRAME_TYPE_DEFAULT 18
+
+
+define HAL_FRAME_CLASS_DEFAULT 1
 
 
 
-# =====================================================
-# DMA
-# =====================================================
+DMA_PRIORITY ADC1 SPI1* SPI2* TIM1* TIM3*
 
-
-DMA_PRIORITY ADC1 SPI1* SPI2* SPI3* TIM1* TIM3* TIM8*
-
-
-
-# =====================================================
-# BOOT
-# =====================================================
 
 
 include ../include/no_bootloader_DFU.inc
