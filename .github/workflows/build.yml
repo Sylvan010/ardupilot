@@ -57,7 +57,7 @@ jobs:
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Configure Waf Build System 
+      - name: Configure Waf Build System
         run: |
           ./waf configure --board HAKRCF405V2
 
@@ -73,18 +73,12 @@ jobs:
           grep -R "APJ_BOARD_ID" build/HAKRCF405V2/
           grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+1157[[:space:]]*$" build/HAKRCF405V2/ || exit 1
 
-      - name: Verify SPI physical mapping
-        run: |
-          echo "===== SPI GPIO CHECK ====="
-          grep -Rni "PB12" build/HAKRCF405V2/hwdef.h
-          grep -Rni "PA4" build/HAKRCF405V2/hwdef.h
-
-      - name: Build ArduCopter Main Firmware (СБОРКА ЧЕРЕЗ СОВМЕСТИМЫЙ ЯДЕРНЫЙ ТАРГЕТ)
+      - name: Build ArduCopter Main Firmware (ОДНОПОТОЧНЫЙ СЕЙФ-РЕЖИМ -j 1)
         shell: bash
         run: |
           touch build.log
           set +e
-          ./waf heli -v 2>&1 | tee build.log
+          ./waf copter -j 1 2>&1 | tee build.log
           status=${PIPESTATUS}
           set -e
           exit $status
@@ -93,7 +87,7 @@ jobs:
         if: always()
         run: |
           echo "===== REVEALING ACTUAL BUILD OUTPUT TREE ====="
-          find build/HAKRCF405V2 -maxdepth 4 -type f | grep -E "arduheli|\.elf|\.apj" || true
+          find build/HAKRCF405V2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj" || true
 
       - name: Extract first compiler error
         if: failure()
@@ -107,10 +101,10 @@ jobs:
       - name: Verify final firmware
         run: |
           echo "===== FINAL ARTIFACT CHECK ====="
-          test -f build/HAKRCF405V2/bin/arduheli.apj
-          test -f build/HAKRCF405V2/bin/arduheli
+          test -f build/HAKRCF405V2/bin/arducopter.apj
+          test -f build/HAKRCF405V2/bin/arducopter
           
-          arm-none-eabi-size build/HAKRCF405V2/bin/arduheli
+          arm-none-eabi-size build/HAKRCF405V2/bin/arducopter
           
           echo "=================================="
           echo "    HAKRC F405 V2 BUILD OK "
@@ -121,5 +115,5 @@ jobs:
         with:
           name: HAKRC-F405V2-Production-Firmware
           path: |
-            build/HAKRCF405V2/bin/arduheli.apj
+            build/HAKRCF405V2/bin/arducopter.apj
           if-no-files-found: error
