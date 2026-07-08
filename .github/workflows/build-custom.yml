@@ -10,36 +10,30 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      # 1. Завантажуємо код вашого репозиторію зі всіма вкладеними ChibiOS-компонентами
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Встановлюємо GCC-компілятори та апаратне середовище за офіційним скриптом ArduPilot
       - name: Install Prerequisites
         run: |
           sudo apt-get update
           USER=runner USER_HOME=/home/runner ./Tools/environment_install/install-prereqs-ubuntu.sh -y
           echo "PATH=$PATH:/home/runner/.local/bin" >> $GITHUB_ENV
 
-      # 3. Накладаємо хірургічний патч ресурсів на оригінальний hwdef.dat Foxeer
       - name: Apply HAKRC Resource Patch
         run: git apply hakrc_resources.patch
 
-      # 4. Збірка завантажувача (Bootloader) для оновленого FoxeerF405v2
       - name: Build Bootloader
         run: |
           ./waf configure --board FoxeerF405v2 --bootloader
           ./waf bootloader
 
-      # 5. Компіляція основної стабільної прошивку ArduCopter
       - name: Build Copter Firmware
         run: |
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
-      # 6. Збереження результатів в артефакти запуску
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
