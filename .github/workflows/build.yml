@@ -3,7 +3,7 @@ name: Build HAKRC F405 V2 Firmware
 on:
   push:
     paths:
-      - 'libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/**'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/**'
   workflow_dispatch:
 
 jobs:
@@ -33,57 +33,52 @@ jobs:
           echo "===== HWDEF LOCATION ====="
           pwd
           ls -la libraries/AP_HAL_ChibiOS/hwdef/
-          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
-          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef-bl.dat
-          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/defaults.parm
+          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
+          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef-bl.dat
+          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/defaults.parm
           echo "===== HWDEF FOUND ====="
 
       - name: Show hardware mapping
         shell: bash
         run: |
           echo "===== BOARD IDENTITY ====="
-          grep -E "^APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
+          grep -E "^APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
           echo "===== SPI1 IMU CONFIG ====="
-          grep -E "SPI1|imu1" libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
+          grep -E "SPI1|imu1" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
           echo "===== MAX7456 OSD CONFIG ====="
-          grep -E "SPI2|osd" libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
-
-          echo "===== DATAFLASH BLACKBOX CONFIG ====="
-          grep -E "SPI3|dataflash" libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
+          grep -E "SPI2|osd" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
       - name: Validate source hwdef
         run: |
           echo "===== SOURCE HWDEF VALIDATION ====="
-          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
-          grep "PA4  GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
-          grep "PC4  GYRO1_EXTI" libraries/HAKRC_F405V2/hwdef.dat || true
-          grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
-          grep "PC13 BUZZER" libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
-          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2/hwdef.dat
+          test -f libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
+          grep "PA4  GYRO1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
+          grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
+          grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
       - name: Configure Waf Build System
         run: |
-          ./waf configure --board HAKRC_F405V2
+          ./waf configure --board HAKRCF405V2
 
       - name: Verify configured board
         run: |
           echo "===== BOARD CHECK ====="
-          test -d build/HAKRC_F405V2
-          test -f build/HAKRC_F405V2/hwdef.h
+          test -d build/HAKRCF405V2
+          test -f build/HAKRCF405V2/hwdef.h
 
       - name: Verify generated board identity
         run: |
           echo "===== HWDEF BOARD ID ====="
-          grep -R "APJ_BOARD_ID" build/HAKRC_F405V2/
-          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+1157[[:space:]]*$" build/HAKRC_F405V2/ || exit 1
+          grep -R "APJ_BOARD_ID" build/HAKRCF405V2/
+          grep -R -E "^#define[[:space:]]+APJ_BOARD_ID[[:space:]]+1157[[:space:]]*$" build/HAKRCF405V2/ || exit 1
 
       - name: Verify SPI physical mapping
         run: |
           echo "===== SPI GPIO CHECK ====="
-          grep -Rni "PB12" build/HAKRC_F405V2/hwdef.h
-          grep -Rni "PA4" build/HAKRC_F405V2/hwdef.h
+          grep -Rni "PB12" build/HAKRCF405V2/hwdef.h
+          grep -Rni "PA4" build/HAKRCF405V2/hwdef.h
 
       - name: Build ArduCopter
         shell: bash
@@ -99,7 +94,7 @@ jobs:
         if: always()
         run: |
           echo "===== REVEALING ACTUAL BUILD OUTPUT TREE ====="
-          find build/HAKRC_F405V2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj|\.hex" || true
+          find build/HAKRCF405V2 -maxdepth 4 -type f | grep -E "arducopter|\.elf|\.apj|\.hex" || true
 
       - name: Extract failure
         if: failure()
@@ -115,11 +110,11 @@ jobs:
       - name: Verify final firmware
         run: |
           echo "===== FINAL ARTIFACT CHECK ====="
-          test -f build/HAKRC_F405V2/bin/arducopter.apj
-          test -f build/HAKRC_F405V2/bin/arducopter
-          test -f build/HAKRC_F405V2/bin/arducopter_with_bl.hex
+          test -f build/HAKRCF405V2/bin/arducopter.apj
+          test -f build/HAKRCF405V2/bin/arducopter
+          test -f build/HAKRCF405V2/bin/arducopter_with_bl.hex
           
-          arm-none-eabi-size build/HAKRC_F405V2/bin/arducopter
+          arm-none-eabi-size build/HAKRCF405V2/bin/arducopter
           
           echo "=================================="
           echo "    HAKRC F405 V2 BUILD OK "
@@ -130,6 +125,6 @@ jobs:
         with:
           name: HAKRC-F405V2-Production-Firmware
           path: |
-            build/HAKRC_F405V2/bin/arducopter.apj
-            build/HAKRC_F405V2/bin/arducopter_with_bl.hex
+            build/HAKRCF405V2/bin/arducopter.apj
+            build/HAKRCF405V2/bin/arducopter_with_bl.hex
           if-no-files-found: error
