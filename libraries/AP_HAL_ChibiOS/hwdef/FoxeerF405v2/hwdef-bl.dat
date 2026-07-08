@@ -6,7 +6,6 @@ MCU STM32F4xx STM32F405xx
 
 define STM32_JTAG_DISABLE
 
-# Жесткое соответствие идентификатора основной прошивке
 APJ_BOARD_ID AP_HW_HAKRC_F405
 
 OSCILLATOR_HZ 8000000
@@ -18,10 +17,8 @@ define HAL_STORAGE_SIZE 16384
 
 define STM32_ST_USE_TIMER 5
 
-# Инициализация интерфейса USB VCP
 define HAL_USE_SERIAL_USB 1
 
-# Слушаем команды прошивки на USB, GPS (UART3) и ELRS (UART1)
 SERIAL_ORDER OTG1 USART3 USART1
 
 PA11 OTG_FS_DM OTG1
@@ -33,7 +30,6 @@ PB10 USART3_TX USART3
 PB7 USART1_RX USART1
 PB6 USART1_TX USART1
 
-# Системная индикация загрузчика (Мигание LED1 на PC15 при ожидании прошивки)
-PC15 LED1 OUTPUT LOW GPIO(90)
+PC14 LED1 OUTPUT LOW GPIO(90)
 define AP_NOTIFY_GPIO_LED_1_PIN 90
 define HAL_GPIO_A_LED_PIN 90
