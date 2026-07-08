@@ -46,10 +46,9 @@ PB7 USART1_RX USART1
 PB6 USART1_TX USART1
 define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_RCIN
 
-# USART2 (UART2 -> Вільний)
+# USART2 (UART2 -> Вільний. Избыточная строка инвертора на PC0 полностью удалена!)
 PA3 USART2_RX USART2
 PA2 USART2_TX USART2
-PC0 INVERTER_UART2 OUTPUT LOW
 
 # USART3 (UART3 -> GPS модуль. Повноцінний двонаправлений порт)
 PB10 USART3_TX USART3
@@ -94,7 +93,7 @@ PB4  TIM3_CH1 TIM3 PWM(6) GPIO(55)   # M6
 PB0  TIM3_CH3 TIM3 PWM(7) GPIO(56)   # M7
 PB1  TIM3_CH4 TIM3 PWM(8) GPIO(57)   # M8
 
-# LEDs (За дампом: LED1 = C14, LED2 = C15. Налаштовано под жесткие требования Си-драйвера)
+# LEDs (За дампом: LED1 = C14, LED2 = C15. Налаштовано під жорсткі вимоги Си-драйвера)
 define AP_NOTIFY_GPIO_LED_1_ENABLED 1
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
 define HAL_NOTIFY_NUM_LEDS 2
@@ -111,7 +110,7 @@ define HAL_GPIO_B_LED_PIN 91
 PC13 BUZZER OUTPUT LOW GPIO(92)
 define HAL_BUZZER_PIN 92
 
-# Керування живленням камер та VTX (PINIO / RELAY за дампом на C00 та C02 без конфліктів)
+# Керування живленням камер та VTX (PINIO1 монопольно занимает ножку PC0 по дампу плафона)
 PC0 PINIO1 OUTPUT LOW
 PC2 PINIO2 OUTPUT LOW
 
