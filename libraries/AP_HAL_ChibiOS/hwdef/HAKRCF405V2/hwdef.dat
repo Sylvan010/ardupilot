@@ -36,7 +36,6 @@ PB5  SPI3_MOSI SPI3
 PA4  GYRO1_CS CS
 PC4  GYRO1_EXTI INPUT
 
-PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
 
 # SERIAL ports
@@ -76,7 +75,7 @@ I2C_ORDER I2C1
 PB8 I2C1_SCL I2C1
 PB9 I2C1_SDA I2C1
 
-# ADC ports (HAKRC PC1 / PC3)
+# ADC ports (HAKRC PC1 / PC3 - Масштаби зафіксовані за вашим запитом)
 PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
 define HAL_BATT_VOLT_PIN 11
 define HAL_BATT_VOLT_SCALE 11.0
@@ -125,6 +124,7 @@ define AP_BOOTLOADER_FLASHING_ENABLED 0
 # LOGGING DISABLED - NO BLACKBOX / NO DATAFLASH
 # =====================================================
 define HAL_LOGGING_ENABLED 0
+define HAL_LOGGING_DATAFLASH_ENABLED 0
 
 # OSD ПОВНОЦЕННЫЙ РЕЖИМ (Графіка, шрифти та сайдбары збережені на 100%)
 SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
