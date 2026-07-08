@@ -1,40 +1,65 @@
 # =====================================================
 # HAKRC F405 V2 BOOTLOADER
+# Based on FoxeerF405v2
+# Production bootloader
+# STM32F405 1MB
 # =====================================================
 
 
 MCU STM32F4xx STM32F405xx
 
 
+# Board ID
+
 APJ_BOARD_ID AP_HW_FOXEERF405_V2
 
+
+
+# Crystal
 
 OSCILLATOR_HZ 8000000
 
 
+
+# Flash
+
 FLASH_SIZE_KB 1024
 
 
+# Reserve bootloader
+
 FLASH_RESERVE_START_KB 48
 
+
+
+# Storage
 
 define HAL_STORAGE_SIZE 4096
 
 define STORAGE_FLASH_PAGE 1
 
 
+
 STM32_ST_USE_TIMER 5
 
 
 
-# USB
+# =====================================================
+# USB VCP
+# =====================================================
+
 
 define HAL_USE_SERIAL_USB 1
 
 
+
+# Bootloader listen order
+
 SERIAL_ORDER OTG1 USART3 USART1
 
 
+
+# USB pins
 
 PA11 OTG_FS_DM OTG1
 
@@ -42,7 +67,10 @@ PA12 OTG_FS_DP OTG1
 
 
 
-# GPS UART3
+# =====================================================
+# UART3 GPS
+# =====================================================
+
 
 PB11 USART3_RX USART3
 
@@ -50,7 +78,10 @@ PB10 USART3_TX USART3
 
 
 
-# ELRS UART1
+# =====================================================
+# UART1 ELRS / CRSF
+# =====================================================
+
 
 PB7 USART1_RX USART1
 
@@ -58,9 +89,24 @@ PB6 USART1_TX USART1
 
 
 
-# LED boot
+# =====================================================
+# LED STATUS
+# HAKRC PC15
+# =====================================================
+
 
 PC15 LED1 OUTPUT LOW GPIO(90)
 
 
+define AP_NOTIFY_GPIO_LED_1_PIN 90
+
 define HAL_GPIO_A_LED_PIN 90
+
+
+
+# =====================================================
+# Disable unused bootloader hardware
+# =====================================================
+
+
+define HAL_MINIMIZE_FEATURES 1
