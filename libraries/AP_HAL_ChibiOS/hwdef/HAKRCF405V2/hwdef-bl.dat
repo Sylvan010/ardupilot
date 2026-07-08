@@ -1,1 +1,5 @@
+# bootloader definition for HAKRCF405V2
+include hwdef.dat
 
+FLASH_SIZE_KB 64
+define HAL_BOOTLOADER_BUILD TRUE
