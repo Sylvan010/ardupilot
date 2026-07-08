@@ -1,0 +1,44 @@
+name: Build Custom Firmware
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch: # Додає кнопку ручного запуску
+
+jobs:
+  build_firmware:
+    runs-on: ubuntu-latest
+    # Використовуємо офіційний докер-контейнер ArduPilot зі встановленими компіляторами
+    container: ardupilot/ardupilot-dev-chibios:v3
+
+    steps:
+      # 1. Скачуємо код репозиторію з усіма підмодулями (ChibiOS)
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      # 2. Дозволяємо Git роботу всередині контейнера під root користувачем
+      - name: Fix Git Safe Directory
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      # 3. Налаштовуємо ccache для швидкої збірки
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-ccache
+
+      # 4. Конфігуруємо збірку під плату FoxeerF405v2
+      - name: Configure Board
+        run: ./waf configure --board FoxeerF405v2
+
+      # 5. Компілюємо прошивку для квадрокоптера (Copter)
+      - name: Build Copter Firmware
+        run: ./waf copter
+
+      # 6. Завантажуємо готовий файл у сховище артефактів GitHub
+      - name: Upload Firmware Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FoxeerF405v2-HAKRC-Firmware
+          path: build/FoxeerF405v2/bin/arducopter.apj
