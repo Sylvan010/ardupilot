@@ -58,9 +58,9 @@ jobs:
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
           grep "BARO DPS310" libraries/AP_HAL_ChibiOS/hwdef/HAKRCF405V2/hwdef.dat
 
-      - name: Pre-build Isolated Bootloader
+      - name: Pre-build Isolated Bootloader (ТОЧЕЧНАЯ СБОРКА БЕЗ ТЯЖЕЛЫХ БИБЛИОТЕК)
         run: |
-          echo "===== GENERATING BOOTLOADER DIRECTLY VIA PYTHON ====="
+          echo "===== GENERATING BOOTLOADER DIRECTLY VIA ISOLATED SCRIPT ====="
           python3 Tools/scripts/build_bootloaders.py HAKRCF405V2
           
           echo "===== INJECTING BL BINARY INTO ARDUPILOT DIRECTORY ====="
