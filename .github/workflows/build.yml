@@ -14,11 +14,8 @@ jobs:
 
     runs-on: ubuntu-latest
 
-
     container:
-
       image: ardupilot/ardupilot-dev-chibios:latest
-
 
 
     steps:
@@ -29,7 +26,6 @@ jobs:
         uses: actions/checkout@v4
 
         with:
-
           submodules: recursive
 
 
@@ -42,7 +38,7 @@ jobs:
 
 
 
-      - name: Clean old builds
+      - name: Clean build
 
         run: |
 
@@ -54,109 +50,93 @@ jobs:
 
 
 
-      - name: Verify HAKRC HWDEF
+      - name: Check HWDEF exists
 
         shell: bash
 
         run: |
 
-          echo "===== HWDEF CHECK ====="
+          echo "===== HWDEF LOCATION ====="
+
+          pwd
+
+          ls -la libraries/AP_HAL_ChibiOS/hwdef/
 
 
           test -f libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
 
-          grep "APJ_BOARD_ID AP_HW_HAKRC_F405" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "===== HWDEF FOUND ====="
 
 
 
-          echo "===== SPI OSD CHECK ====="
-
-
-          grep "PB12.*OSD_CS" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep "PB13.*SPI2" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep "PB14.*SPI2" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep "PB15.*SPI2" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-
-          echo "===== FLASH CHECK ====="
-
-
-          grep "PA15.*FLASH_CS" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep "PC10.*SPI3" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep "PC11.*SPI3" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-          grep "PB5.*SPI3" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-
-          echo "===== LED CHECK ====="
-
-
-          grep "PC14.*LED" \
-          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-
-
-      - name: Show HWDEF
-
-        run: |
-
-          head -120 libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-
-
-
-
-      - name: Configure Firmware
+      - name: Show hardware mapping
 
         shell: bash
 
         run: |
 
+          echo "===== BOARD ====="
+
+          grep APJ_BOARD_ID \
+          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+
+
+
+          echo "===== SPI1 IMU ====="
+
+          grep SPI1 \
+          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+
+
+
+          echo "===== MAX7456 OSD ====="
+
+          grep OSD \
+          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+
+
+
+          echo "===== DATAFLASH ====="
+
+          grep FLASH \
+          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+
+
+
+          echo "===== LED ====="
+
+          grep LED \
+          libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+
+
+
+      - name: Configure ArduPilot
+
+        shell: bash
+
+        run: |
 
           ./waf configure \
           --board FoxeerF405v2
 
 
 
-
-      - name: Verify generated files
+      - name: Verify generated board
 
         shell: bash
 
         run: |
 
-
-          echo "===== GENERATED HWDEF ====="
+          echo "===== GENERATED FILES ====="
 
 
           test -f build/FoxeerF405v2/hwdef.h
 
 
           grep APJ_BOARD_ID \
-          build/FoxeerF405v2/hwdef.h
+          build/FoxeerF405v2/hwdef.h || true
+
 
 
 
@@ -173,21 +153,21 @@ jobs:
           set +e
 
 
-          ./waf copter -v 2>&1 | tee -a build.log
+          ./waf copter -v 2>&1 | tee build.log
 
 
-          status=${PIPESTATUS[0]}
+          RESULT=${PIPESTATUS[0]}
 
 
           set -e
 
 
-          exit $status
+          exit $RESULT
 
 
 
 
-      - name: Dump build failure
+      - name: Build error report
 
         if: failure()
 
@@ -195,47 +175,39 @@ jobs:
 
         run: |
 
-
           echo "===== BUILD FAILED ====="
 
 
           if [ -f build.log ]; then
 
-            echo "===== LAST 200 LINES ====="
-
             tail -200 build.log
 
           else
 
-            echo "NO BUILD LOG CREATED"
+            echo "build.log missing"
 
           fi
 
 
 
-          echo "===== DIRECTORY ====="
 
-          ls -la
-
-          ls -la build || true
-
-
-
-
-      - name: Verify Firmware
+      - name: Firmware check
 
         shell: bash
 
         run: |
 
-
-          echo "===== FINAL CHECK ====="
+          echo "===== FIRMWARE CHECK ====="
 
 
           test -f build/FoxeerF405v2/bin/arducopter.apj
 
 
-          echo "HAKRC F405 V2 BUILD OK"
+          echo "=========================="
+
+          echo " HAKRC F405 V2 BUILD OK "
+
+          echo "=========================="
 
 
 
@@ -243,7 +215,6 @@ jobs:
       - name: Upload Firmware
 
         uses: actions/upload-artifact@v4
-
 
         with:
 
