@@ -1,4 +1,4 @@
-# HAKRC F405 V2 (Production Light Version)
+# HAKRC F405 V2 (Production Light Version - DFU Build)
 # Hardware compatible profile based on FoxeerF405v2 ChibiOS target
 # Board ID: AP_HW_HAKRC_F405 (4200)
 
@@ -122,4 +122,4 @@ define HAL_FRAME_CLASS_DEFAULT 1
 
 DMA_PRIORITY ADC1 SPI1* SPI2* TIM1* TIM3* TIM8*
 
-include ../include/bootloader.inc
+include ../include/no_bootloader_DFU.inc
