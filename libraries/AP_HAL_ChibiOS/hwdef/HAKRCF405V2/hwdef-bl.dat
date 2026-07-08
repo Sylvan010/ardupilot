@@ -1,6 +1,6 @@
 # HAKRC F405 V2 - Bootloader Configuration
-# Independent target structure compiled with board ID 1157
-# Target Donor Board ID: AP_HW_FOXEERF405_V2
+# Спартанский аппаратный профиль без избыточных макросов и дубликатов USB
+# Target Donor Board ID: AP_HW_FOXEERF405_V2 (1157)
 
 MCU STM32F4xx STM32F405xx
 
@@ -14,16 +14,18 @@ FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 0
 FLASH_BOOTLOADER_LOAD_KB 48
 
-SERIAL_ORDER OTG1 USART3 USART1
-
+# Аппаратные пины USB (Генератор сам распознает OTG1 и вшьет HAL_USE_SERIAL_USB TRUE)
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
 
+# Аппаратный порт UART3 (Физический GPS порт платы для прошивки/пассру)
 PB10 USART3_TX USART3
 PB11 USART3_RX USART3
 
+# Аппаратный порт UART1 (Консоль восстановления / пассру)
 PB6 USART1_TX USART1
 PB7 USART1_RX USART1
 
+# Статусный светодиод (PC14 строго по Betaflight-дампу платы)
 PC14 LED1 OUTPUT LOW GPIO(90)
 define HAL_GPIO_A_LED_PIN 90
