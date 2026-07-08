@@ -33,6 +33,7 @@ PB10 USART3_TX USART3
 PB7 USART1_RX USART1
 PB6 USART1_TX USART1
 
-# Системная индикация загрузчика (Мигание LED0 на PC15 при ожидании прошивки)
-PC15 LED0 OUTPUT LOW GPIO(90)
+# Системная индикация загрузчика (Мигание LED1 на PC15 при ожидании прошивки)
+PC15 LED1 OUTPUT LOW GPIO(90)
+define AP_NOTIFY_GPIO_LED_1_PIN 90
 define HAL_GPIO_A_LED_PIN 90
