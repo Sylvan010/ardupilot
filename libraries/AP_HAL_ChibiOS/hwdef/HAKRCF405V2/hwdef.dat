@@ -12,7 +12,7 @@ OSCILLATOR_HZ 8000000
 
 FLASH_SIZE_KB 1024
 
-# Сдвиг адресов под кастомный 48 КБ бутлоадер (hwdef-bl.dat)
+# Сдвиг адресов под кастомный 48 КБ бутлоадер
 FLASH_RESERVE_START_KB 48
 define STM32_ST_USE_TIMER 5
 
@@ -46,7 +46,7 @@ PB7 USART1_RX USART1
 PB6 USART1_TX USART1
 define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_RCIN
 
-# USART2 (UART2 -> Вільний)
+# USART2 (UART2 -> Вільний. Избыточная строка инвертора на PC0 удалена)
 PA3 USART2_RX USART2
 PA2 USART2_TX USART2
 
@@ -132,7 +132,7 @@ ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 # BAROMETER (Суворо один реальний датчик на I2C адресі 0x76 без дублювання)
 BARO DPS310 I2C:0:0x76
 
-# IMU setup (Ускоренная каноническая initialization ICM42688P)
+# IMU setup (Ускоренная каноническая инициализация ICM42688P)
 define HAL_EXTI_ENABLED 1
 define INS_PRIMARY 0
 define HAL_INS_DEFAULT HAL_INS_INVENSENSEV3
