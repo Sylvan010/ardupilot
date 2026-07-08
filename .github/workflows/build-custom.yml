@@ -10,30 +10,32 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      # 1. Завантажуємо код вашого репозиторію з уже зміненим вручну hwdef.dat та субмодулями
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
+      # 2. Встановлюємо актуальні ARM-компілятори та апаратне середовище через скрипт ArduPilot
       - name: Install Prerequisites
         run: |
           sudo apt-get update
           USER=runner USER_HOME=/home/runner ./Tools/environment_install/install-prereqs-ubuntu.sh -y
           echo "PATH=$PATH:/home/runner/.local/bin" >> $GITHUB_ENV
 
-      - name: Apply HAKRC Resource Patch
-        run: git apply hakrc_resources.patch
-
+      # 3. Збірка завантажувача (Bootloader) для FoxeerF405v2 на базі вашого мапінгу
       - name: Build Bootloader
         run: |
           ./waf configure --board FoxeerF405v2 --bootloader
           ./waf bootloader
 
+      # 4. Компіляція основної прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: |
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
+      # 5. Завантажуємо готові бінарні файли .apj та .bin в артефакти GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
