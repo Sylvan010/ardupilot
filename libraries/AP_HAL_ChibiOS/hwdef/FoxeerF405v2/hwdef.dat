@@ -30,9 +30,12 @@ PC10 SPI3_SCK SPI3
 PC11 SPI3_MISO SPI3
 PB5  SPI3_MOSI SPI3
 
-# Chip select pins
+# Chip select pins (ДОБАВЛЕНА ПОДДЕРЖКА ВТОРОГО ГИРОСКОПА ПО ДАМПУ)
 PA4  GYRO1_CS CS
 PC4  GYRO1_EXTI INPUT
+PB2  GYRO2_CS CS
+PB10 GYRO2_EXTI INPUT
+
 PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
 
@@ -49,7 +52,6 @@ define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_RCIN
 # USART2 (UART2 -> Вільний)
 PA3 USART2_RX USART2
 PA2 USART2_TX USART2
-PC0 INVERTER_PIN_UART2 INPUT PULLUP
 
 # USART3 (UART3 -> GPS модуль)
 PB11 USART3_RX USART3
@@ -60,7 +62,7 @@ define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_GPS
 PA1 UART4_RX UART4
 PA0 UART4_TX UART4
 
-# UART5 (UART5 -> Вільний)
+# UART5 (UART5 -> ESC Telemetry)
 PD2 UART5_RX UART5 NODMA
 PC12 UART5_TX UART5 NODMA
 
@@ -81,7 +83,7 @@ define HAL_BATT_MONITOR_DEFAULT 4
 define HAL_BATT_VOLT_SCALE 21.0
 define HAL_BATT_CURR_SCALE 66.7
 
-# MOTORS (Повністю виправлена та безконфліктна карта апаратних таймерів STM32F405)
+# MOTORS (Конфигурация таймеров и DMA строго по Betaflight дампу)
 PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)   # M1
 PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)   # M2
 PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)   # M3
@@ -91,18 +93,28 @@ PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)   # M6
 PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)   # M7
 PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)   # M8
 
-# LEDs (HAKRC PC15 / PC14 - Исправлено под жесткие требования Си-драйвера)
+# SERVO1 на PB3 по дампу
+PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)
+
+# LEDs (По дампу: LED1 = C14, LED2 = C15. Настроено под жесткие требования Си-драйвера)
 define AP_NOTIFY_GPIO_LED_1_ENABLED 1
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
 define HAL_NOTIFY_NUM_LEDS 2
 
-PC15 LED1 OUTPUT LOW GPIO(90)
+PC14 LED1 OUTPUT LOW GPIO(90)
 define AP_NOTIFY_GPIO_LED_1_PIN 90
 define HAL_GPIO_A_LED_PIN 90
 
-PC14 LED2 OUTPUT LOW GPIO(91)
+PC15 LED2 OUTPUT LOW GPIO(91)
 define AP_NOTIFY_GPIO_LED_2_PIN 91
 define HAL_GPIO_B_LED_PIN 91
+
+# Буззер (PC13)
+PC13 BUZZER OUTPUT LOW
+
+# Управление PINIO строго по дампу: C00 и C02
+PC0 PINIO1 OUTPUT LOW
+PC2 PINIO2 OUTPUT LOW
 
 # ЖЕСТКОЕ ОТКЛЮЧЕНИЕ ЗАПИСИ ЛОГОВ (Освобождает максимум Flash и RAM)
 define HAL_LOGGING_ENABLED 0
@@ -114,13 +126,19 @@ define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
-# Barometer setup (Промышленный бэкенд DPS310 на I2C адресе 0x77)
-BARO DPS310 I2C:0:0x77
+# Barometer setup
+BARO DPS310 I2C:0:0x76
+BARO BMP280 I2C:0:0x76
 BARO SPL06  I2C:0:0x76
 
-# IMU setup (Плата аппаратно развернута вверх ногами на уровне ядра)
+# DUAL IMU CONFIGURATION (Автоопределение ICM42688P или BMI270 по дампу)
+define HAL_EXTI_ENABLED 1
+
 SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 2*MHZ 8*MHZ
-IMU Invensensev3 SPI:imu1 ROTATION_ROLL_180
+IMU Invensensev3 SPI:imu1 ROTATION_YAW_90
+
+SPIDEV imu2 SPI1 DEVID2 GYRO2_CS MODE3 2*MHZ 10*MHZ
+IMU BMI270 SPI:imu2 ROTATION_YAW_90
 
 # Compass and safety configurations
 define ALLOW_ARM_NO_COMPASS 1
@@ -136,7 +154,7 @@ define HAL_FRAME_CLASS_DEFAULT 1
 # =====================================================
 define HAL_MINIMIZE_FEATURES 1
 
-# Навигация и калибровки (СТРОГО сохраняем EKF3, вырезаем легаси EKF2)
+# Навигация (СТРОГО сохраняем основной EKF3, вырезаем легаси EKF2)
 define AP_NAV_EKF2_ENABLED 0
 define AP_NAV_EKF3_ENABLED 1
 define AP_SCRIPTING_ENABLED 0
