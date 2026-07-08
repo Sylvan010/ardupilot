@@ -94,7 +94,7 @@ PB4  TIM3_CH1 TIM3 PWM(6) GPIO(55)   # M6
 PB0  TIM3_CH3 TIM3 PWM(7) GPIO(56)   # M7
 PB1  TIM3_CH4 TIM3 PWM(8) GPIO(57)   # M8
 
-# LEDs (За дампом: LED1 = C14, LED2 = C15. Налаштовано під жорсткі вимоги Си-драйвера)
+# LEDs (За дампом: LED1 = C14, LED2 = C15. Налаштовано под жесткие требования Си-драйвера)
 define AP_NOTIFY_GPIO_LED_1_ENABLED 1
 define AP_NOTIFY_GPIO_LED_2_ENABLED 1
 define HAL_NOTIFY_NUM_LEDS 2
@@ -119,9 +119,10 @@ PC2 PINIO2 OUTPUT LOW
 define AP_BOOTLOADER_FLASHING_ENABLED 0
 
 # ==============================================================================
-# ПОЛНОЕ СОГЛАСОВАНИЕ С БАЗОВОЙ ПОЛИТИКОЙ ВЕТКИ (Исключаем переопределение макроса)
+# ОБХОД КЛИНЧА МАКРОСОВ WAF: ИСПОЛЬЗУЕМ СЫРОЙ ИНТЕРФЕЙС ШИНЫ И ВЫРЕЗАЕМ ДУБЛИКАТЫ
 # ==============================================================================
 SPIDEV flash_raw SPI3 DEVID1 FLASH1_CS MODE3 32*MHZ 32*MHZ
+define HAL_LOGGING_ENABLED 0
 
 # OSD ПОВНОЦЕННЫЙ РЕЖИМ (Графіка, шрифти та сайдбары збережені на 100%)
 SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
@@ -185,3 +186,6 @@ define AP_GENERATOR_ENABLED 0
 define AP_WINCH_ENABLED 0
 
 DMA_PRIORITY ADC1 SPI1* SPI2* SPI3* TIM1* TIM3* TIM8*
+
+# Этот инклюд вырежет все конфликтующие системные макросы из hwdef.h
+include ../include/no_bootloader_DFU.inc
