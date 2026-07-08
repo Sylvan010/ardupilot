@@ -26,19 +26,16 @@ jobs:
           git config --global --add safe.directory /github/workspace
 
       # 3. Перезапись файла FoxeerF405v2 вашей Production-конфигурацией
-      # Идентификатор APJ_BOARD_ID изменен на оригинальный AP_HW_FoxeerF405v2 для валидации
+      # Строка APJ_BOARD_ID полностью удалена — парсер сам подставит легитимный ID из имени папки
       - name: Inject HAKRC Production Hardware Definition
         run: |
           cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           # HAKRC F405 V2 (Production Light Version - DFU Build via Foxeer Target)
           # Hardware compatible profile based on FoxeerF405v2 ChibiOS target
-          # Board ID: AP_HW_FoxeerF405v2 (4105)
 
           MCU STM32F4xx STM32F405xx
 
           define STM32_JTAG_DISABLE
-
-          APJ_BOARD_ID AP_HW_FoxeerF405v2
 
           OSCILLATOR_HZ 8000000
 
