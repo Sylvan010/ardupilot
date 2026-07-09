@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Динамический ремапинг патчингом HAKRC поверх оригинальной базы Foxeer (Пошаговый план)
+      # 3. Динамический ремапинг патчингом HAKRC поверх оригинальной базы Foxeer (С жестким выжиганием ног по номеру)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -40,10 +40,8 @@ jobs:
           echo "APJ_BOARD_ID 1067" >> $HW_FILE
 
           # =================================
-          # ТОЧЕЧНАЯ ОЧИСТКА СТАРЫХ РЕСУРСОВ Foxeer (Снимаем коллизии по OSD, Flash и Датчикам)
+          # ТОЧЕЧНАЯ ОЧИСТКА СТАРЫХ ФУНКЦИЙ И СЛУЖБЕБНЫХ ДЕФАЙНОВ Foxeer
           # =================================
-          sed -i '/SPI2_/d' $HW_FILE
-          sed -i '/SPI3_/d' $HW_FILE
           sed -i '/OSD1_CS/d' $HW_FILE
           sed -i '/FLASH1_CS/d' $HW_FILE
           sed -i '/GYRO1_CS/d' $HW_FILE
@@ -52,26 +50,20 @@ jobs:
           sed -i '/dataflash/d' $HW_FILE
           sed -i '/osd/d' $HW_FILE
           sed -i '/HAL_LOGGING_DATAFLASH/d' $HW_FILE
-
-          # Очищаем старые UART, чтобы освободить ноги под мапинг HAKRC
-          sed -i '/USART1_TX/d;/USART1_RX/d' $HW_FILE
-          sed -i '/USART3_TX/d;/USART3_RX/d' $HW_FILE
-          sed -i '/UART5_TX/d;/UART5_RX/d' $HW_FILE
+          sed -i '/HAL_GPIO_A_LED_PIN/d' $HW_FILE
+          sed -i '/HAL_GPIO_B_LED_PIN/d' $HW_FILE
+          sed -i '/HAL_BUZZER_PIN/d' $HW_FILE
 
           # =================================
-          # ТОЧЕЧНАЯ ХИРУРГИЧЕСКАЯ ОЧИСТКА ТАЙМЕРОВ МОТОРОВ (По вашему пошаговому плану!)
+          # УЛЬТИМАТИВНОЕ ВЫЖИГАНИЕ ФАБРИЧНЫХ СТРОК СТРОГО ПО НОМЕРАМ НОГ
+          # Очищает PB14 (PINIO), PB15, PA15 и все пины моторов/SPI от старых назначений Foxeer
           # =================================
-          sed -i '/PB4.*TIM/d' $HW_FILE
-          sed -i '/PB0.*TIM/d' $HW_FILE
-          sed -i '/PB1.*TIM/d' $HW_FILE
-          sed -i '/PB3.*TIM/d' $HW_FILE
-          sed -i '/PC8.*TIM/d' $HW_FILE
-          sed -i '/PC9.*TIM/d' $HW_FILE
-          sed -i '/PA8.*TIM/d' $HW_FILE
-          sed -i '/PA9.*TIM/d' $HW_FILE
-          sed -i '/PA10.*TIM/d' $HW_FILE
+          for PIN in PA4 PA5 PA6 PA7 PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PC8 PC9 PA8 PA9 PB0 PB1 PA10 PB4 PB3
+          do
+              sed -E -i "/^$PIN[[:space:]]+/d" $HW_FILE
+          done
           
-          # Дополнительно очищаем объявления старых светодиодов и бузера, чтобы освободить пины
+          # Стираем объявления старых светодиодов и бузера, если они были записаны без пробелов
           sed -i '/LED0/d;/LED1/d;/BUZZER/d' $HW_FILE
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
@@ -106,11 +98,18 @@ jobs:
           PB6 USART1_TX USART1
           PB7 USART1_RX USART1
 
+          PA2  USART2_TX USART2
+          PA3  USART2_RX USART2
+          PC0  SBUS_INVERT OUTPUT LOW
+
           PB10 USART3_TX USART3
-          PB11 USART3_RX USART3
+          PB11 USART3_RX USART3 NODMA
 
           PC12 UART5_TX USART5
           PD2  UART5_RX USART5
+
+          PC6  USART6_TX USART6
+          PC7  USART6_RX USART6
           EOF
 
           # =================================
@@ -130,7 +129,7 @@ jobs:
           EOF
 
           # =================================
-          # ИНЖЕКЦИЯ СВЕТОДИОДОВ И AP_NOTIFY (Дублирующиеся дефайны Foxeer полностью удалены)
+          # ИНЖЕКЦИЯ СВЕТОДИОДОВ И AP_NOTIFY
           # =================================
           cat >> $HW_FILE <<EOF
 
@@ -146,7 +145,7 @@ jobs:
           EOF
 
           # =================================
-          # ИНЖЕКЦИЯ ПОЛНОЙ КАРТЫ ДВИГАТЕЛЕЙ PWM (По вашему пошаговому плану!)
+          # ИНЖЕКЦИЯ ПОЛНОЙ КАРТЫ ДВИГАТЕЛЕЙ PWM (Строго по Betaflight Dump)
           # =================================
           cat >> $HW_FILE <<EOF
 
@@ -188,15 +187,15 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Диагностический контроль перед вызовом waf
+      # 4. Диагностический контроль перед вызовом waf (Проверяем чистоту пинов)
       - name: Diagnostics and Resource Verification
         run: |
+          echo "=== DIAGNOSTICS: GREP FOR PB14 ==="
+          grep -n "PB14" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
           echo "=== DIAGNOSTICS: GREP FOR PB4 MOTOR ==="
           grep -n "PB4" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== DIAGNOSTICS: GREP FOR LED DEFINES ==="
-          grep -n "LED" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
-      # 5. Сброс кэша и конфигурация загрузчика
+      # 5. Сброс кэша и configuration загрузчика
       - name: Configure Bootloader
         run: |
           ./waf distclean
