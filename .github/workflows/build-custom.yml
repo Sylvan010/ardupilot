@@ -9,21 +9,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      # Возвращаем универсальный образ, версию кода контролирует сам Git
+      # Використовуємо універсальний образ, версію коду контролює сам Git
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистый checkout оригинального репозитория FoxeerF405v2 (100% фабричное состояние)
+      # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
+      # 2. Фікс прав безпеки Git всередині сесії Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Чистый точечный ремапинг HAKRC (Монолитная инжекция выверенных SPIDEV, без PINIO/Бузера)
+      # 3. Чистий точковий ремапінг HAKRC поверх бази Foxeer (Канонічний синтаксис SPIDEV, без PINIO/Бузера)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -34,7 +34,7 @@ jobs:
           # Кожен запуск повертає Foxeer оригінал для чистоти дифу в CI
           git checkout -- $HW_FILE $BL_FILE
           
-          # Створення бекапу оригінального файлу
+          # Створення бекапу оригінального файлу за вашим планом
           cp $HW_FILE ${HW_FILE}.backup
           
           # === ФІКС BOARD ID ПІД ТЕКСТОВИЙ СТАНДАРТ 4.8.0 ===
@@ -44,14 +44,14 @@ jobs:
           # =================================
           # КРОК 0. HARD PIN RELEASE FOR HAKRC REMAP (Випалювання фабричних колізій за номерами ніжок)
           # =================================
-          for PIN in PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PB4 PB3 PB0 PB1 PC8 PC9 PA8 PA9 PA10 PA2 PA3 PC12 PD2 PC6 PC7 PC0 PC2
+          for PIN in PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PB4 PB3 PB0 PB1 PC8 PC9 PA8 PA9 PA10 PA2 PA3 PC12 PD2 PC6 PC7 PC0 PC2 PA4
           do
               sed -i "/^[[:space:]]*$PIN[[:space:]]/d" $HW_FILE
               sed -i "/^[[:space:]]*$PIN$/d" $HW_FILE
           done
           
           # =================================
-          # ППОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА СИСТЕМИ ЛОГУВАННЯ БЛЕКБОКСА (Логгер йде нахрен)
+          # ПОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА СИСТЕМИ ЛОГУВАННЯ БЛЕКБОКСА (Логгер йде нахрен)
           # =================================
           sed -i '/dataflash/d' $HW_FILE
           sed -i '/FLASH1_CS/d' $HW_FILE
@@ -65,7 +65,7 @@ jobs:
           sed -i '/HAL_BATT_VOLT_SCALE/d' $HW_FILE
           sed -i '/HAL_BATT_CURR_SCALE/d' $HW_FILE
           
-          # Полностью сносим старые абстракции SPIDEV, чтобы выгрузить чистый монолитный граф
+          # Повністю зносимо старі абстракції SPIDEV та CS ніжки, щоб виключити каскадні колізії
           sed -i '/SPIDEV/d' $HW_FILE
           sed -i '/OSD1_CS/d' $HW_FILE
           sed -i '/GYRO1_CS/d' $HW_FILE
@@ -87,24 +87,32 @@ jobs:
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
           # ===============================
-          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (Идеальный синтаксис 4.8.0 для всех трех независимых шин)
+          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (Суворий канонічний порядок: SPI pins -> CS pins -> SPIDEV)
           # ===============================
           cat >> $HW_FILE <<EOF
 
-          # === HAKRC F405 V2 SPI REMAP ===
+          # === HAKRC F405 V2 SPI PINS ===
+          PA5  SPI1_SCK SPI1
+          PA6  SPI1_MISO SPI1
+          PA7  SPI1_MOSI SPI1
+
           PB13 SPI2_SCK SPI2
           PB14 SPI2_MISO SPI2
           PB15 SPI2_MOSI SPI2
-          PB12 OSD1_CS CS
 
           PC10 SPI3_SCK SPI3
           PC11 SPI3_MISO SPI3
           PB5  SPI3_MOSI SPI3
+
+          # === HAKRC F405 V2 CS PINS ===
+          PA4  GYRO1_CS CS
+          PB12 OSD1_CS CS
           PA15 FLASH1_CS CS
 
-          SPIDEV imu1      SPI1 SPEED_2M SPEED_8M LOW GYRO1_CS DEVID1
-          SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
-          SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ 40*MHZ
+          # === HAKRC F405 V2 SPIDEV DEVICES ===
+          SPIDEV imu1      SPI1 DEVID1 GYRO1_CS MODE3 8*MHZ
+          SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
+          SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ
           EOF
           
           # ===============================
@@ -138,7 +146,7 @@ jobs:
           EOF
 
           # ===============================
-          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13 - Одиночний комплект шкал)
+          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13 - Одиночний комплект)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -167,7 +175,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 5. КАРТА МОТОРІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight дампу)
+          # КРОК 5. КАРТА МОТОРІВ PWM (Таймери TIM8/TIM1/TIM3 строго по Betaflight дампу)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -189,7 +197,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 6. ПРОГРАММНОЕ ВЫКЛЮЧЕНИЕ СИСТЕМЫ ЛОГГЕРА
+          # КРОК 6. ППРОГРАММНОЕ ВЫКЛЮЧЕНИЕ СИСТЕМЫ ЛОГГЕРА
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -209,7 +217,7 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Діагностична перевірка конфігу перед запуском Waf
+      # 4. Діагностична перевірка конфігу перед запуском Waf за вашим планом
       - name: Diagnostics and Resource Verification
         run: |
           echo "=== CHECKING KEY PINS FOR DUPLICATES ==="
@@ -262,10 +270,4 @@ jobs:
           RC7_OPTION 65
           EOF_PARM
           echo "Production defaults.parm locked."
-
-      # 8. Очитка кешу та конфігурація основної прошивки квадрокоптера
-      - name: Configure Copter Firmware
-        run: |
-          ./waf distclean
-          ./waf configure --board FoxeerF405v2
 
