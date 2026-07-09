@@ -88,15 +88,15 @@ jobs:
           PC14 LED1 OUTPUT HIGH \
           PC15 LED2 OUTPUT HIGH \
           PC13 BUZZER OUTPUT HIGH \
-          PC8  TIM8_CH3  PWM(1) \
-          PC9  TIM8_CH4  PWM(2) \
-          PA8  TIM1_CH1  PWM(3) \
-          PA9  TIM1_CH2  PWM(4) \
-          PB0  TIM3_CH3  PWM(5) \
-          PB1  TIM3_CH4  PWM(6) \
-          PA10 TIM1_CH3  PWM(7) \
-          PB4  TIM3_CH1  PWM(8) \
-          PB3  TIM2_CH2  PWM(9)' $TARGET_FILE
+          PC8  TIM8_CH3  PWM 1 \
+          PC9  TIM8_CH4  PWM 2 \
+          PA8  TIM1_CH1  PWM 3 \
+          PA9  TIM1_CH2  PWM 4 \
+          PB0  TIM3_CH3  PWM 5 \
+          PB1  TIM3_CH4  PWM 6 \
+          PA10 TIM1_CH3  PWM 7 \
+          PB4  TIM3_CH1  PWM 8 \
+          PB3  TIM2_CH2  PWM 9' $TARGET_FILE
 
           # --- КРОК КОРЕКЦІЇ СИСТЕМНИХ ДЕФАЙНІВ ---
           sed -i 's/ROTATION_YAW_180/ROTATION_YAW_90/g' $TARGET_FILE
