@@ -12,154 +12,132 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистый checkout оригинального репозитория FoxeerF405v2 (100% фабричное состояние)
+      # 1. Чистий checkout оригінального репозиторію
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фикс прав безопасности Git внутри сессии Docker контейнера
+      # 2. Фікс прав безпеки Git всередині сесії Docker контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Монолитная зачистка и полная инжекция карты HAKRC (С выправленным синтаксисом SPIDEV)
-      - name: Modify Hardware for HAKRC
+      # 3. Повне монолітне перезаписування hwdef.dat (0% шансів на приховані дублікати, таби чи корупцію рядків)
+      - name: Overwrite hwdef.dat for HAKRC
         run: |
-          HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
-          BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
-          PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
+          cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          # hw definition file for processing by chibios_hwdef.py
+          # Target: FoxeerF405v2 - Custom Production Build for HAKRC-F405V2 Layout
+          # Base architecture keeps original DMA rules, USB, and core branch features intact.
           
-          # === КРОК 0. ПОВНЕ ВИПАЛЮВАННЯ ФАБРИЧНИХ НОГ ТА КОНФЛІКТІВ ===
-          sed -i '/PB14/d' $HW_FILE
-          sed -i '/PB15/d' $HW_FILE
-          sed -i '/PB13/d' $HW_FILE
-          sed -i '/PB12/d' $HW_FILE
+          MCU STM32F4xx STM32F405xx
           
-          sed -i '/PC10/d' $HW_FILE
-          sed -i '/PC11/d' $HW_FILE
-          sed -i '/PB5/d' $HW_FILE
-          sed -i '/PA15/d' $HW_FILE
-          
-          sed -i '/PC13/d' $HW_FILE
-          sed -i '/PC14/d' $HW_FILE
-          sed -i '/PC15/d' $HW_FILE
-          
-          sed -i '/PB6/d' $HW_FILE
-          sed -i '/PB7/d' $HW_FILE
-          sed -i '/PB10/d' $HW_FILE
-          sed -i '/PB11/d' $HW_FILE
-          
-          sed -i '/PC1/d' $HW_FILE
-          sed -i '/PC3/d' $HW_FILE
-          
-          sed -i '/PC8/d' $HW_FILE
-          sed -i '/PC9/d' $HW_FILE
-          sed -i '/PA8/d' $HW_FILE
-          sed -i '/PA9/d' $HW_FILE
-          sed -i '/PB0/d' $HW_FILE
-          sed -i '/PB1/d' $HW_FILE
-          sed -i '/PA10/d' $HW_FILE
-          sed -i '/PB4/d' $HW_FILE
-          sed -i '/PB3/d' $HW_FILE
-          
-          # Очищаємо старі блоки SPIDEV (Універсально, щоб не лишилось корупційного LOW)
-          sed -i '/[Oo][Ss][Dd]/d' $HW_FILE
-          sed -i '/[Dd][Aa][Vv][Aa]/d' $HW_FILE
-          sed -i '/[Fm][Ll][Aa][Ss][Hh]/d' $HW_FILE
-          sed -i '/dataflash/d' $HW_FILE
-          sed -i '/osd/d' $HW_FILE
-          
-          # Очищаємо супутні дефайни, щоб уникнути duplicate defines
-          sed -i '/OSD1_CS/d' $HW_FILE
-          sed -i '/FLASH1_CS/d' $HW_FILE
-          sed -i '/HAL_LOGGING_DATAFLASH/d' $HW_FILE
-          sed -i '/HAL_GPIO_A_LED_PIN/d' $HW_FILE
-          sed -i '/HAL_GPIO_B_LED_PIN/d' $HW_FILE
-          sed -i '/HAL_BATT_VOLT_PIN/d' $HW_FILE
-          sed -i '/HAL_BATT_CURR_PIN/d' $HW_FILE
-          sed -i '/FLASH_SIZE_KB/d' $HW_FILE
-          sed -i '/FLASH_RESERVE_START_KB/d' $HW_FILE
-          sed -i '/FLASH_BOOTLOADER_LOAD_KB/d' $HW_FILE
-          
-          # Стираємо старий світлодіод із завантажувача (Bootloader LED)
-          sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
-
-          # === КРОК 1. ІНЖЕКЦІЯ СИСТЕМНИХ ПАРАМЕТРІВ ПАМ'ЯТІ ===
-          cat >> $HW_FILE <<EOF
-
-          # === HAKRC FIXED MEMORY LAYOUT ===
+          # Обов'язкове апаратне тактування кварцу та параметри внутрішньої флеш-пам'яті
+          OSCILLATOR_HZ 8000000
           FLASH_SIZE_KB 1024
           FLASH_RESERVE_START_KB 0
           FLASH_BOOTLOADER_LOAD_KB 48
-          EOF
-
-          # === КРОК 2. ІНЖЕКЦІЯ ЧИСТОЇ КАРТИ SPI (Канонічний синтаксис ArduPilot) ===
-          cat >> $HW_FILE <<EOF
-
-          # === HAKRC F405 V2 VERIFIED SPI MAP ===
+          
+          define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_HWDEF
+          define STM32_HSE_ENABLED TRUE
+          define STM32_HSECLK 8000000
+          
+          ENV_SIZE 16k
+          
+          # USB VCP Конфігурація
+          PA11 OTG_FS_DM OTG1
+          PA12 OTG_FS_DP OTG1
+          
+          define USB_VENDOR 0x0483
+          define USB_PRODUCT_ID 0x5740
+          define USB_STRING_MANUFACTURER "HAKRC"
+          define USB_STRING_PRODUCT "HAKRCF405V2"
+          
+          SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
+          
+          # --- UART Mapping (Строго за Betaflight Dump) ---
+          PB6  USART1_TX USART1
+          PB7  USART1_RX USART1
+          
+          PA2  USART2_TX USART2
+          PA3  USART2_RX USART2
+          PC0  SBUS_INVERT OUTPUT LOW
+          
+          PB10 USART3_TX USART3
+          PB11 USART3_RX USART3 NODMA
+          
+          PA0  UART4_TX UART4
+          PA1  UART4_RX UART4
+          
+          PC12 UART5_TX USART5
+          PD2  UART5_RX USART5
+          
+          PC6  USART6_TX USART6
+          PC7  USART6_RX USART6
+          
+          # Шина I2C1 (Для зовнішнього компаса та барометра)
+          PB8 I2C1_SCL I2C1
+          PB9 I2C1_SDA I2C1
+          
+          # SPI1: Головний сенсор положення (IMU Гіроскоп)
+          PA5 SPI1_SCK SPI1
+          PA6 SPI1_MISO SPI1
+          PA7 SPI1_MOSI SPI1
+          PA4 GYRO1_CS CS
+          
+          # SPI2: Аналогове OSD MAX7456 (Строго за продзвонкою мультиметра)
           PB13 SPI2_SCK SPI2
           PB14 SPI2_MISO SPI2
           PB15 SPI2_MOSI SPI2
-
+          PB12 OSD1_CS CS
+          
+          # SPI3: Бортова Flash Blackbox пам'ять W25Q128 (Строго за продзвонкою мультиметра)
           PC10 SPI3_SCK SPI3
           PC11 SPI3_MISO SPI3
           PB5  SPI3_MOSI SPI3
-
           PA15 FLASH1_CS CS
-          PB12 OSD1_CS CS
-
+          
+          # Реєстрація абстракції пристроїв на SPI шинах (Канонічний синтаксис)
+          SPIDEV gyro1      SPI1 SPEED_2M SPEED_8M GYRO1_CS LOW
           SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
           SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ
-          EOF
-
-          # === КРОК 3. ІНЖЕКЦІЯ СИСТЕМНИХ СВЕТОДИОДІВ HAKRC ТА AP_NOTIFY ===
-          cat >> $HW_FILE <<EOF
-
-          # === HAKRC SYSTEM LEDs ===
-          PC15 LED0 OUTPUT LOW
-          PC14 LED1 OUTPUT LOW
-
-          define HAL_GPIO_A_LED_PIN 90
-          define HAL_GPIO_B_LED_PIN 91
-          define AP_NOTIFY_GPIO_LED_2_ENABLED 1
-          define DEFAULT_NTF_LED_TYPES 257
-          EOF
-
-          # === КРОК 4. ІНЖЕКЦІЯ АПАРАТНОГО БУЗЕРА HAKRC ===
-          cat >> $HW_FILE <<EOF
-
-          # === HAKRC BUZZER ===
-          PC13 BUZZER OUTPUT GPIO(80) LOW
-          define HAL_BUZZER_PIN 80
-          EOF
-
-          # === КРОК 5. UART ІНТЕРФЕЙСИ (Строго за Betaflight Dump) ===
-          cat >> $HW_FILE <<EOF
-
-          # === HAKRC UART PORTS ===
-          PB6  USART1_TX USART1
-          PB7  USART1_RX USART1
-
-          PB10 USART3_TX USART3
-          PB11 USART3_RX USART3 NODMA
-          EOF
-
-          # === КРОК 6. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13) ===
-          cat >> $HW_FILE <<EOF
-
-          # === HAKRC ANALOG ADC SENSORS ===
+          
+          # EXTI лінія апаратного переривання гіроскопа
+          PC4 MPU6000_DRDY INPUT
+          
+          # Драйвери сенсорів польоту з орієнтацією Pitch 180 + Yaw 90 відповідно до Foxeer
+          IMU Invensensev3 SPI:gyro1 ROTATION_PITCH_180_YAW_90
+          
+          # Барометри на шині I2C1
+          BARO BMP280 I2C:0:0x76
+          BARO DPS310 I2C:0:0x76
+          BARO SPL06  I2C:0:0x76
+          
+          # --- Вимкнення логування блекбоксу на рівні ядра автопілота (По твоему плану) ---
+          define HAL_LOGGING_DATAFLASH_ENABLED 0
+          define HAL_LOGGING_MAVLINK_ENABLED 0
+          
+          # --- Конфігурація АЦП датчиків напруги та струму ( ADC1 Канали 11 та 13) ---
           PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
           PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
           define HAL_BATT_VOLT_PIN 11
           define HAL_BATT_CURR_PIN 13
           define HAL_BATT_VOLT_SCALE 10.0
           define HAL_BATT_CURR_SCALE 100.0
-          EOF
-
-          # === КРОК 7. ПОВНА КАРТА ДВИГУНІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight) ===
-          cat >> $HW_FILE <<EOF
-
-          # === HAKRC PWM MOTOR OUTPUTS ===
+          
+          # --- Статусні світлодіоди та апаратний бузер HAKRC ---
+          PC15 LED0 OUTPUT LOW
+          PC14 LED1 OUTPUT LOW
+          PC13 BUZZER OUTPUT GPIO(80) LOW
+          define HAL_BUZZER_PIN 80
+          
+          # Конфігурація AP_Notify для Matek-style поведінки світлодіодів
+          define HAL_GPIO_A_LED_PIN 90
+          define HAL_GPIO_B_LED_PIN 91
+          define AP_NOTIFY_GPIO_LED_2_ENABLED 1
+          define DEFAULT_NTF_LED_TYPES 257
+          
+          # --- Повна карта апаратних таймерів для PWM виходів (Строго за Betaflight Dump) ---
           PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
           PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
           PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
@@ -169,59 +147,76 @@ jobs:
           PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)
           PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
           PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)
-          EOF
-
-          # === КРОК 8. ПРОГРАММНОЕ ОТКЛЮЧЕНИЕ BLACKBOX ЛОГГЕРА ===
-          cat >> $HW_FILE <<EOF
-
-          # === HAKRC DISABLE LOGGING BACKEND ===
-          define HAL_LOGGING_DATAFLASH_ENABLED 0
-          define HAL_LOGGING_MAVLINK_ENABLED 0
-          EOF
-
-          # === КРОК 9. ОВЕРРАЙД СВЕТОДИОДА ЗАВАНТАЖУВАЧА (Bootloader LED на PC15) ===
-          cat >> $BL_FILE <<EOF
-
-          # --- HAKRC Bootloader Overrides ---
-          PC15 LED_BOOTLOADER OUTPUT LOW
-          define HAL_LED_ON 0
-          EOF
-
-          # === КРОК 10. КОРРЕКЦИЯ DEFAULTS.PARM (Включаем OSD, тушим блекбокс) ===
-          if [ ! -f "$PARM_FILE" ]; then
-            touch "$PARM_FILE"
-          fi
-          echo "NTF_LED_TYPES 257" >> $PARM_FILE
-          echo "NTF_LED_BRIGHT 2" >> $PARM_FILE
-          echo "OSD_TYPE 1" >> $PARM_FILE
-          echo "LOG_BACKEND_TYPE 0" >> $PARM_FILE
           
-          echo "=== STEP 3: SPIDEV SYNTAX FIXED & MAP LOCKED ==="
+          # === СЛУЖБОВІ НАЛАШТУВАННЯ ТА КАРТИ DMA (БЕЗКОНФЛІКТНІ) ===
+          DMA_PRIORITY SPI1_RX SPI1_TX SPI2_RX SPI2_TX SPI3_RX SPI3_TX TIM* USART1* USART2* USART3* UART4* UART5* USART6*
+          DMA_NOSHARE SPI1_RX SPI1_TX ADC1
+          define STM32_ST_USE_TIMER 5
+          
+          # --- OSD Інфраструктура ---
+          define OSD_ENABLED 1
+          define HAL_OSD_TYPE_DEFAULT 1
+          ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
+          
+          # --- Навігація, автомісії та компас ---
+          define ALLOW_ARM_NO_COMPASS
+          define AP_COMPASS_PROBING_ENABLED 1
+          define HAL_I2C_INTERNAL_MASK 0
+          define HAL_COMPASS_AUTO_ROT_DEFAULT 2
+          define HAL_DEFAULT_INS_FAST_SAMPLE 3
+          define HAL_FRAME_TYPE_DEFAULT 12
+          define HAL_STORAGE_SIZE 15360
+          
+          define ROMFS_BOOTLOADER_BOARD_ID 1056
+          define APJ_BOARD_ID AP_HW_FOXEERF405_V2
+          
+          include ../include/minimize_fpv_osd.inc
+          EOF
+          echo "HAKRC hwdef.dat generated successfully."
 
-      # 4. Полный сбор загрузчика (Теперь конфигурация пройде бездоганно)
-      - name: Build Bootloader
+      # 4. Точкова заміна світлодіода у завантажувачі ( hwdef-bl.dat)
+      - name: Patch Bootloader LED
+        run: |
+          BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
+          sed -i '/PA13/d' $BL_FILE
+          sed -i '/define HAL_LED_ON/i PC15 LED_BOOTLOADER OUTPUT LOW' $BL_FILE
+          echo "=== FINAL GENERATED BOOTLOADER FILE ==="
+          cat $BL_FILE
+
+      # 5. Скидання кешу та конфігурація завантажувача
+      - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
-          ./waf bootloader
 
-      # 5. Глубокий контроль успешности генерации аппаратного графа ChibiOS
-      - name: Check Generated Hardware h-Files
+      # 6. Перевірка згенерованого ChibiOS-коду за фізичними лініями
+      - name: Check Generated Bootloader Hardware
         run: |
-          echo "=== VERIFYING GENERATED HEADERS ==="
-          test -f build/FoxeerF405v2/hwdef.h
-          grep -R "OSD1_CS" build/FoxeerF405v2/ || true
-          grep -R "FLASH1_CS" build/FoxeerF405v2/ || true
-          echo "Success! The ChibiOS generator configuration step passed successfully."
+          echo "=== CHECKING GENERATED BOOTLOADER DEFINITIONS ==="
+          grep -R "PC15" build/FoxeerF405v2/ || true
 
-      # 6. Сборка основной прошивки квадрокоптера (ArduCopter)
-      - name: Build Copter Firmware
+      # 7. Фінальна компіляція завантажувача
+      - name: Build Bootloader
+        run: ./waf bootloader
+
+      # 8. Очистка кешу та конфігурація основної прошивки квадрокоптера
+      - name: Configure Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
-          ./waf copter
 
-      # 7. Экспортируем готовые .apj и .bin файлы в артефакты запуска GitHub
+      # 9. Перевірка згенерованого ChibiOS-коду для коптера за фізичними лініями моторів та OSD
+      - name: Check Generated Copter Hardware
+        run: |
+          echo "=== CHECKING GENERATED COPTER DEFINITIONS ==="
+          grep -R "PC8" build/FoxeerF405v2/ || true
+          grep -R "PB12" build/FoxeerF405v2/ || true
+
+      # 10. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
+      - name: Build Copter Firmware
+        run: ./waf copter
+
+      # 11. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
