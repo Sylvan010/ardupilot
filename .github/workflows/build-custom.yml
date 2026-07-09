@@ -22,11 +22,11 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Перевірка фізичної наявності файлу патчу в репозиторії перед виконанням
+      # 3. Перевірка наявності файлу патчу
       - name: Check Patch Exists
         run: |
           test -f hakrc_resources.patch
-          echo "Patch found and ready"
+          echo "Patch found"
 
       # 4. Накладаємо виправлений точковий патч ресурсів на Foxeer target
       - name: Apply HAKRC Resource Patch
@@ -34,21 +34,21 @@ jobs:
           git apply --check hakrc_resources.patch
           git apply hakrc_resources.patch
 
-      # 5. Верифікація успішного накладання апаратного мапінгу у вихідний код плати
+      # 5. Хірургічна верифікація: перевіряємо, чи патч ліг на вихідний код так, як очікувалося
       - name: Verify HAKRC mapping
         run: |
           echo "=== VERIFYING UART1 ==="
           grep "PB6  USART1_TX" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "=== VERIFYING SPI3 FLASH SCK ==="
+          echo "=== VERIFYING SPI3 SCK ==="
           grep "PC10 SPI3_SCK" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "=== VERIFYING SPI2 OSD CS ==="
+          echo "=== VERIFYING OSD CS ==="
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "=== VERIFYING SPI3 FLASH CS ==="
+          echo "=== VERIFYING FLASH CS ==="
           grep "PA15 FLASH1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "=== VERIFYING PWM MOTOR 1 ON TIM8 ==="
-          grep "PC8  TIM8_CH3" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== VERIFYING STATUS LED ==="
+          grep "PC15 LED0" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
-      # 6. Повна очистка кешу графа та конфігурація завантажувача
+      # 6. Очищення кешу та конфігурація завантажувача
       - name: Configure Bootloader
         run: |
           ./waf distclean
@@ -65,13 +65,13 @@ jobs:
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 9. Очистка кешу та конфігурація основної прошивки квадрокоптера
+      # 9. Очищення кешу та конфігурація основної прошивки квадрокоптера
       - name: Configure Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
-      # 10. Глибока перевірка автоматично згенерованого ChibiOS-коду для коптера
+      # 10. Перевірка автоматично згенерованого ChibiOS-коду для коптера
       - name: Check Generated Copter Hardware
         run: |
           echo "=== CHECKING GENERATED COPTER DEFINITIONS ==="
@@ -82,7 +82,7 @@ jobs:
       - name: Build Copter Firmware
         run: ./waf copter
 
-      # 12. Експортуємо готові .apj та .bin файли в артефакти GitHub
+      # 12. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
