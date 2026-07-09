@@ -12,17 +12,17 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистий checkout оригінального репозиторію
+      # 1. Чистый checkout оригинального репозитория (100% фабричное состояние Foxeer)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фікс прав безпеки Git всередині сесії Docker контейнера
+      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Повне монолітне перезаписування hwdef.dat (0% шансів на приховані дублікати, таби чи корупцію рядків)
+      # 3. Полное монолитное перезаписывание hwdef.dat (Исправлен синтаксис USART5)
       - name: Overwrite hwdef.dat for HAKRC
         run: |
           cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
@@ -32,7 +32,7 @@ jobs:
           
           MCU STM32F4xx STM32F405xx
           
-          # Обов'язкове апаратне тактування кварцу та параметри внутрішньої флеш-пам'яті
+          # Ограничения памяти и тактование внешнего кварца (8MHz)
           OSCILLATOR_HZ 8000000
           FLASH_SIZE_KB 1024
           FLASH_RESERVE_START_KB 0
@@ -44,7 +44,7 @@ jobs:
           
           ENV_SIZE 16k
           
-          # USB VCP Конфігурація
+          # USB VCP Конфигурация
           PA11 OTG_FS_DM OTG1
           PA12 OTG_FS_DP OTG1
           
@@ -55,7 +55,7 @@ jobs:
           
           SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
           
-          # --- UART Mapping (Строго за Betaflight Dump) ---
+          # --- UART/USART Mapping (Строго по Betaflight Dump с ChibiOS синтаксисом) ---
           PB6  USART1_TX USART1
           PB7  USART1_RX USART1
           
@@ -69,55 +69,55 @@ jobs:
           PA0  UART4_TX UART4
           PA1  UART4_RX UART4
           
-          PC12 UART5_TX USART5
-          PD2  UART5_RX USART5
+          PC12 USART5_TX USART5
+          PD2  USART5_RX USART5
           
           PC6  USART6_TX USART6
           PC7  USART6_RX USART6
           
-          # Шина I2C1 (Для зовнішнього компаса та барометра)
+          # Шина I2C1 (Для внешнего компаса и барометра)
           PB8 I2C1_SCL I2C1
           PB9 I2C1_SDA I2C1
           
-          # SPI1: Головний сенсор положення (IMU Гіроскоп)
+          # SPI1: Главный сенсор положения (IMU Гироскоп)
           PA5 SPI1_SCK SPI1
           PA6 SPI1_MISO SPI1
           PA7 SPI1_MOSI SPI1
           PA4 GYRO1_CS CS
           
-          # SPI2: Аналогове OSD MAX7456 (Строго за продзвонкою мультиметра)
+          # SPI2: Аналоговое OSD MAX7456 (Строго по прозвонке мультиметра)
           PB13 SPI2_SCK SPI2
           PB14 SPI2_MISO SPI2
           PB15 SPI2_MOSI SPI2
           PB12 OSD1_CS CS
           
-          # SPI3: Бортова Flash Blackbox пам'ять W25Q128 (Строго за продзвонкою мультиметра)
+          # SPI3: Бортовая Flash Blackbox память W25Q128 (Строго по прозвонке мультиметра)
           PC10 SPI3_SCK SPI3
           PC11 SPI3_MISO SPI3
           PB5  SPI3_MOSI SPI3
           PA15 FLASH1_CS CS
           
-          # Реєстрація абстракції пристроїв на SPI шинах (Канонічний синтаксис)
+          # Регистрация абстракции устройств на SPI шинах
           SPIDEV gyro1      SPI1 SPEED_2M SPEED_8M GYRO1_CS LOW
           SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
           SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ
           
-          # EXTI лінія апаратного переривання гіроскопа
+          # EXTI линия аппаратного перерывания гироскопа
           PC4 MPU6000_DRDY INPUT
           
-          # Драйвери сенсорів польоту з орієнтацією Pitch 180 + Yaw 90 відповідно до Foxeer
+          # Драйверы сенсоров полета с ориентацией Pitch 180 + Yaw 90
           IMU Invensensev3 SPI:gyro1 ROTATION_PITCH_180_YAW_90
           
-          # Барометри на шині I2C1
+          # Барометры на шине I2C1
           BARO BMP280 I2C:0:0x76
           BARO DPS310 I2C:0:0x76
           BARO SPL06  I2C:0:0x76
           
-          # --- Вимкнення логування блекбоксу на рівні ядра автопілота (По твоему плану) ---
+          # --- Выключение логурования блекбокса для освобождения ресурсов CPU ---
           define HAL_LOGGING_DATAFLASH_ENABLED 0
           define HAL_LOGGING_MAVLINK_ENABLED 0
           
-          # --- Конфігурація АЦП датчиків напруги та струму ( ADC1 Канали 11 та 13) ---
+          # --- Конфигурация АЦП датчиков напряжения и тока (ADC1 Каналы 11 и 13) ---
           PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
           PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
           define HAL_BATT_VOLT_PIN 11
@@ -125,19 +125,19 @@ jobs:
           define HAL_BATT_VOLT_SCALE 10.0
           define HAL_BATT_CURR_SCALE 100.0
           
-          # --- Статусні світлодіоди та апаратний бузер HAKRC ---
+          # --- Статусные светодиоды и аппаратный бузер HAKRC ---
           PC15 LED0 OUTPUT LOW
           PC14 LED1 OUTPUT LOW
           PC13 BUZZER OUTPUT GPIO(80) LOW
           define HAL_BUZZER_PIN 80
           
-          # Конфігурація AP_Notify для Matek-style поведінки світлодіодів
+          # Конфигурация AP_Notify для Matek-style поведения светодиодов
           define HAL_GPIO_A_LED_PIN 90
           define HAL_GPIO_B_LED_PIN 91
           define AP_NOTIFY_GPIO_LED_2_ENABLED 1
           define DEFAULT_NTF_LED_TYPES 257
           
-          # --- Повна карта апаратних таймерів для PWM виходів (Строго за Betaflight Dump) ---
+          # --- Полная карта аппаратных таймеров для PWM выходов (Строго по Betaflight Dump) ---
           PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
           PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
           PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
@@ -153,12 +153,12 @@ jobs:
           DMA_NOSHARE SPI1_RX SPI1_TX ADC1
           define STM32_ST_USE_TIMER 5
           
-          # --- OSD Інфраструктура ---
+          # --- OSD Инфраструктура ---
           define OSD_ENABLED 1
           define HAL_OSD_TYPE_DEFAULT 1
           ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
           
-          # --- Навігація, автомісії та компас ---
+          # --- Навигация, автомиссии и компас ---
           define ALLOW_ARM_NO_COMPASS
           define AP_COMPASS_PROBING_ENABLED 1
           define HAL_I2C_INTERNAL_MASK 0
@@ -174,49 +174,53 @@ jobs:
           EOF
           echo "HAKRC hwdef.dat generated successfully."
 
-      # 4. Точкова заміна світлодіода у завантажувачі ( hwdef-bl.dat)
+      # 4. Точковая замена светодиода в загрузчике (hwdef-bl.dat)
       - name: Patch Bootloader LED
         run: |
           BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
           sed -i '/PA13/d' $BL_FILE
           sed -i '/define HAL_LED_ON/i PC15 LED_BOOTLOADER OUTPUT LOW' $BL_FILE
-          echo "=== FINAL GENERATED BOOTLOADER FILE ==="
-          cat $BL_FILE
 
-      # 5. Скидання кешу та конфігурація завантажувача
+      # 5. Диагностический контроль: выводим все порты для проверки (по вашему плану)
+      - name: Debug UART and USART Configuration Table
+        run: |
+          echo "=== CONFIGURATION TABLE FOR HAKRC PORTS ==="
+          grep -n "UART\|USART" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+
+      # 6. Сброс кэша и конфигурация загрузчика
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 6. Перевірка згенерованого ChibiOS-коду за фізичними лініями
+      # 7. Проверка сгенерированного кода загрузчика
       - name: Check Generated Bootloader Hardware
         run: |
           echo "=== CHECKING GENERATED BOOTLOADER DEFINITIONS ==="
           grep -R "PC15" build/FoxeerF405v2/ || true
 
-      # 7. Фінальна компіляція завантажувача
+      # 8. Финальная компиляция загрузчика
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 8. Очистка кешу та конфігурація основної прошивки квадрокоптера
+      # 9. Очистка кэша и конфигурация основной прошивки квадрокоптера
       - name: Configure Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
-      # 9. Перевірка згенерованого ChibiOS-коду для коптера за фізичними лініями моторів та OSD
+      # 10. Проверка сгенерированного кода для коптера по ключевым линиям
       - name: Check Generated Copter Hardware
         run: |
           echo "=== CHECKING GENERATED COPTER DEFINITIONS ==="
           grep -R "PC8" build/FoxeerF405v2/ || true
           grep -R "PB12" build/FoxeerF405v2/ || true
 
-      # 10. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
+      # 11. Финальная компиляция основной прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: ./waf copter
 
-      # 11. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
+      # 12. Экспортируем готовые файлы в артефакты запуска GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
