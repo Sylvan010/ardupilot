@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Точковий хірургічний ремапінг HAKRC (Глибоке випалювання фабричного gyro1 з табами, без PINIO/Бузера)
+      # 3. Точковий хірургічний ремапінг HAKRC (Виправлено синтаксис SPIDEV gyro1, без PINIO/Бузера/Логов)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -36,12 +36,12 @@ jobs:
           # Створення бекапу оригінального файлу
           cp $HW_FILE ${HW_FILE}.backup
           
-          # === ФІКС BOARD ID ПІД АРХІТЕКТУРУ 4.8.0 ===
+          # === ФИКС BOARD ID ПОД АРХИТЕКТУРУ 4.8.0 ===
           sed -i '/APJ_BOARD_ID/d' $HW_FILE
           echo "APJ_BOARD_ID AP_HW_FOXEERF405_V2" >> $HW_FILE
 
           # =================================
-          # КРОК 0. HARD PIN RELEASE FOR HAKRC REMAP (Повне випалювання фабричних колізій)
+          # КРОК 0. HARD PIN RELEASE FOR HAKRC REMAP (Полноценное выжигание фабричных коллизий)
           # =================================
           for PIN in PA5 PA6 PA7 PA4 PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PB4 PB3 PB0 PB1 PC8 PC9 PA8 PA9 PA10 PA2 PA3 PC12 PD2 PC6 PC7 PC0 PC2
           do
@@ -50,7 +50,7 @@ jobs:
           done
           
           # =================================
-          # ПОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА СИСТЕМИ ЛОГУВАННЯ БЛЕКБОКСА (Логгер йде нахрен)
+          # ПОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА СИСТЕМИ ЛОГУВАННЯ БЛЕКБОКСА (По твоему плану)
           # =================================
           sed -i '/[Dd][Aa][Vv][Aa][Ff][尝][Aa][Ss][Hh]/d' $HW_FILE
           sed -i '/dataflash/d' $HW_FILE
@@ -61,7 +61,7 @@ jobs:
           sed -i '/HAL_BUZZER_PIN/d' $HW_FILE
           sed -i '/SBUS_INVERT/d' $HW_FILE
           
-          # Глибоке випалювання фабричних SPIDEV гіроскопа та OSD (Регулярні вирази ловлять будь-які \t та пробіли Foxeer)
+          # Глубокое выжигание фабричных SPIDEV гироскопа та OSD (Универсальные регулярные выражения убирают табы \t)
           sed -E -i '/[Oo][Ss][Dd]/d' $HW_FILE
           sed -E -i '/OSD1_CS/d' $HW_FILE
           sed -E -i '/GYRO1_CS/d' $HW_FILE
@@ -70,7 +70,7 @@ jobs:
           sed -E -i '/IMU /d' $HW_FILE
           sed -E -i '/imu1/d' $HW_FILE
           
-          # Очищаємо супутні дефайни, щоб уникнути колізій 'already in defines'
+          # Очищаем сопутствующие дефайны, чтобы избежать дублирования
           sed -i '/HAL_GPIO_A_LED_PIN/d' $HW_FILE
           sed -i '/HAL_GPIO_B_LED_PIN/d' $HW_FILE
           sed -i '/HAL_BATT_VOLT_PIN/d' $HW_FILE
@@ -78,14 +78,14 @@ jobs:
           sed -i '/AP_NOTIFY_GPIO_LED_2_ENABLED/d' $HW_FILE
           sed -i '/DEFAULT_NTF_LED_TYPES/d' $HW_FILE
           
-          # Стираємо UART порти Foxeer та старий світлодіод бута
+          # Стираем UART порты Foxeer и старый светодиод бута
           sed -i '/USART1_TX/d;/USART1_RX/d' $HW_FILE
           sed -i '/USART3_TX/d;/USART3_RX/d' $HW_FILE
           sed -i '/UART5_TX/d;/UART5_RX/d' $HW_FILE
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
           # ===============================
-          # КРОК 1. ІНЖЕКЦІЯ ЧИСТОЇ КАРТИ SPI HAKRC (Канонічний двошвидкісний синтаксис 4.8.0)
+          # КРОК 1. ИНЖЕКЦИЯ ЧИСТОЙ КАРТЫ SPI HAKRC (С выверенным синтаксисом SPIDEV под 4.8.0)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -100,12 +100,12 @@ jobs:
           PB15 SPI2_MOSI SPI2
           PB12 OSD1_CS CS
 
-          SPIDEV gyro1      SPI1 SPEED_2M SPEED_8M GYRO1_CS DEVID1 LOW
+          SPIDEV gyro1      SPI1 SPEED_2M SPEED_8M LOW GYRO1_CS DEVID1
           SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
           EOF
           
           # ===============================
-          # КРОК 2. UART REMAP (Суворий 3-компонентний апаратний синтаксис під STM32F405)
+          # КРОК 2. UART REMAP (Суровый 3-компонентный апаратный синтаксис под STM32F405)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -126,7 +126,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 2.5. ДВУХКОНТУРНИЙ IMU (Додаємо другого гіроскопа за вашим Betaflight дампом)
+          # КРОК 2.5. ДВУХКОНТУРНЫЙ IMU (Добавляем второй гироскоп по вашему Betaflight дампу)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -139,7 +139,7 @@ jobs:
           EOF
 
           # ===============================
-          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC)
+          # КРОК 3. АНАЛОГОВЫЕ ДАТЧИКИ БАТАРЕИ (ADC)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -168,7 +168,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 5. КАРТА МОТОРІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight дампу)
+          # КРОК 5. КАРТА МОТОРОВ PWM (Таймеры TIM8/TIM1/TIM3 строго из Betaflight дампу)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -210,7 +210,7 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Діагностична перевірка до початку Waf (Усі грепи мають бути чистими від дублів, PINIO та Бузера)
+      # 4. Диагностический контроль перед вызовом waf
       - name: Diagnostics and Resource Verification
         run: |
           echo "=== CHECKING KEY PINS FOR DUPLICATES ==="
@@ -222,17 +222,17 @@ jobs:
           echo "=== VERIFYING GYRO1 SPIDEV LAYOUT ==="
           grep "gyro1" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
-      # 5. Скидання кешу та конфігурація завантажувача
+      # 5. Сброс кэша и конфигурация загрузчика
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 6. Фінальна компіляція завантажувача
+      # 6. Финальная компиляция завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 7. Налаштування defaults.parm під ядро 4.8.0 (LOG_BACKEND_TYPE 0 - логи вимкнено повністю, OSD працює)
+      # 7. Настройка defaults.parm под ядро 4.8.0 (LOG_BACKEND_TYPE 0 - логи вымкнено повністю, OSD працює)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
@@ -249,7 +249,7 @@ jobs:
           NTF_LED_TYPES 257
           NTF_LED_BRIGHT 2
           
-          # Опції тумблерів радіоуправління для стабільного Arming/Disarm і отключения GPS під 4.8.0
+          # Опции тумблеров радиоуправления для стабильного Arming/Disarm и отключения GPS под 4.8.0
           RC5_OPTION 153
           RC7_OPTION 65
           EOF_PARM
@@ -262,10 +262,11 @@ jobs:
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
-      # 9. Експортуємо готові .apj та .bin файли в артефакти запуска GitHub
+      # 9. Экспортируем готовые .apj та .bin файлы в артефакты запуска GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FoxeerF405v2-HAKRC-Firmware
           path: |
             build/FoxeerF405v2/bin/arducopter.apj
+            build/FoxeerF405v2/bin/bootloader.bin
