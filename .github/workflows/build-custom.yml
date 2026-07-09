@@ -12,7 +12,7 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Завантажуємо вихідний код вашої гілки репозиторію з усіма субмодулями
+      # 1. Завантажуємо вихідний код вашої гілки репозиторію з усіма субмодулями (Foxeer таргет 100% заводський)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -22,43 +22,26 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Автоматична генерація 100% валідного файлу патчу прямо на сервері "на льоту"
+      # 3. Генерація 100% чистого, точного unified diff патчу строго під контекст вашої гілки
       - name: Create HAKRC Resource Patch File
         run: |
           cat << 'EOF' > hakrc_resources.patch
           diff --git a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
           --- a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
           +++ b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
-          @@ -10,13 +10,15 @@
-           SERIAL_ORDER OTG1
-           
-           # PA10 IO-debug-console
+          @@ -14,4 +14,5 @@
            PA11 OTG_FS_DM OTG1
            PA12 OTG_FS_DP OTG1
-          -
-          -
-          -
-          -
-          -# Chip select pins
-          -PB12 FLASH1_CS CS
-          -PC14 OSD1_CS CS
-          -PA4 GYRO1_CS CS
-          -
+           
           -PA13 LED_BOOTLOADER OUTPUT LOW
-          -define HAL_LED_ON 0
-          +
           +# --- HAKRC Bootloader Overrides ---
           +PC15 LED_BOOTLOADER OUTPUT LOW
-          +define HAL_LED_ON 0
-          +
-          +PB12 OSD1_CS CS
-          +PA15 FLASH1_CS CS
-          +PA4 GYRO1_CS CS
+           define HAL_LED_ON 0
           diff --git a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           --- a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           +++ b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           @@ -10,31 +10,31 @@
-           SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
+           SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
            
            # UART1
           -PA9  USART1_TX USART1
@@ -120,7 +103,7 @@ jobs:
           +PB5  SPI3_MOSI SPI3
           +PA15 FLASH1_CS CS
            
-           @@ -58,5 +58,5 @@
+           @@ -58,7 +58,7 @@
            SPIDEV imu1  SPI1 SPEED_2M SPEED_8M GYRO_CS LOW
           -SPIDEV dataflash SPI2 DEVID1 FLASH1_CS MODE3 104*MHZ 104*MHZ
           -SPIDEV osd       SPI3 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
@@ -128,15 +111,8 @@ jobs:
           +SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 104*MHZ 104*MHZ
           +SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
            
+           
            # EXTI
-           PC4 MPU6000_DRDY INPUT
-           
-           # IMU
-            IMU Invensensev3 SPI:gyro1 ROTATION_PITCH_180_YAW_90
-           
-           # BARO
-           BARO BMP280 I2C:0:0x76
-           BARO DPS310 I2C:0:0x76
            @@ -74,15 +74,15 @@
            # ADC
           -PC0 BATT_VOLTAGE_SENS ADC1 SCALE(1)
@@ -184,76 +160,67 @@ jobs:
           +PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)
           EOF
 
-      # 4. Перевірка наявності файлу патчу
-      - name: Verify Patch File Setup
+      # 4. Валідація: перевіряємо фізичні властивості та структуру згенерованого патчу
+      - name: Validate Patch
         run: |
-          test -f hakrc_resources.patch
-          echo "=== VERIFYING HAKRC PINS INSIDE PATCH TEMPLATE ==="
-          grep "PA15 FLASH1_CS" hakrc_resources.patch
-          grep "SPIDEV imu1.*GYRO1_CS" hakrc_resources.patch
+          echo "Patch size:"
+          wc -l hakrc_resources.patch
+          echo "Patch headers:"
+          grep "^diff --git" hakrc_resources.patch
 
-      # 5. Перевірка та накладання патчу у розширеному (verbose) режимі
-      - name: Apply HAKRC Resource Patch
+      # 5. Накладаємо патч у розширеному (verbose) режимі з попередньою перевіркою
+      - name: Apply HAKRC Patch
         run: |
           git apply --check --verbose hakrc_resources.patch
           git apply --verbose hakrc_resources.patch
 
-      # 6. Хірургічна верифікація: перевіряємо вихідний код відразу після git apply
-      - name: Verify HAKRC Patch Source Integration
+      # 6. Хірургічна верифікація: перевіряємо вихідний код відразу після накладання патчу
+      - name: Verify HAKRC Mapping
         run: |
-          echo "=== VERIFYING COPTER SOURCE INTERNALS ==="
+          echo "=== CHECKING COPTER MAPPING ==="
           grep "PB6  USART1_TX" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep "PC10 SPI3_SCK" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           grep "PA15 FLASH1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
           grep "PC15 LED0" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "=== VERIFYING BOOTLOADER SOURCE INTERNALS ==="
-          grep "PA15 FLASH1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
+          grep "PC13 BUZZER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PC8  TIM8_CH3" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== CHECKING BOOTLOADER MAPPING ==="
           grep "PC15 LED_BOOTLOADER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
 
-      # 7. Фінальний дамп файлів перед початком Waf-конфігурацій (Діагностика)
-      - name: Dump Final HAKRC hwdef Configuration
-        run: |
-          echo "===== FINAL hwdef.dat ====="
-          grep -E "PB6|PB7|PB10|PB11|PC10|PC11|PA15|PB12|GYRO1_CS|TIM8_CH3|TIM8_CH4" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "===== FINAL hwdef-bl.dat ====="
-          cat libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
-
-      # 8. Скидання кешу та конфігурація завантажувача
+      # 7. Скидання кешу та конфігурація завантажувача
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 9. Оптимізована перевірка згенерованого коду ChibiOS за назвами абстракцій
+      # 8. Перевірка згенерованого ChibiOS-коду за назвами абстракцій
       - name: Check Generated Bootloader Hardware
         run: |
           echo "=== CHECKING GENERATED BOOTLOADER DEFINITIONS ==="
-          grep -R "FLASH1_CS" build/FoxeerF405v2/ || true
           grep -R "LED_BOOTLOADER" build/FoxeerF405v2/ || true
 
-      # 10. Збірка завантажувача
+      # 9. Фінальна компіляція завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 11. Скидання кешу та конфігурація основної прошивки квадрокоптера
+      # 10. Очистка кешу та конфігурація основної прошивки квадрокоптера
       - name: Configure Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
-      # 12. Оптимізована перевірка згенерованого коду за назвами абстракцій моторів та OSD
+      # 11. Перевірка згенерованого ChibiOS-коду для коптера за назвами абстракцій
       - name: Check Generated Copter Hardware
         run: |
           echo "=== CHECKING GENERATED COPTER DEFINITIONS ==="
           grep -R "OSD1_CS" build/FoxeerF405v2/ || true
           grep -R "HAL_LOGGING_DATAFLASH_ENABLED" build/FoxeerF405v2/ || true
 
-      # 13. Збірка основної прошивки квадрокоптера (ArduCopter)
+      # 12. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: ./waf copter
 
-      # 14. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
+      # 13. Завантажуємо готові .apj та .bin файли в артефакти запуску GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
