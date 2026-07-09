@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Чистый хирургический точечный ремапинг HAKRC поверх оригинального hwdef Foxeer
+      # 3. Точечный хирургический ремапинг HAKRC поверх оригинального hwdef Foxeer
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -53,7 +53,7 @@ jobs:
           
           # =================================
           # ПОВНЕ ВЫРЕЗАНИЕ PINIO, БУЗЕРА ТА СИСТЕМЫ ЛОГУВАННЯ БЛЕКБОКСА (За вашим планом!)
-          # Выжигаем все фабричные абстракции, CS, дефайны шкал SCALE и логгера, освобождая ОЗУ под миссии
+          # Выжигаем все фабричные абстракции, CS и дефайны логгера, освобождая ОЗУ под миссии
           # =================================
           sed -i '/[Dd][Aa][Vv][Aa][Ff][尝][Aa][Ss][Hh]/d' $HW_FILE
           sed -i '/dataflash/d' $HW_FILE
@@ -63,6 +63,8 @@ jobs:
           sed -i '/BUZZER/d' $HW_FILE
           sed -i '/HAL_BUZZER_PIN/d' $HW_FILE
           sed -i '/SBUS_INVERT/d' $HW_FILE
+          
+          # Жестко вырезаем старые фабричные шкалы Foxeer, убирая коллизию 'Macro redefined'
           sed -i '/HAL_BATT_VOLT_SCALE/d' $HW_FILE
           sed -i '/HAL_BATT_CURR_SCALE/d' $HW_FILE
           
@@ -125,7 +127,7 @@ jobs:
           EOF
 
           # ===============================
-          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13 - без жестких SCALE)
+          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (Идеальный одиночный комплект строго по вашему плану!)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -135,6 +137,9 @@ jobs:
 
           define HAL_BATT_VOLT_PIN 11
           define HAL_BATT_CURR_PIN 13
+
+          define HAL_BATT_VOLT_SCALE 10.0
+          define HAL_BATT_CURR_SCALE 100.0
           EOF
           
           # ===============================
@@ -198,12 +203,12 @@ jobs:
         run: |
           echo "=== CHECKING KEY PINS FOR DUPLICATES ==="
           grep -nE "PA2|PB14|PC12" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== VERIFY BUZZER, PINIO & SCALE ARE DELETED ==="
-          grep -iE "buzzer|pinio|scale|imu2" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+          echo "=== VERIFY BUZZER & PINIO ARE DELETED ==="
+          grep -iE "buzzer|pinio|imu2" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
           echo "=== CHECKING REVISED TEXTUAL BOARD_ID ==="
           grep "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== VERIFYING GYRO/IMU LAYOUT (FACTORY FOXEER SKELETON) ==="
-          grep -iE "imu1|gyro1|osd" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+          echo "=== VERIFYING BATTERY SCALE CONFIGURATION ==="
+          grep -n "SCALE" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
       # 5. Сброс кэша и конфигурация загрузчика
       - name: Configure Bootloader
@@ -215,7 +220,7 @@ jobs:
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 7. Настройка defaults.parm под ядро 4.8.0 (Масштабы Volt/Curr вынесены сюда строго по спецификации!)
+      # 7. Настройка defaults.parm под ядро 4.8.0 (LOG_BACKEND_TYPE 0 - логи вымкнено повністю, OSD працює)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
