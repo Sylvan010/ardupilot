@@ -18,11 +18,11 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
+      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера (Исправлен регистр 'git')
       - name: Fix Git Safe Directory
-        run: Git config --global --add safe.directory $GITHUB_WORKSPACE
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Точечный хирургический ремапинг HAKRC поверх оригинальной базы Foxeer (С жестким выжиганием ног)
+      # 3. Точечный хирургический ремапинг HAKRC поверх оригинальной базы Foxeer (Исправлен регистр 'git')
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -30,8 +30,8 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH START ==="
           
-          # Гарантируем 100% заводское состояние файлов, отменяя любые прошлые кеши воркфлоу
-          Git checkout -- $HW_FILE $BL_FILE
+          # Гарантируем 100% заводское состояние файлов с маленькой буквы git
+          git checkout -- $HW_FILE $BL_FILE
           
           # Создаем бэкап оригинального файла по вашему плану
           cp $HW_FILE ${HW_FILE}.backup
@@ -44,7 +44,6 @@ jobs:
 
           # =================================
           # КРОК 0. HARD PIN RELEASE FOR HAKRC REMAP (Полноценное выжигание фабричных коллизий по номерам ног)
-          # Добавлены PC0 и PC2 для полного освобождения под новые PINIO1/2 ресурсы HAKRC
           # =================================
           for PIN in PA5 PA6 PA7 PA4 PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PB4 PB3 PB0 PB1 PC8 PC9 PA8 PA9 PA10 PA2 PA3 PC12 PD2 PC6 PC7 PC0 PC2
           do
@@ -99,7 +98,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 2. UART REMAP (Суровый 3-компонентный аппаратный синтаксис UART5 под STM32F405)
+          # КРОК 2. UART REMAP (Суворий 3-компонентний апаратний синтаксис UART5 під STM32F405)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -149,7 +148,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 4. СВЕТОДИОДЫ, БУЗЕР И PINIO (По вашему плану: SBUS инвертор на PC0 вырезан, лочим PINIO)
+          # КРОК 4. СВЕТОДИОДЫ, БУЗЕР И PINIO (По вашему плану)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -211,7 +210,7 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Расширенный диагностический контроль по вашему пошаговому плану перед вызовом waf
+      # 4. Расширенный диагностический контроль перед вызовом waf
       - name: Diagnostics and Resource Verification
         run: |
           echo "=== CHECK HAKRC RESERVED PINS ==="
