@@ -12,137 +12,86 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фікс прав безпеки Git всередині сесії Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Повна монолітна перезапис hwdef.dat та точковий патч hwdef-bl.dat під карту HAKRC
       - name: Inject Pure HAKRC Hardware Profile
         run: |
           echo "=== OVERWRITING FOXEER SKELETON WITH HAKRC WIRING COMPATIBILITY LAYER ==="
-          
           TARGET_DIR="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2"
           
-          # Гарантуємо 100% заводський стан оригінальних файлів Foxeer перед інжекцією
           git checkout -- $TARGET_DIR/hwdef.dat $TARGET_DIR/hwdef-bl.dat
           
-          # Заливаємо кристально чистий hwdef.dat (Foxeer - це оболонка таргета, HAKRC - це залізо)
-          cat << 'EOF' > $TARGET_DIR/hwdef.dat
-          # Конфігурація плати HAKRCF405V2, скомпільована всередині таргету FoxeerF405v2
+          cat << EOF > $TARGET_DIR/hwdef.dat
           MCU STM32F4xx STM32F405xx
-
-          # USB дескриптори (Залишаємо рідні від Foxeer)
           PRODUCT_ID 0x5740
           VENDOR_ID 0x0483
-
-          # Налаштування кристалу та частоти (168MHz)
           OSCILLATOR_HZ 8000000
           STM32_ST_USE_TIMER 5
           FLASH_SIZE_KB 1024
-
-          # BOARD ID ПІД ТЕКСТОВИЙ СТАНДАРТ 4.8.0 (Автопілот думає, що це Foxeer)
           APJ_BOARD_ID AP_HW_FOXEERF405_V2
-
-          # Налаштування USB портів
           PA11 OTG_FS_DM OTG1
           PA12 OTG_FS_DP OTG1
 
-          # ========================================================================
-          # ШИНА SPI1 ТА АППАРАТНИЙ ЛОК ГІРОСКОПА (Канонічний синтаксис 4.8.0)
-          # ========================================================================
           PA5  SPI1_SCK  SPI1
           PA6  SPI1_MISO SPI1
           PA7  SPI1_MOSI SPI1
           PA4  GYRO1_CS  CS
-
-          # Апаратне преривання гіроскопа ICM42688P строго на PB10 за Betaflight дампом
           PB10 ICM42688_DRDY INPUT
 
           SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
           IMU Invensensev3 SPI:imu1 ROTATION_PITCH_180_YAW_90
 
-          # ========================================================================
-          # ШИНА SPI2 ТА АППАРАТНИЙ ЛОК MAX7456 OSD (Суворо за вашою прозвонкою!)
-          # ========================================================================
           PB13 SPI2_SCK  SPI2
           PB14 SPI2_MISO SPI2
           PB15 SPI2_MOSI SPI2
           PB12 OSD1_CS   CS
-
           SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
 
-          # ========================================================================
-          # ШИНА SPI3 ТА АППАРАТНИЙ ЛОК W25Q128 FLASH (Суворо за вашою прозвонкою на 40MHz)
-          # ========================================================================
           PC10 SPI3_SCK  SPI3
           PC11 SPI3_MISO SPI3
           PB5  SPI3_MOSI SPI3
           PA15 FLASH1_CS CS
-
           SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ 40*MHZ
 
-          # ========================================================================
-          # ШИНА I2C1 (Для бортового барометра DPS310 та зовнішнього компаса GPS)
-          # ========================================================================
           PB8 I2C1_SCL I2C1
           PB9 I2C1_SDA I2C1
-
           BARO DPS310 I2C:0:0x76
           COMPASS QMC5883 I2C:0:0x0D
 
-          # ========================================================================
-          # КАРТА UART ПОРТІВ (Повністю виправлені колізії PC10/PC11, 3-компонентний синтаксис)
-          # ========================================================================
           PB6  USART1_TX USART1
           PB7  USART1_RX USART1
-
           PA2  USART2_TX USART2
           PA3  USART2_RX USART2
           PC0  SBUS_INVERT OUTPUT LOW
-
           PB10 USART3_TX USART3
           PB11 USART3_RX USART3 NODMA
-
           PC12 UART5_TX USART5
           PD2  UART5_RX USART5
-
           PC6  USART6_TX USART6
           PC7  USART6_RX USART6
 
-          # ========================================================================
-          # АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ ADC (Канали 11 та 13 суворо за ТЗ)
-          # ========================================================================
           PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
           PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
-
           define HAL_BATT_VOLT_PIN 11
           define HAL_BATT_CURR_PIN 13
           define HAL_BATT_VOLT_SCALE 10.0
           define HAL_BATT_CURR_SCALE 100.0
 
-          # ========================================================================
-          # СИСТЕМНІ СВІТЛОДІОДИ ТА БУЗЕР (Без зайвих PINIO абстракцій)
-          # ========================================================================
           PC13 BUZZER OUTPUT GPIO(80) LOW
           define HAL_BUZZER_PIN 80
-
           PC15 LED0 OUTPUT LOW GPIO(90)
           PC14 LED1 OUTPUT LOW GPIO(91)
-
           define HAL_GPIO_A_LED_PIN 90
           define HAL_GPIO_B_LED_PIN 91
           define AP_NOTIFY_GPIO_LED_2_ENABLED 1
           define DEFAULT_NTF_LED_TYPES 257
 
-          # ========================================================================
-          # КАРТА МОТОРІВ PWM (Таймери TIM8/TIM1/TIM3 суворо з вашого Betaflight Dump)
-          # ========================================================================
           PC8  TIM8_CH3 TIM8 PWM(1)
           PC9  TIM8_CH4 TIM8 PWM(2)
           PA8  TIM1_CH1 TIM1 PWM(3)
@@ -153,31 +102,27 @@ jobs:
           PB4  TIM3_CH1 TIM3 PWM(8)
           PB3  TIM2_CH2 TIM2 PWM(9)
 
-          # Вимикаємо дискові операції логування блекбоксу для збереження ОЗУ
           define HAL_LOGGING_DATAFLASH_ENABLED 0
           define HAL_LOGGING_MAVLINK_ENABLED 0
           EOF
 
-          # 3.2. Точечный патч оригинального hwdef-bl.dat загрузчика Foxeer под линии CS HAKRC
           sed -i '/PA13 LED_BOOTLOADER/d' $TARGET_DIR/hwdef-bl.dat
           sed -i '/PB12 FLASH1_CS/d' $TARGET_DIR/hwdef-bl.dat
           sed -i '/PC14 OSD1_CS/d' $TARGET_DIR/hwdef-bl.dat
           sed -i '/PA4 GYRO1_CS/d' $TARGET_DIR/hwdef-bl.dat
           
-          cat >> $TARGET_DIR/hwdef-bl.dat << 'EOF'
+          cat >> $TARGET_DIR/hwdef-bl.dat << EOF
 
-          # --- HAKRC Bootloader Overrides & Pin Map ---
           PA4  GYRO1_CS CS
           PB12 OSD1_CS CS
           PA15 FLASH1_CS CS
-
           PC15 LED_BOOTLOADER OUTPUT LOW
           define HAL_LED_ON 0
           EOF
           
-          echo "HAKRC wiring layer injected successfully."
+          echo "HAKRC layer locked."
 
-      # 4. Діагностична перевірка фінального hwdef.dat перед викликом Waf
+       Moreton: Diagnostics and Resource Verification
       - name: Diagnostics and Resource Verification
         run: |
           echo "===== PA5 ====="
@@ -187,22 +132,18 @@ jobs:
           echo "=== VERIFYING FINAL MONOLITHIC SPIDEV LAYOUT ==="
           grep "SPIDEV" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
-      # 5. Скидання кешу та конфігурація завантажувача
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 6. Фінальна компіляція завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 7. Налаштування defaults.parm під ядро 4.8.0 (Сняты RELAYx_PIN PreArm ошибки Foxeer)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
-          cat << 'EOF' > $PARM_FILE
-          # Production parameters for HAKRCF405V2 Layout (ArduPilot 4.8.0 Specification)
+          cat << EOF > $PARM_FILE
           BATT_MONITOR 4
           BATT_VOLT_PIN 11
           BATT_CURR_PIN 13
@@ -212,34 +153,25 @@ jobs:
           LOG_BACKEND_TYPE 0
           NTF_LED_TYPES 257
           NTF_LED_BRIGHT 2
-          
-          # Повне виключення віртуальних реле Foxeer, яких немає на HAKRC
           RELAY1_PIN -1
           RELAY2_PIN -1
           RELAY3_PIN -1
           RELAY4_PIN -1
-          
-          # Виправлення логіки Failsafe GCS під вимоги ArduPilot 4.8.0
           FS_GCS_ENABLE 0
           FS_OPTIONS 1
-          
-          # Опції тумблеров радіоуправління
           RC5_OPTION 153
           RC7_OPTION 65
           EOF
           echo "Production defaults.parm locked."
 
-      # 8. Очитка кэша и конфигурация основной прошивки квадрокоптера
       - name: Configure Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
-      # 9. Фінальна компіляція основної прошивки квадрокоптера з багатопотоковістю (ArduCopter)
       - name: Build Copter Firmware
         run: ./waf copter -j$(nproc) --verbose
 
-      # 10. Збір готової прошивки в розшаровану хост-директорію за допомогою find + exec (Ультимативно!)
       - name: Collect Firmware Artifacts
         run: |
           mkdir -p ${{ github.workspace }}/production_firmware
@@ -248,5 +180,9 @@ jobs:
           echo "=== CONSOLE VISUALIZATION ==="
           ls -lah ${{ github.workspace }}/production_firmware
 
-      # 11. Гарантоване вивантаження готових артефактів HAKRC на сервер GitHub для скачування (Абсолютний шлях)
       - name: Upload HAKRC Production Firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAKRC-F405V2-ArduPilot-Release
+          path: ${{ github.workspace }}/production_firmware/
+          if-no-files-found: error
