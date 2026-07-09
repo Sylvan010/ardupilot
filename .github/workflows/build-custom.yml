@@ -9,21 +9,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      # Використовуємо універсальний образ, версію коду контролює сам Git
+      # Используем универсальный образ, версию кода контролирует сам Git
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
+      # 1. Чистый checkout оригинального репозитория FoxeerF405v2 (100% фабричное состояние)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фікс прав безпеки Git всередині сесії Docker-контейнера
+      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Чистий точковий ремапінг HAKRC поверх бази Foxeer (Канонічний синтаксис SPIDEV, без PINIO/Бузера)
+      # 3. Чистый хирургический точечный ремапинг HAKRC поверх оригинального hwdef Foxeer
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -34,7 +34,7 @@ jobs:
           # Кожен запуск повертає Foxeer оригінал для чистоти дифу в CI
           git checkout -- $HW_FILE $BL_FILE
           
-          # Створення бекапу оригінального файлу за вашим планом
+          # Створення бекапу оригінального файлу
           cp $HW_FILE ${HW_FILE}.backup
           
           # === ФІКС BOARD ID ПІД ТЕКСТОВИЙ СТАНДАРТ 4.8.0 ===
@@ -79,7 +79,7 @@ jobs:
           sed -i '/AP_NOTIFY_GPIO_LED_2_ENABLED/d' $HW_FILE
           sed -i '/DEFAULT_NTF_LED_TYPES/d' $HW_FILE
           
-          # Вирезаємо старі UART порти Foxeer та старий PWM блок під чисту інжекцію HAKRC
+          # Вирезаємо старі UART порти Foxeer та старий PWM блок під чисту інжекщую HAKRC
           sed -i '/USART1_TX/d;/USART1_RX/d' $HW_FILE
           sed -i '/USART3_TX/d;/USART3_RX/d' $HW_FILE
           sed -i '/UART5_TX/d;/UART5_RX/d' $HW_FILE
@@ -87,7 +87,7 @@ jobs:
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
           # ===============================
-          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (Суворий канонічний порядок: SPI pins -> CS pins -> SPIDEV)
+          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (Канонічний синтаксис 4.8.0 для всіх трьох шин)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -197,7 +197,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 6. ППРОГРАММНОЕ ВЫКЛЮЧЕНИЕ СИСТЕМЫ ЛОГГЕРА
+          # КРОК 6. ПРОГРАММНОЕ ВЫКЛЮЧЕНИЕ СИСТЕМЫ ЛОГГЕРА
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -217,7 +217,7 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Діагностична перевірка конфігу перед запуском Waf за вашим планом
+      # 4. Диагностическая проверка конфига перед запуском Waf
       - name: Diagnostics and Resource Verification
         run: |
           echo "=== CHECKING KEY PINS FOR DUPLICATES ==="
@@ -226,20 +226,18 @@ jobs:
           grep -iE "buzzer|pinio|scale|imu2" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
           echo "=== CHECKING REVISED TEXTUAL BOARD_ID ==="
           grep "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== VERIFYING MONOLITHIC SPIDEV LAYOUT ==="
-          grep "SPIDEV" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
-      # 5. Скидання кешу та конфігурація завантажувача
+      # 5. Сброс кэша и конфигурация загрузчика
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 6. Фінальна компіляція завантажувача
+      # 6. Финальная компиляция загрузчика
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 7. Налаштування defaults.parm під ядро 4.8.0 (Сняты RELAYx_PIN ошибки Foxeer)
+      # 7. Настройка defaults.parm под ядро 4.8.0 (Сняты RELAYx_PIN ошибки Foxeer)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
@@ -255,19 +253,25 @@ jobs:
           NTF_LED_TYPES 257
           NTF_LED_BRIGHT 2
           
-          # Повне виключення віртуальних реле Foxeer, яких немає на HAKRC
+          # Полно выключение виртуальных реле Foxeer, которых нет на HAKRC
           RELAY1_PIN -1
           RELAY2_PIN -1
           RELAY3_PIN -1
           RELAY4_PIN -1
           
-          # Виправлення логіки Failsafe GCS під вимоги ArduPilot 4.8.0
+          # Исправление логики Failsafe GCS под требования ArduPilot 4.8.0
           FS_GCS_ENABLE 0
           FS_OPTIONS 1
           
-          # Опції тумблерів радіоуправління для стабільного Arming/Disarm і отключения GPS під 4.8.0
+          # Опции тумблеров радиоуправления для стабильного Arming/Disarm и отключения GPS под 4.8.0
           RC5_OPTION 153
           RC7_OPTION 65
           EOF_PARM
           echo "Production defaults.parm locked."
+
+      # 8. Очитка кэша и конфигурация основной прошивки квадрокоптера
+      - name: Configure Copter Firmware
+        run: |
+          ./waf distclean
+          ./waf configure --board FoxeerF405v2
 
