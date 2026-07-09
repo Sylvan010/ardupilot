@@ -12,29 +12,68 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Завантажуємо код вашого репозиторію з усіма субмодулями ChibiOS
+      # 1. Завантажуємо вихідний код вашої гілки репозиторію з усіма субмодулями
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фікс прав безпеки Git всередині сесії Docker
+      # 2. Фікс прав безпеки Git всередині сесії Docker контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Конфігуруємо та збираємо оригінальний завантажувач (Bootloader) для FoxeerF405v2
-      - name: Build Bootloader
+      # 3. Накладаємо виправлений точковий патч ресурсів на Foxeer target (dat та bl.dat)
+      - name: Apply HAKRC Resource Patch
         run: |
+          git apply --check hakrc_resources.patch
+          git apply hakrc_resources.patch
+
+      # 4. Верифікація успішного накладання апаратного мапінгу у вихідний код
+      - name: Verify HAKRC Patch Source Integration
+        run: |
+          echo "=== VERIFYING UART1 ==="
+          grep "PB6  USART1_TX" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== VERIFYING SPI2 OSD CS ==="
+          grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== VERIFYING BOOTLOADER HAKRC PINS ==="
+          grep "PA15 FLASH1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
+          grep "PC15 LED_BOOTLOADER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
+
+      # 5. Деструкція старого кешу та конфігурація завантажувача
+      - name: Configure Bootloader
+        run: |
+          ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
-          ./waf bootloader
 
-      # 4. Компіляція основної прошивки квадрокоптера (ArduCopter) для FoxeerF405v2
-      - name: Build Copter Firmware
+      # 6. Глибока перевірка автоматично згенерованого ChibiOS-коду для завантажувача
+      - name: Check Generated Bootloader Hardware
         run: |
-          ./waf configure --board FoxeerF405v2
-          ./waf copter
+          echo "=== CHECKING GENERATED BOOTLOADER DEFINITIONS ==="
+          grep -R "PB12.*CS" build/FoxeerF405v2/ || true
+          grep -R "PC15.*LED" build/FoxeerF405v2/ || true
 
-      # 5. Завантажуємо готові .apj та .bin файли в артефакти GitHub
+      # 7. Фінальна компіляція завантажувача
+      - name: Build Bootloader
+        run: ./waf bootloader
+
+      # 8. Деструкція кешу та конфігурація основної прошивки квадрокоптера
+      - name: Configure Copter Firmware
+        run: |
+          ./waf distclean
+          ./waf configure --board FoxeerF405v2
+
+      # 9. Глибока перевірка автоматично згенерованого ChibiOS-коду для коптера
+      - name: Check Generated Copter Hardware
+        run: |
+          echo "=== CHECKING GENERATED COPTER DEFINITIONS ==="
+          grep -R "PC8.*TIM8_CH3" build/FoxeerF405v2/
+          grep -R "PB12.*OSD1_CS" build/FoxeerF405v2/
+
+      # 10. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
+      - name: Build Copter Firmware
+        run: ./waf copter
+
+      # 11. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
