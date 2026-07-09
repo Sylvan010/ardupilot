@@ -51,23 +51,31 @@ jobs:
       - name: Build Copter Firmware
         run: ./waf copter
 
-      # 8. Збір готової прошивки за вашим універсальним планом ( find + exec )
+      # 8. Тотальний пошук та перевірка вихідних шляхів прошивки (За вашим планом!)
+      - name: Debug firmware output
+        run: |
+          echo "===== ALL APJ IN WORKSPACE ====="
+          find ${{ github.workspace }} -name "*.apj" -ls || true
+
+          echo "===== ALL BIN IN WORKSPACE ====="
+          find ${{ github.workspace }} -name "*.bin" -ls || true
+
+      # 9. Збір готової прошивки в розшарену хост-директорію за допомогою find + exec
       - name: Collect Firmware Artifacts
         run: |
-          mkdir -p production_firmware
-          echo "=== TREE SCANNING RAW OUTPUT ==="
-          find build/FoxeerF405v2 -type f \( -name "*.apj" -o -name "*.bin" -o -name "*.hex" \) -ls || true
+          # Створюємо папку строго всередині розшареного воркспейсу хоста
+          mkdir -p ${{ github.workspace }}/production_firmware
           
-          echo "=== EXECUTING MONOLITHIC COPY ==="
-          find build/FoxeerF405v2 -type f \( -name "*.apj" -o -name "*.bin" -o -name "*.hex" \) -exec cp {} production_firmware/ \;
+          echo "=== EXECUTING ABSOLUTE MONOLITHIC COPY ==="
+          find ${{ github.workspace }}/build/FoxeerF405v2 -type f \( -name "*.apj" -o -name "*.bin" -o -name "*.hex" \) -exec cp {} ${{ github.workspace }}/production_firmware/ \;
           
           echo "=== CONSOLE VISUALIZATION ==="
-          ls -lah production_firmware
+          ls -lah ${{ github.workspace }}/production_firmware
 
-      # 9. Публікація готових файлів прошивки HAKRC для скачування
+      # 10. Публікація готових файлів прошивки HAKRC для скачування (Абсолютний шлях)
       - name: Upload HAKRC Production Firmware
         uses: actions/upload-artifact@v4
         with:
           name: HAKRC-F405V2-ArduPilot-Release
-          path: production_firmware/
+          path: ${{ github.workspace }}/production_firmware/
           if-no-files-found: error
