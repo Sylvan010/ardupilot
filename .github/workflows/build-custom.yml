@@ -12,70 +12,71 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистый checkout оригинального репозитория со всеми субмодулями
+      # 1. Чистий checkout оригінального репозиторію з усіма субмодулями
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фикс прав безопасности внутри Docker контейнера
+      # 2. Фікс прав безпеки всередині Docker контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Ресурсный мапинг HAKRC (Регулярные выражения [[:space:]]+ полностью защищают от косяков с пробелами)
+      # 3. Безконфліктна хірургія ресурсів (Очистка конфліктів ставиться на самий початок!)
       - name: Modify Hardware for HAKRC
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
           BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
           
-          # === КРОК 1. ПЕРЕВЕДЕННЯ ШИН SPI (Освобождаем PC2, PC3, PC14, PB12 ДО перемапингу перифервии) ===
+          # === КРОК 0. ПОВНЕ ЗНЕСЕННЯ КОНФЛІКТНИХ ЗАВОДСЬКИХ РЕСУРСІВ (Звільняємо PB14, PC13, PC15 до початку мапінгу) ===
+          sed -i '/PINIO1/d' $HW_FILE
+          sed -i '/PINIO2/d' $HW_FILE
+          sed -i '/BUZZER/d' $HW_FILE
+
+          # === КРОК 1. ПЕРЕВЕДЕННЯ ШИН SPI (Тепер PB14 повністю вільний, конфлікту немає!) ===
           sed -E -i 's/PC2[[:space:]]+SPI2_MISO/PB14 SPI2_MISO/g' $HW_FILE
           sed -E -i 's/PC3[[:space:]]+SPI2_MOSI/PB15 SPI2_MOSI/g' $HW_FILE
           sed -E -i 's/PB3[[:space:]]+SPI3_SCK/PC10 SPI3_SCK/g' $HW_FILE
           sed -E -i 's/PB4[[:space:]]+SPI3_MISO/PC11 SPI3_MISO/g' $HW_FILE
           
-          # Переносим Chip Select линий OSD и Flash (Освобождаем PC14 под LED1)
+          # Переносимо Chip Select ліній OSD та Flash (Освобождаємо PC14 під LED1)
           sed -E -i 's/PB12[[:space:]]+FLASH1_CS/PA15 FLASH1_CS/g' $HW_FILE
           sed -E -i 's/PC14[[:space:]]+OSD1_CS/PB12 OSD1_CS/g' $HW_FILE
           
-          # Перенаправляем SPIDEV абстракции на физические шины HAKRC (OSD на SPI2, Flash на SPI3)
+          # Перенаправляємо SPIDEV абстракції на фізичні шини HAKRC (OSD на SPI2, Flash на SPI3)
           sed -E -i 's/SPIDEV[[:space:]]+dataflash[[:space:]]+SPI2/SPIDEV dataflash SPI3/g' $HW_FILE
           sed -E -i 's/SPIDEV[[:space:]]+osd[[:space:]]+SPI3/SPIDEV osd       SPI2/g' $HW_FILE
 
-          # === КРОК 2. АНАЛОГОВЫЕ ДАТЧИКИ БАТАРЕИ (ADC) (Тепер PC3 и PC1 полностью свободны!) ===
+          # === КРОК 2. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC) ===
           sed -E -i 's/PC0[[:space:]]+BATT_VOLTAGE_SENS/PC1 BATT_VOLTAGE_SENS/g' $HW_FILE
           sed -E -i 's/PC1[[:space:]]+BATT_CURRENT_SENS/PC3 BATT_CURRENT_SENS/g' $HW_FILE
           sed -E -i 's/define[[:space:]]+HAL_BATT_VOLT_PIN[[:space:]]+10/define HAL_BATT_VOLT_PIN 11/g' $HW_FILE
           sed -E -i 's/define[[:space:]]+HAL_BATT_CURR_PIN[[:space:]]+11/define HAL_BATT_CURR_PIN 13/g' $HW_FILE
 
-          # === КРОК 3. СВЕТОДИОДЫ И AP_NOTIFY (Тепер PC14 и PC15 свободны от OSD/Buzzer!) ===
+          # === КРОК 3. СВЕТОДИОДЫ И AP_NOTIFY (Тепер PC14 та PC15 повністю чисті) ===
           sed -E -i 's/PA13[[:space:]]+LED0[[:space:]]+OUTPUT[[:space:]]+LOW/PC15 LED0 OUTPUT LOW/g' $HW_FILE
           sed -E -i 's/PA14[[:space:]]+LED1[[:space:]]+OUTPUT[[:space:]]+LOW/PC14 LED1 OUTPUT LOW/g' $HW_FILE
           
-          # Дописываем макросы привязки Notify LED в самый конец основного hwdef
+          # Дописуємо макроси прив'язки Notify LED в самий кінець основного hwdef
           echo "" >> $HW_FILE
           echo "# HAKRC AP_Notify LED Configuration" >> $HW_FILE
           echo "define HAL_GPIO_A_LED_PIN 90" >> $HW_FILE
           echo "define HAL_GPIO_B_LED_PIN 91" >> $HW_FILE
           
-          # Корректируем светодиод загрузчика (Bootloader LED)
+          # Коригуємо світлодіод завантажувача (Bootloader LED)
           sed -E -i 's/PA13[[:space:]]+LED_BOOTLOADER[[:space:]]+OUTPUT[[:space:]]+LOW/PC15 LED_BOOTLOADER OUTPUT LOW/g' $BL_FILE
 
-          # === КРОК 4. UART ИНТЕРФЕЙСЫ ===
+          # === КРОК 4. UART ПОРТИ ===
           sed -E -i 's/PA9[[:space:]]+USART1_TX/PB6  USART1_TX/g' $HW_FILE
           sed -E -i 's/PA10[[:space:]]+USART1_RX/PB7  USART1_RX/g' $HW_FILE
           sed -E -i 's/PC10[[:space:]]+USART3_TX/PB10 USART3_TX/g' $HW_FILE
           sed -E -i 's/PC11[[:space:]]+USART3_RX/PB11 USART3_RX/g' $HW_FILE
 
-          # === КРОК 5. ТОЧЕЧНОЕ ОТКЛЮЧЕНИЕ BLACKBOX ЛОГГЕРА (По твоему плану) ===
+          # === КРОК 5. ТОЧЕЧНЕ ВИМКНЕННЯ BLACKBOX ЛОГГЕРА ===
           sed -E -i 's/define[[:space:]]+HAL_LOGGING_DATAFLASH_ENABLED[[:space:]]+1/define HAL_LOGGING_DATAFLASH_ENABLED 0/g' $HW_FILE
 
-          # === КРОК 6. ОЧИСТКА СТАРЫХ КОНФЛИКТНЫХ РЕСУРСОВ PINIO ===
-          sed -i '/PINIO1/d' $HW_FILE
-          sed -i '/PINIO2/d' $HW_FILE
-
-          # === КРОК 7. ПОЛНАЯ КАРТА ДВИГАТЕЛЕЙ PWM (Таймеры TIM8/TIM1/TIM3 строго из Betaflight) ===
+          # === КРОК 6. ПОВНА КАРТА ДВИГУНІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight) ===
           sed -E -i 's/PA8[[:space:]]+TIM1_CH1[[:space:]]+TIM1[[:space:]]+PWM\(1\)/PC8  TIM8_CH3 TIM8 PWM(1)/g' $HW_FILE
           sed -E -i 's/PC9[[:space:]]+TIM8_CH4[[:space:]]+TIM8[[:space:]]+PWM\(2\)/PC9  TIM8_CH4 TIM8 PWM(2)/g' $HW_FILE
           sed -E -i 's/PC8[[:space:]]+TIM8_CH3[[:space:]]+TIM8[[:space:]]+PWM\(3\)/PA8  TIM1_CH1 TIM1 PWM(3)/g' $HW_FILE
@@ -86,7 +87,7 @@ jobs:
           sed -E -i 's/PB10[[:space:]]+TIM2_CH3[[:space:]]+TIM2[[:space:]]+PWM\(8\)/PB4  TIM3_CH1 TIM3 PWM(8)/g' $HW_FILE
           sed -E -i 's/PB1[[:space:]]+TIM3_CH4[[:space:]]+TIM3[[:space:]]+PWM\(9\)/PB3  TIM2_CH2 TIM2 PWM(9)/g' $HW_FILE
           
-          # === КРОК 8. НАСТРОЙКА DEFAULTS.PARM (Для светодиодов, шкал ADC и OSD) ===
+          # === КРОК 7. НАСТРОЙКА DEFAULTS.PARM (Для світлодіодів, шкал ADC та OSD) ===
           if [ ! -f "$PARM_FILE" ]; then
             touch "$PARM_FILE"
           fi
@@ -106,7 +107,7 @@ jobs:
           ./waf configure --board FoxeerF405v2 --bootloader
           ./waf bootloader
 
-      # 5. Сброс кэша графа и чистая ... сборка основной прошивки Copter
+      # 5. Сброс кэша графа и чистая конфигурация/сборка основной прошивки Copter
       - name: Build Copter Firmware
         run: |
           ./waf distclean
