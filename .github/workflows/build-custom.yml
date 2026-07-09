@@ -12,17 +12,17 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистый checkout оригинального репозитория (100% фабричное состояние Foxeer)
+      # 1. Чистий checkout оригінального репозиторію (100% фабричний стан Foxeer)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
+      # 2. Фікс прав безпеки Git всередині сесії Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Полное монолитное перезаписывание hwdef.dat (Исправлен синтаксис USART5)
+      # 3. Повне монолітне перезаписування hwdef.dat (Суворий апаратний синтаксис UART5)
       - name: Overwrite hwdef.dat for HAKRC
         run: |
           cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
@@ -32,7 +32,7 @@ jobs:
           
           MCU STM32F4xx STM32F405xx
           
-          # Ограничения памяти и тактование внешнего кварца (8MHz)
+          # Обмеження пам'яті та тактування зовнішнього кварцу (8MHz)
           OSCILLATOR_HZ 8000000
           FLASH_SIZE_KB 1024
           FLASH_RESERVE_START_KB 0
@@ -44,7 +44,7 @@ jobs:
           
           ENV_SIZE 16k
           
-          # USB VCP Конфигурация
+          # USB VCP Конфігурація
           PA11 OTG_FS_DM OTG1
           PA12 OTG_FS_DP OTG1
           
@@ -55,7 +55,7 @@ jobs:
           
           SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
           
-          # --- UART/USART Mapping (Строго по Betaflight Dump с ChibiOS синтаксисом) ---
+          # --- UART/USART Mapping (Канонічний апаратний синтаксис для STM32F405) ---
           PB6  USART1_TX USART1
           PB7  USART1_RX USART1
           
@@ -69,55 +69,55 @@ jobs:
           PA0  UART4_TX UART4
           PA1  UART4_RX UART4
           
-          PC12 USART5_TX USART5
-          PD2  USART5_RX USART5
+          PC12 UART5_TX
+          PD2  UART5_RX
           
           PC6  USART6_TX USART6
           PC7  USART6_RX USART6
           
-          # Шина I2C1 (Для внешнего компаса и барометра)
+          # Шина I2C1 (Для зовнішнього компаса та барометра)
           PB8 I2C1_SCL I2C1
           PB9 I2C1_SDA I2C1
           
-          # SPI1: Главный сенсор положения (IMU Гироскоп)
+          # SPI1: Головний сенсор положення (IMU Гіроскоп)
           PA5 SPI1_SCK SPI1
           PA6 SPI1_MISO SPI1
           PA7 SPI1_MOSI SPI1
           PA4 GYRO1_CS CS
           
-          # SPI2: Аналоговое OSD MAX7456 (Строго по прозвонке мультиметра)
+          # SPI2: Аналогове OSD MAX7456 (Строго за продзвонкою мультиметра)
           PB13 SPI2_SCK SPI2
           PB14 SPI2_MISO SPI2
           PB15 SPI2_MOSI SPI2
           PB12 OSD1_CS CS
           
-          # SPI3: Бортовая Flash Blackbox память W25Q128 (Строго по прозвонке мультиметра)
+          # SPI3: Бортова Flash Blackbox пам'ять W25Q128 (Строго за продзвонкою мультиметра)
           PC10 SPI3_SCK SPI3
           PC11 SPI3_MISO SPI3
           PB5  SPI3_MOSI SPI3
           PA15 FLASH1_CS CS
           
-          # Регистрация абстракции устройств на SPI шинах
+          # Реєстрація абстракції пристроїв на SPI шинах
           SPIDEV gyro1      SPI1 SPEED_2M SPEED_8M GYRO1_CS LOW
           SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
           SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ
           
-          # EXTI линия аппаратного перерывания гироскопа
+          # EXTI лінія апаратного переривання гіроскопа
           PC4 MPU6000_DRDY INPUT
           
-          # Драйверы сенсоров полета с ориентацией Pitch 180 + Yaw 90
+          # Драйвери сенсорів польоту з орієнтацією Pitch 180 + Yaw 90 відповідно до Foxeer
           IMU Invensensev3 SPI:gyro1 ROTATION_PITCH_180_YAW_90
           
-          # Барометры на шине I2C1
+          # Барометри на шині I2C1
           BARO BMP280 I2C:0:0x76
           BARO DPS310 I2C:0:0x76
           BARO SPL06  I2C:0:0x76
           
-          # --- Выключение логурования блекбокса для освобождения ресурсов CPU ---
+          # --- Вимкнення логування блекбоксу на рівні ядра автопілота ---
           define HAL_LOGGING_DATAFLASH_ENABLED 0
           define HAL_LOGGING_MAVLINK_ENABLED 0
           
-          # --- Конфигурация АЦП датчиков напряжения и тока (ADC1 Каналы 11 и 13) ---
+          # --- Конфігурація АЦП датчиків напруги та струму (ADC1 Канали 11 та 13) ---
           PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
           PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
           define HAL_BATT_VOLT_PIN 11
@@ -125,19 +125,19 @@ jobs:
           define HAL_BATT_VOLT_SCALE 10.0
           define HAL_BATT_CURR_SCALE 100.0
           
-          # --- Статусные светодиоды и аппаратный бузер HAKRC ---
+          # --- Статусні світлодіоди та апаратний бузер HAKRC ---
           PC15 LED0 OUTPUT LOW
           PC14 LED1 OUTPUT LOW
           PC13 BUZZER OUTPUT GPIO(80) LOW
           define HAL_BUZZER_PIN 80
           
-          # Конфигурация AP_Notify для Matek-style поведения светодиодов
+          # Конфігурація AP_Notify для Matek-style поведінки світлодіодів
           define HAL_GPIO_A_LED_PIN 90
           define HAL_GPIO_B_LED_PIN 91
           define AP_NOTIFY_GPIO_LED_2_ENABLED 1
           define DEFAULT_NTF_LED_TYPES 257
           
-          # --- Полная карта аппаратных таймеров для PWM выходов (Строго по Betaflight Dump) ---
+          # --- Повна карта апаратних таймерів для PWM виходів (Строго за Betaflight Dump) ---
           PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
           PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
           PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
@@ -153,12 +153,12 @@ jobs:
           DMA_NOSHARE SPI1_RX SPI1_TX ADC1
           define STM32_ST_USE_TIMER 5
           
-          # --- OSD Инфраструктура ---
+          # --- OSD Інфраструктура ---
           define OSD_ENABLED 1
           define HAL_OSD_TYPE_DEFAULT 1
           ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
           
-          # --- Навигация, автомиссии и компас ---
+          # --- Навігація, автомісії та компас ---
           define ALLOW_ARM_NO_COMPASS
           define AP_COMPASS_PROBING_ENABLED 1
           define HAL_I2C_INTERNAL_MASK 0
@@ -174,53 +174,77 @@ jobs:
           EOF
           echo "HAKRC hwdef.dat generated successfully."
 
-      # 4. Точковая замена светодиода в загрузчике (hwdef-bl.dat)
+      # 4. Точкова заміна світлодіода у завантажувачі (hwdef-bl.dat)
       - name: Patch Bootloader LED
         run: |
           BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
           sed -i '/PA13/d' $BL_FILE
           sed -i '/define HAL_LED_ON/i PC15 LED_BOOTLOADER OUTPUT LOW' $BL_FILE
 
-      # 5. Диагностический контроль: выводим все порты для проверки (по вашему плану)
-      - name: Debug UART and USART Configuration Table
+      # 5. Діагностична перевірка: виводимо порти та перевіряємо унікальність PB14 (за вашим планом)
+      - name: Diagnostics and Resource Verification
         run: |
-          echo "=== CONFIGURATION TABLE FOR HAKRC PORTS ==="
-          grep -n "UART\|USART" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== VERIFYING UART CONFIGURATION ==="
+          grep "UART\|USART" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== VERIFYING PB14 IS ISOLATED ==="
+          grep "PB14" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
-      # 6. Сброс кэша и конфигурация загрузчика
+      # 6. Скидання кешу та конфігурація завантажувача
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 7. Проверка сгенерированного кода загрузчика
+      # 7. Перевірка згенерованого ChibiOS-коду за фізичними лініями
       - name: Check Generated Bootloader Hardware
         run: |
           echo "=== CHECKING GENERATED BOOTLOADER DEFINITIONS ==="
           grep -R "PC15" build/FoxeerF405v2/ || true
 
-      # 8. Финальная компиляция загрузчика
+      # 8. Фінальна компіляція завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 9. Очистка кэша и конфигурация основной прошивки квадрокоптера
+      # 9. Очистка кешу та конфігурація основної прошивки квадрокоптера
       - name: Configure Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
-      # 10. Проверка сгенерированного кода для коптера по ключевым линиям
+      # 10. Перевірка згенерованого ChibiOS-коду для коптера за фізичними лініями моторів та OSD
       - name: Check Generated Copter Hardware
         run: |
           echo "=== CHECKING GENERATED COPTER DEFINITIONS ==="
           grep -R "PC8" build/FoxeerF405v2/ || true
           grep -R "PB12" build/FoxeerF405v2/ || true
 
-      # 11. Финальная компиляция основной прошивки квадрокоптера (ArduCopter)
+      # 11. Налаштування defaults.parm з канонічними опціями RC5/RC7 під сучасний ArduPilot
+      - name: Write Production defaults.parm
+        run: |
+          PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
+          cat << 'EOF_PARM' > $PARM_FILE
+          # Production parameters for HAKRCF405V2 Layout
+          BATT_MONITOR 4
+          BATT_VOLT_PIN 11
+          BATT_CURR_PIN 13
+          BATT_VOLT_MULT 10.0
+          BATT_AMP_PERVLT 100.0
+          OSD_TYPE 1
+          LOG_BACKEND_TYPE 0
+          NTF_LED_TYPES 257
+          NTF_LED_BRIGHT 2
+          
+          # Сучасні опції тумблерів радіокерування (RC5 Arm, RC7 GPS Disable)
+          RC5_OPTION 153
+          RC7_OPTION 65
+          EOF_PARM
+          echo "Production defaults.parm locked."
+
+      # 12. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: ./waf copter
 
-      # 12. Экспортируем готовые файлы в артефакты запуска GitHub
+      # 13. Експортуємо готові .apj та .bin файли в артефакти запуска GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
