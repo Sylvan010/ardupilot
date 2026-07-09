@@ -12,17 +12,17 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
+      # 1. Чистый checkout оригинального репозитория FoxeerF405v2 (100% фабричное состояние)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фікс прав безпеки Git всередині сесії Docker контейнера
+      # 2. Фикс прав безопасности Git внутри сессии Docker контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Монолітна зачистка та повна інжекція карти HAKRC (З гарантованим відновленням FLASH констант)
+      # 3. Монолитная зачистка и полная инжекция карты HAKRC (С выправленным синтаксисом SPIDEV)
       - name: Modify Hardware for HAKRC
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -84,7 +84,7 @@ jobs:
           # Стираємо старий світлодіод із завантажувача (Bootloader LED)
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
-          # === КРОК 1. ІНЖЕКЦІЯ СИСТЕМНИХ ПАРАМЕТРІВ ПАМ'ЯТІ (Жорстке відновлення!) ===
+          # === КРОК 1. ІНЖЕКЦІЯ СИСТЕМНИХ ПАРАМЕТРІВ ПАМ'ЯТІ ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC FIXED MEMORY LAYOUT ===
@@ -93,7 +93,7 @@ jobs:
           FLASH_BOOTLOADER_LOAD_KB 48
           EOF
 
-          # === КРОК 2. ІНЖЕКЦІЯ ЧИСТОЇ КАРТИ SPI (Канонічний синтаксис без LOW) ===
+          # === КРОК 2. ІНЖЕКЦІЯ ЧИСТОЇ КАРТИ SPI (Канонічний синтаксис ArduPilot) ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC F405 V2 VERIFIED SPI MAP ===
@@ -108,8 +108,8 @@ jobs:
           PA15 FLASH1_CS CS
           PB12 OSD1_CS CS
 
-          SPIDEV osd       SPI2 SPEED_4M SPEED_4M OSD1_CS DEVID1 LOW
-          SPIDEV dataflash SPI3 SPEED_4M SPEED_4M FLASH1_CS DEVID1 LOW
+          SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
+          SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ
           EOF
 
           # === КРОК 3. ІНЖЕКЦІЯ СИСТЕМНИХ СВЕТОДИОДІВ HAKRC ТА AP_NOTIFY ===
@@ -196,16 +196,16 @@ jobs:
           echo "OSD_TYPE 1" >> $PARM_FILE
           echo "LOG_BACKEND_TYPE 0" >> $PARM_FILE
           
-          echo "=== STEP 2: FIXED FLASH COUNTERS & INJECTED HAKRC MAP ==="
+          echo "=== STEP 3: SPIDEV SYNTAX FIXED & MAP LOCKED ==="
 
-      # 4. Повний збір завантажувача (Тепер конфігурація пройде бездоганно)
+      # 4. Полный сбор загрузчика (Теперь конфигурация пройде бездоганно)
       - name: Build Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
           ./waf bootloader
 
-      # 5. Глибокий контроль успішності генерації апаратного графа ChibiOS
+      # 5. Глубокий контроль успешности генерации аппаратного графа ChibiOS
       - name: Check Generated Hardware h-Files
         run: |
           echo "=== VERIFYING GENERATED HEADERS ==="
@@ -214,14 +214,14 @@ jobs:
           grep -R "FLASH1_CS" build/FoxeerF405v2/ || true
           echo "Success! The ChibiOS generator configuration step passed successfully."
 
-      # 6. Збірка основної прошивки квадрокоптера (ArduCopter)
+      # 6. Сборка основной прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
-      # 7. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
+      # 7. Экспортируем готовые .apj и .bin файлы в артефакты запуска GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
