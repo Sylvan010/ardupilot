@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Динамический ремапинг патчингом HAKRC поверх оригинальной базы Foxeer (Пошаговый план)
+      # 3. Чистый, точечный хирургический патчинг HAKRC поверх оригинального hwdef Foxeer
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -34,52 +34,55 @@ jobs:
           cp $HW_FILE ${HW_FILE}.backup
           
           # =================================
-          # BOARD ID КОРРЕКЦИЯ
+          # 1. BOARD ID КОРРЕКЦИЯ
           # =================================
           sed -i '/APJ_BOARD_ID/d' $HW_FILE
           echo "APJ_BOARD_ID 1067" >> $HW_FILE
 
           # =================================
-          # ТОЧЕЧНАЯ ОЧИСТКА СТАРЫХ ФУНКЦИЙ И СЛУЖЕБНЫХ ДЕФАЙНОВ Foxeer
+          # 2. ОСВОБОЖДАЕМ КОНФЛИКТНЫЕ НОГИ И СТАРЫЕ ШАБЛОНЫ (Строго по плану)
           # =================================
+          sed -i '/SPI2_/d' $HW_FILE
+          sed -i '/SPI3_/d' $HW_FILE
           sed -i '/OSD1_CS/d' $HW_FILE
           sed -i '/FLASH1_CS/d' $HW_FILE
-          sed -i '/GYRO1_CS/d' $HW_FILE
-          sed -i '/BATT_VOLTAGE_SENS/d' $HW_FILE
-          sed -i '/BATT_CURRENT_SENS/d' $HW_FILE
           sed -i '/dataflash/d' $HW_FILE
           sed -i '/osd/d' $HW_FILE
           sed -i '/HAL_LOGGING_DATAFLASH/d' $HW_FILE
           
-          # Вырезаем дублирующиеся LED/Buzzer дефайны Foxeer, чтобы препроцессор не ругался
+          # Зачищаем старые UART интерфейсы
+          sed -i '/USART1_TX/d;/USART1_RX/d' $HW_FILE
+          sed -i '/USART3_TX/d;/USART3_RX/d' $HW_FILE
+          sed -i '/UART5_TX/d;/UART5_RX/d' $HW_FILE
+          
+          # Зачищаем старый маппинг АЦП (ADC)
+          sed -i '/BATT_VOLTAGE_SENS/d' $HW_FILE
+          sed -i '/BATT_CURRENT_SENS/d' $HW_FILE
+          sed -i '/HAL_BATT_VOLT_PIN/d' $HW_FILE
+          sed -i '/HAL_BATT_CURR_PIN/d' $HW_FILE
+
+          # Зачищаем старые LED / Бузер
+          sed -i '/LED0/d;/LED1/d;/BUZZER/d' $HW_FILE
           sed -i '/HAL_GPIO_A_LED_PIN/d' $HW_FILE
           sed -i '/HAL_GPIO_B_LED_PIN/d' $HW_FILE
           sed -i '/HAL_BUZZER_PIN/d' $HW_FILE
-          sed -i '/HAL_BATT_VOLT_PIN/d' $HW_FILE
-          sed -i '/HAL_BATT_CURR_PIN/d' $HW_FILE
-          sed -i '/AP_NOTIFY_GPIO_LED_2_ENABLED/d' $HW_FILE
-          sed -i '/DEFAULT_NTF_LED_TYPES/d' $HW_FILE
 
-          # =================================
-          # УЛЬТИМАТИВНОЕ ВЫЖИГАНИЕ ФАБРИЧНЫХ СТРОК СТРОГО ПО НОМЕРАМ НОГ (Крок 0)
-          # Очищает PB14 (PINIO), PB4 (старый PWM), PA5 и все целевые ноги HAKRC от старой периферии Foxeer
-          # =================================
-          for PIN in PA4 PA5 PA6 PA7 PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PC8 PC9 PA8 PA9 PA10 PB4 PB3 PB0
-          do
-              sed -E -i "/^$PIN[[:space:]]+/d" $HW_FILE
-              sed -E -i "/^$PIN$/d" $HW_FILE
-          done
+          # Зачищаем линии таймеров моторов PWM Foxeer
+          sed -i '/PWM(/d' $HW_FILE
           
-          # Стираем объявления старых светодиодов и бузера, если они были записаны без пробелов
-          sed -i '/LED0/d;/LED1/d;/BUZZER/d' $HW_FILE
+          # Вырезаем второй гироскоп Foxeer, если он пересекался по ногам с HAKRC
+          sed -i '/GYRO2_CS/d' $HW_FILE
+          sed -i '/BMI270_DRDY/d' $HW_FILE
+          
+          # Стираем старый светодиод из загрузчика (Bootloader LED)
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
           # =================================
-          # ИНЖЕКЦИЯ ЧИСТОЙ КАРТЫ SPI И ПРИСТРОЕВ (Строго по вашей прозвонке мультиметром)
+          # 3. SPI HAKRC ИНЖЕКЦИЯ (Подтверждено мультиметром)
           # =================================
           cat >> $HW_FILE <<EOF
 
-          # === HAKRC MAX7456 SPI2 ===
+          # HAKRC MAX7456 OSD SPI2
           PB13 SPI2_SCK SPI2
           PB14 SPI2_MISO SPI2
           PB15 SPI2_MOSI SPI2
@@ -87,7 +90,7 @@ jobs:
 
           SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
 
-          # === HAKRC W25Q128 FLASH SPI3 ===
+          # HAKRC W25Q128 FLASH SPI3
           PC10 SPI3_SCK SPI3
           PC11 SPI3_MISO SPI3
           PB5  SPI3_MOSI SPI3
@@ -97,34 +100,41 @@ jobs:
           EOF
 
           # =================================
-          # ИНЖЕКЦИЯ КАРТЫ UART (Канонический 3-компонентный синтаксис USART5 для ядра 4.8.0)
+          # 4. UART HAKRC ИНЖЕКЦИЯ (Канонический синтаксис 4.8.0 для UART5)
           # =================================
           cat >> $HW_FILE <<EOF
 
-          # === HAKRC UART MAP ===
+          # HAKRC UART MAP
           PB6 USART1_TX USART1
           PB7 USART1_RX USART1
 
-          PA2  USART2_TX USART2
-          PA3  USART2_RX USART2
-          PC0  SBUS_INVERT OUTPUT LOW
+          PA2 USART2_TX USART2
+          PA3 USART2_RX USART2
 
-          PB10 USART3_TX USART3
           PB11 USART3_RX USART3 NODMA
 
-          PC12 UART5_TX USART5
-          PD2  UART5_RX USART5
-
-          PC6  USART6_TX USART6
-          PC7  USART6_RX USART6
+          PC12 UART5_TX UART5
+          PD2  UART5_RX UART5
           EOF
 
           # =================================
-          # ИНЖЕКЦИЯ АНАЛОГОВЫХ ДАТЧИКОВ ADC (Каналы 11 и 13)
+          # 5. ДВУХКОНТУРНЫЙ IMU (Добавляем Gyro2 строго по вашему Betaflight дамп)
           # =================================
           cat >> $HW_FILE <<EOF
 
-          # === HAKRC ANALOG ADC SENSORS ===
+          # HAKRC SECOND ALTERNATIVE GYRO (SPI1)
+          PB2  GYRO2_CS CS
+          PB10 BMI270_DRDY INPUT
+
+          SPIDEV imu2 SPI1 DEVID2 GYRO2_CS MODE3 8*MHZ
+          IMU BMI270 SPI:imu2 ROTATION_PITCH_180_YAW_90
+          EOF
+
+          # =================================
+          # 6. ADC HAKRC ИНЖЕКЦИЯ (Шкалы датчиков батареи)
+          # =================================
+          cat >> $HW_FILE <<EOF
+
           PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
           PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
 
@@ -136,27 +146,28 @@ jobs:
           EOF
 
           # =================================
-          # ИНЖЕКЦИЯ СВЕТОДИОДОВ И AP_NOTIFY (Дубликаты дефайнов Foxeer убраны, оставлен чистый мапинг ног)
+          # 7. LED / BUZZER / PINIO HAKRC ИНЖЕКЦИЯ
           # =================================
           cat >> $HW_FILE <<EOF
 
-          # === HAKRC SYSTEM LEDs & BUZZER ===
-          PC15 LED0 OUTPUT LOW GPIO(90)
-          PC14 LED1 OUTPUT LOW GPIO(91)
+          PC14 LED1 OUTPUT LOW
+          PC15 LED0 OUTPUT LOW
 
           PC13 BUZZER OUTPUT GPIO(80) LOW
+          define HAL_BUZZER_PIN 80
+
+          PC0 PINIO1 OUTPUT LOW GPIO(81)
+          PC2 PINIO2 OUTPUT LOW GPIO(82)
 
           define HAL_GPIO_A_LED_PIN 90
           define HAL_GPIO_B_LED_PIN 91
-          define HAL_BUZZER_PIN 80
           EOF
 
           # =================================
-          # ИНЖЕКЦИЯ ПОЛНОЙ КАРТЫ ДВИГАТЕЛЕЙ PWM (По вашему пошаговому плану!)
+          # 8. PWM HAKRC ИНЖЕКЦИЯ (Чистый синтаксис без GPIO() макросов)
           # =================================
           cat >> $HW_FILE <<EOF
 
-          # === HAKRC PWM MOTOR OUTPUTS ===
           PC8  TIM8_CH3 TIM8 PWM(1)
           PC9  TIM8_CH4 TIM8 PWM(2)
 
@@ -174,7 +185,7 @@ jobs:
           EOF
 
           # =================================
-          # ПРОГРАММНОЕ ОТКЛЮЧЕНИЕ BLACKBOX ЛОГГЕРА
+          # 9. BLACKBOX ПРОГРАММНОЕ ВЫКЛЮЧЕНИЕ
           # =================================
           cat >> $HW_FILE <<EOF
 
@@ -183,7 +194,7 @@ jobs:
           EOF
 
           # =================================
-          # ОВЕРРАЙД СВЕТОДИОДА ЗАВАНТАЖУВАЧА
+          # 10. BOOTLOADER LED OVERRIDE
           # =================================
           cat >> $BL_FILE <<EOF
 
@@ -194,13 +205,15 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Диагностический контроль перед вызовом waf (Проверяем изоляцию критических пинов)
+      # 4. Диагностический контроль перед вызовом waf
       - name: Diagnostics and Resource Verification
         run: |
-          echo "=== DIAGNOSTICS: GREP FOR PB14 (SHOULD BE ONLY ONE) ==="
+          echo "=== DIAGNOSTICS: GREP FOR PB14 ==="
           grep -n "PB14" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== DIAGNOSTICS: GREP FOR PB4 MOTOR (SHOULD BE ONLY ONE) ==="
-          grep -n "PB4" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+          echo "=== DIAGNOSTICS: GREP FOR UART5 ==="
+          grep -n "UART5" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+          echo "=== DIAGNOSTICS: GREP FOR PWM ==="
+          grep -n "PWM" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
       # 5. Сброс кэша и конфигурация загрузчика
       - name: Configure Bootloader
@@ -214,7 +227,7 @@ jobs:
           echo "=== CHECKING GENERATED BOOTLOADER DEFINITIONS ==="
           grep -R "PC15" build/FoxeerF405v2/ || true
 
-      # 7. Финальная компиляция загрузчика
+      # 7. Финальна компіляція завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
@@ -240,7 +253,7 @@ jobs:
           EOF_PARM
           echo "Production defaults.parm locked."
 
-      # 9. Очистка кэша и конфигурация основной прошивки квадрокоптера
+      # 9. Очитка кэша и конфигурация основной прошивки квадрокоптера
       - name: Configure and Build Copter
         run: |
           ./waf distclean
