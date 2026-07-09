@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Повне монолітне перезаписування hwdef.dat під стандарти вашої гілки без дублювання
+      # 3. Пове монолітне перезаписування hwdef.dat під стандарти вашої гілки без дублювання
       - name: Overwrite hwdef.dat for HAKRC
         run: |
           cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
@@ -30,7 +30,7 @@ jobs:
           # Target: FoxeerF405v2 - Custom Overridden for HAKRC-F405V2 Layout
           # All low-level configs, DMA and timers match your exact Betaflight dump requirements
           
-          MCU STM32F405xx
+          MCU STM32F405xx STM32F4xx
           
           define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_HWDEF
           define STM32_HSE_ENABLED TRUE
@@ -94,7 +94,7 @@ jobs:
           # SPI Device Registry with default DEVIDs
           SPIDEV gyro1 SPI1 SPEED_2M SPEED_8M GYRO_CS LOW
           SPIDEV osd   SPI2 SPEED_4M SPEED_4M OSD1_CS DEVID1 LOW
-          SPIDEV flash SPI3 SPEED_4M SPEED_8M FLASH11_CS DEVID1 LOW
+          SPIDEV flash SPI3 SPEED_4M SPEED_8M FLASH1_CS DEVID1 LOW
           
           # EXTI Gyro hardware interrupt line
           PC4 MPU6000_DRDY INPUT
