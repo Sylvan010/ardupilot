@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Точковий хірургічний ремапінг HAKRC (БЕЗ PINIO, БУЗЕРА ТА БЛЕКБОКСА)
+      # 3. Точковий хірургічний ремапінг HAKRC (Без PINIO, Бузера та Блекбокса, виправлено UART5)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -30,7 +30,7 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH START ==="
           
-          # Гарантуємо 100% заводський стан файлів, скасовуючи будь-які минулі кеші воркфлоу
+          # Гарантуємо 100% заводський стан файлів перед інжекцією
           git checkout -- $HW_FILE $BL_FILE
           
           # Створення бекапу оригінального файлу
@@ -64,7 +64,7 @@ jobs:
           sed -i '/HAL_BUZZER_PIN/d' $HW_FILE
           sed -i '/SBUS_INVERT/d' $HW_FILE
           
-          # Очищаємо фабричні абстракції SPIDEV, ліміти CS та логгер, щоб уникнути конфліктів у 4.8.0
+          # Чистий затиск OSD, Gyro та системних дублів дефайнів
           sed -i '/[Oo][Ss][Dd]/d' $HW_FILE
           sed -i '/OSD1_CS/d' $HW_FILE
           sed -i '/GYRO1_CS/d' $HW_FILE
@@ -104,7 +104,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 2. UART REMAP (Суворий 3-компонентний апаратний синтаксис UART5 під STM32F405)
+          # КРОК 2. UART REMAP (Виправлено синтаксис під канонічний UART5 для STM32F405)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -117,8 +117,8 @@ jobs:
 
           PB11 USART3_RX USART3 NODMA
 
-          PC12 UART5_TX USART5
-          PD2  UART5_RX USART5
+          PC12 UART5_TX UART5
+          PD2  UART5_RX UART5
 
           PC6  USART6_TX USART6
           PC7  USART6_RX USART6
@@ -154,7 +154,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 4. СВЕТОДИОДЫ ТА AP_NOTIFY (Без PINIO та Бузера!)
+          # КРОК 4. СВЕТОДИОДЫ ТА AP_NOTIFY (Без PINIO та Бузера)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -189,7 +189,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 6. ПОВНЕ ВИМКНЕННЯ СИСТЕМЫ ЛОГГЕРА ТА ЗБЕРЕЖЕННЯ ЛОГІВ
+          # КРОК 6. ПОВНЕ ВИМКНЕННЯ СИСТЕМЫ ЛОГГЕРА ТА ЗБЕРЕЖЕННЯ ЛОГІВ (Блекбокс вирізано)
           # ===============================
           cat >> $HW_FILE <<EOF
 
