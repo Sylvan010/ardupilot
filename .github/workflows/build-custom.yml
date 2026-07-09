@@ -22,14 +22,14 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Монолітна зачистка та повна інжекція карти HAKRC (Універсальне випалювання дублів SPIDEV)
+      # 3. Монолітна зачистка та повна інжекція карти HAKRC (З гарантованим відновленням FLASH констант)
       - name: Modify Hardware for HAKRC
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
           BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
           
-          # === КРОК 0. ТОТАЛЬНЕ ВИПАЛЮВАННЯ ФАБРИЧНИХ НОГ ТА КОНФЛІКТІВ (Чистий лист) ===
+          # === КРОК 0. ПОВНЕ ВИПАЛЮВАННЯ ФАБРИЧНИХ НОГ ТА КОНФЛІКТІВ ===
           sed -i '/PB14/d' $HW_FILE
           sed -i '/PB15/d' $HW_FILE
           sed -i '/PB13/d' $HW_FILE
@@ -62,14 +62,14 @@ jobs:
           sed -i '/PB4/d' $HW_FILE
           sed -i '/PB3/d' $HW_FILE
           
-          # Жорстке випалювання старих SPIDEV абстракцій (Ловить будь-які регістри та табуляції з помилковим LOW)
+          # Очищаємо старі блоки SPIDEV (Універсально, щоб не лишилось корупційного LOW)
           sed -i '/[Oo][Ss][Dd]/d' $HW_FILE
           sed -i '/[Dd][Aa][Vv][Aa]/d' $HW_FILE
           sed -i '/[Fm][Ll][Aa][Ss][Hh]/d' $HW_FILE
           sed -i '/dataflash/d' $HW_FILE
           sed -i '/osd/d' $HW_FILE
           
-          # Очищаємо супутні дефайни та ліміти логгера, щоб не було дублювання структур
+          # Очищаємо супутні дефайни, щоб уникнути duplicate defines
           sed -i '/OSD1_CS/d' $HW_FILE
           sed -i '/FLASH1_CS/d' $HW_FILE
           sed -i '/HAL_LOGGING_DATAFLASH/d' $HW_FILE
@@ -77,11 +77,23 @@ jobs:
           sed -i '/HAL_GPIO_B_LED_PIN/d' $HW_FILE
           sed -i '/HAL_BATT_VOLT_PIN/d' $HW_FILE
           sed -i '/HAL_BATT_CURR_PIN/d' $HW_FILE
+          sed -i '/FLASH_SIZE_KB/d' $HW_FILE
+          sed -i '/FLASH_RESERVE_START_KB/d' $HW_FILE
+          sed -i '/FLASH_BOOTLOADER_LOAD_KB/d' $HW_FILE
           
           # Стираємо старий світлодіод із завантажувача (Bootloader LED)
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
-          # === КРОК 1. ІНЖЕКЦІЯ ЧИСТОЇ КАРТИ SPI (Канонічний синтаксис без прапорця LOW) ===
+          # === КРОК 1. ІНЖЕКЦІЯ СИСТЕМНИХ ПАРАМЕТРІВ ПАМ'ЯТІ (Жорстке відновлення!) ===
+          cat >> $HW_FILE <<EOF
+
+          # === HAKRC FIXED MEMORY LAYOUT ===
+          FLASH_SIZE_KB 1024
+          FLASH_RESERVE_START_KB 0
+          FLASH_BOOTLOADER_LOAD_KB 48
+          EOF
+
+          # === КРОК 2. ІНЖЕКЦІЯ ЧИСТОЇ КАРТИ SPI (Канонічний синтаксис без LOW) ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC F405 V2 VERIFIED SPI MAP ===
@@ -100,7 +112,7 @@ jobs:
           SPIDEV dataflash SPI3 SPEED_4M SPEED_4M FLASH1_CS DEVID1 LOW
           EOF
 
-          # === КРОК 2. ІНЖЕКЦІЯ СИСТЕМНИХ СВЕТОДИОДІВ HAKRC ТА AP_NOTIFY ===
+          # === КРОК 3. ІНЖЕКЦІЯ СИСТЕМНИХ СВЕТОДИОДІВ HAKRC ТА AP_NOTIFY ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC SYSTEM LEDs ===
@@ -113,7 +125,7 @@ jobs:
           define DEFAULT_NTF_LED_TYPES 257
           EOF
 
-          # === КРОК 3. ІНЖЕКЦІЯ АПАРАТНОГО БУЗЕРА HAKRC ===
+          # === КРОК 4. ІНЖЕКЦІЯ АПАРАТНОГО БУЗЕРА HAKRC ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC BUZZER ===
@@ -121,7 +133,7 @@ jobs:
           define HAL_BUZZER_PIN 80
           EOF
 
-          # === КРОК 4. UART ІНТЕРФЕЙСИ (Строго за Betaflight Dump) ===
+          # === КРОК 5. UART ІНТЕРФЕЙСИ (Строго за Betaflight Dump) ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC UART PORTS ===
@@ -132,7 +144,7 @@ jobs:
           PB11 USART3_RX USART3 NODMA
           EOF
 
-          # === КРОК 5. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13) ===
+          # === КРОК 6. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13) ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC ANALOG ADC SENSORS ===
@@ -144,7 +156,7 @@ jobs:
           define HAL_BATT_CURR_SCALE 100.0
           EOF
 
-          # === КРОК 6. ПОВНА КАРТА ДВИГУНІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight) ===
+          # === КРОК 7. ПОВНА КАРТА ДВИГУНІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight) ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC PWM MOTOR OUTPUTS ===
@@ -159,7 +171,7 @@ jobs:
           PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)
           EOF
 
-          # === КРОК 7. ПРОГРАММНОЕ ОТКЛЮЧЕНИЕ BLACKBOX ЛОГГЕРА ===
+          # === КРОК 8. ПРОГРАММНОЕ ОТКЛЮЧЕНИЕ BLACKBOX ЛОГГЕРА ===
           cat >> $HW_FILE <<EOF
 
           # === HAKRC DISABLE LOGGING BACKEND ===
@@ -167,7 +179,7 @@ jobs:
           define HAL_LOGGING_MAVLINK_ENABLED 0
           EOF
 
-          # === КРОК 8. ОВЕРРАЙД СВЕТОДИОДА ЗАВАНТАЖУВАЧА (Bootloader LED на PC15) ===
+          # === КРОК 9. ОВЕРРАЙД СВЕТОДИОДА ЗАВАНТАЖУВАЧА (Bootloader LED на PC15) ===
           cat >> $BL_FILE <<EOF
 
           # --- HAKRC Bootloader Overrides ---
@@ -175,7 +187,7 @@ jobs:
           define HAL_LED_ON 0
           EOF
 
-          # === КРОК 9. КОРРЕКЦИЯ DEFAULTS.PARM (Включаем OSD, тушим блекбокс) ===
+          # === КРОК 10. КОРРЕКЦИЯ DEFAULTS.PARM (Включаем OSD, тушим блекбокс) ===
           if [ ! -f "$PARM_FILE" ]; then
             touch "$PARM_FILE"
           fi
@@ -184,7 +196,7 @@ jobs:
           echo "OSD_TYPE 1" >> $PARM_FILE
           echo "LOG_BACKEND_TYPE 0" >> $PARM_FILE
           
-          echo "=== STEP 2: ALL DUPLICATES WIPED & HAKRC MAP INJECTED ==="
+          echo "=== STEP 2: FIXED FLASH COUNTERS & INJECTED HAKRC MAP ==="
 
       # 4. Повний збір завантажувача (Тепер конфігурація пройде бездоганно)
       - name: Build Bootloader
