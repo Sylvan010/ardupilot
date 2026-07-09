@@ -12,17 +12,17 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистый checkout оригинального репозитория FoxeerF405v2 (100% фабричное состояние)
+      # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
+      # 2. Фікс прав безпеки Git всередині сесії Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Чистый хирургический точечный ремапинг HAKRC поверх оригинального hwdef Foxeer
+      # 3. Точковий хірургічний ремапінг HAKRC поверх бази Foxeer (Двошвидкісний SPIDEV, без PINIO/Бузера)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -30,20 +30,18 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH START ==="
           
-          # Гарантируем 100% заводское состояние оригинальных файлов перед инжекцией
+          # Гарантуємо 100% заводський стан оригінальних файлів перед інжекцією
           git checkout -- $HW_FILE $BL_FILE
           
-          # Создаем бэкап оригинального файла по вашему плану
+          # Створення бекапу оригінального файлу
           cp $HW_FILE ${HW_FILE}.backup
           
-          # === ФИКС BOARD ID ПИД ТЕКСТОВЫЙ СТАНДАРТ 4.8.0 ===
+          # === ФІКС BOARD ID ПІД ТЕКСТОВИЙ СТАНДАРТ 4.8.0 ===
           sed -i '/APJ_BOARD_ID/d' $HW_FILE
           echo "APJ_BOARD_ID AP_HW_FOXEERF405_V2" >> $HW_FILE
 
           # =================================
-          # КРОК 0. HARD PIN RELEASE FOR HAKRC REMAP (Выжигание фабричных коллизий за номерами ног)
-          # Очищаем только те ноги, которые мы явно перевизначаем под мапинг HAKRC.
-          # Сами фабричные строки SPIDEV и блоки IMU/OSD мы НЕ трогаем, сохраняя совместимость с 4.8.0!
+          # КРОК 0. HARD PIN RELEASE FOR HAKRC REMAP (Випалювання фабричних колізій за номерами ніжок)
           # =================================
           for PIN in PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PB4 PB3 PB0 PB1 PC8 PC9 PA8 PA9 PA10 PA2 PA3 PC12 PD2 PC6 PC7 PC0 PC2
           do
@@ -52,8 +50,7 @@ jobs:
           done
           
           # =================================
-          # ПОВНЕ ВЫРЕЗАНИЕ PINIO, БУЗЕРА ТА СИСТЕМЫ ЛОГУВАННЯ БЛЕКБОКСА (По вашему плану!)
-          # Выжигаем все фабричные абстракции, CS, дефайны шкал SCALE и логгера, освобождая ОЗУ под миссии
+          # ПОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА ЗАПИСІВ ЛОГІВ БЛЕКБОКСА (Логгер йде нахрен)
           # =================================
           sed -i '/[Dd][Aa][Vv][Aa][Ff][尝][Aa][Ss][Hh]/d' $HW_FILE
           sed -i '/dataflash/d' $HW_FILE
@@ -66,10 +63,13 @@ jobs:
           sed -i '/HAL_BATT_VOLT_SCALE/d' $HW_FILE
           sed -i '/HAL_BATT_CURR_SCALE/d' $HW_FILE
           
-          # Очищаем старые SPIDEV дубли, но категорически НЕ трогаем оригинальные строки Foxeer 4.8.0!
+          # Хірургічне точкове видалення старих SPIDEV рядків без зачіпання дефайнів OSD
+          sed -i '/SPIDEV[[:space:]]\+osd/d' $HW_FILE
+          sed -i '/SPIDEV[[:space:]]\+dataflash/d' $HW_FILE
+          sed -i '/OSD1_CS/d' $HW_FILE
           sed -i '/GYRO2/d;/GYRO2_CS/d;/BMI270_DRDY/d;/imu2/d' $HW_FILE
           
-          # Удаляем дублирующиеся системные дефайны Foxeer, чтобы препроцессор не выдавал ошибки
+          # Видаляємо супутні дефайни Foxeer, щоб уникнути помилок 'already in defines'
           sed -i '/HAL_GPIO_A_LED_PIN/d' $HW_FILE
           sed -i '/HAL_GPIO_B_LED_PIN/d' $HW_FILE
           sed -i '/HAL_BATT_VOLT_PIN/d' $HW_FILE
@@ -77,7 +77,7 @@ jobs:
           sed -i '/AP_NOTIFY_GPIO_LED_2_ENABLED/d' $HW_FILE
           sed -i '/DEFAULT_NTF_LED_TYPES/d' $HW_FILE
           
-          # Вырезаем старые UART порты Foxeer и старый PWM блок под чистую инжекцию HAKRC
+          # Видаляємо старі UART порти Foxeer та старий PWM блок під чисту інжекцію HAKRC
           sed -i '/USART1_TX/d;/USART1_RX/d' $HW_FILE
           sed -i '/USART3_TX/d;/USART3_RX/d' $HW_FILE
           sed -i '/UART5_TX/d;/UART5_RX/d' $HW_FILE
@@ -85,8 +85,8 @@ jobs:
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
           # ===============================
-          # КРОК 1. ИНЖЕКЦИЯ ТИЛЬКИ НОМЕРОВ ФИЗИЧЕСКИХ НИЖОК ШИН SPI2 ТА SPI3 HAKRC
-          # Сами фабричные строки SPIDEV для IMU/OSD/Flash остаются оригинальными и нетронутыми!
+          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (Виправлено за вашим планом: додано дві швидкості під синтаксис 4.8.0)
+          # Базовий блок SPI1 (Гіроскоп) залишився фабричним
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -100,10 +100,13 @@ jobs:
           PC11 SPI3_MISO SPI3
           PB5  SPI3_MOSI SPI3
           PA15 FLASH1_CS CS
+
+          SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
+          SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ 40*MHZ
           EOF
           
           # ===============================
-          # КРОК 2. UART REMAP (Чистый 3-компонентный апаратный синтаксис под STM32F405)
+          # КРОК 2. UART REMAP (Чистий 3-компонентний апаратний синтаксис під STM32F405)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -124,7 +127,7 @@ jobs:
           EOF
 
           # ===============================
-          # КРОК 2.5. ПРИВЯЗКА АППАРАТНОГО ПРЕРЫВАНИЯ ГИРОСКОПА (EXTI на PB10 за дампом)
+          # КРОК 2.5. ПРИВ'ЯЗКА АППАРАТНОГО ПРЕРИВАННЯ ГИРОСКОПА (EXTI на PB10 за дампом)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -133,7 +136,7 @@ jobs:
           EOF
 
           # ===============================
-          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13 - Одиночный комплект дефайнов)
+          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ ( ADC Канали 11 та 13)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -149,7 +152,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 4. СВЕТОДИОДЫ ТА AP_NOTIFY (Полная очистка от PINIO и Бузера)
+          # КРОК 4. СВЕТОДИОДЫ ТА AP_NOTIFY (Повна очистка від PINIO та Бузера)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -162,7 +165,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 5. КАРТА МОТОРОВ PWM (Таймеры TIM8/TIM1/TIM3 строго по Betaflight дампу)
+          # КРОК 5. КАРТА МОТОРІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight дампу)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -184,7 +187,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 6. ПРОГРАММНОЕ ВЫКЛЮЧЕНИЕ СИСТЕМЫ ЛОГГЕРА
+          # КРОК 6. ПОВНЕ БЛОКУВАННЯ СИСТЕМЫ ЛОГУВАННЯ
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -204,35 +207,32 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Диагностический контроль перед вызовом waf
+      # 4. Діагностична перевірка до початку Waf за вашим планом (Перевіряємо інжекцію OSD та SPIDEV)
       - name: Diagnostics and Resource Verification
         run: |
           echo "=== CHECKING KEY PINS FOR DUPLICATES ==="
           grep -nE "PA2|PB14|PC12" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== VERIFY BUZZER & PINIO ARE DELETED ==="
-          grep -iE "buzzer|pinio|scale|imu2" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== CHECKING REVISED TEXTUAL BOARD_ID ==="
-          grep "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== VERIFYING SPIDEV LAYOUT ==="
-          grep "SPIDEV" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+          echo "=== DIAGNOSTICS: GREP FOR OSD & SPIDEV STRICTLY BY YOUR PLAN ==="
+          grep -nE "OSD|osd|SPIDEV|MAX7456" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+          echo "=== CHECKING LATEST 20 LINES OF HWDEF ==="
+          tail -n 20 libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
-      # 5. Сброс кэша и конфигурация загрузчика
+      # 5. Скидання кешу та конфігурація завантажувача
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 6. Финальная компиляция завантажувача
+      # 6. Фінальна компіляція завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 7. Настройка defaults.parm под ядро 4.8.0 (Сняты RELAYx_PIN ошибки Foxeer)
+      # 7. Налаштування defaults.parm під ядро 4.8.0 (LOG_BACKEND_TYPE 0 - логи вимкнено повністю, OSD працює)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
           cat << 'EOF_PARM' > $PARM_FILE
           # Production parameters for HAKRCF405V2 Layout (ArduPilot 4.8.0 Specification)
-          # Completely clean config with logging disabled to save RAM for Auto Missions
           BATT_MONITOR 4
           BATT_VOLT_PIN 11
           BATT_CURR_PIN 13
@@ -243,25 +243,30 @@ jobs:
           NTF_LED_TYPES 257
           NTF_LED_BRIGHT 2
           
-          # Полное выключение виртуальных реле Foxeer, которых нет на HAKRC
+          # Залізобетонний фікс PreArm помилок Foxeer: вимикаємо реле під нуль
           RELAY1_PIN -1
           RELAY2_PIN -1
           RELAY3_PIN -1
           RELAY4_PIN -1
           
-          # Исправление логики Failsafe GCS под требования ArduPilot 4.8.0
+          # Оновлення логіки Failsafe GCS під стандарти ArduPilot 4.8.0
           FS_GCS_ENABLE 0
           FS_OPTIONS 1
           
-          # Опции тумблеров радиоуправления для стабильного Arming/Disarm и отключения GPS под 4.8.0
+          # Опції тумблерів радіоуправління для стабільного Arming/Disarm і отключения GPS під 4.8.0
           RC5_OPTION 153
           RC7_OPTION 65
           EOF_PARM
           echo "Production defaults.parm locked."
 
-      # 8. Очитка кешу та конфігурация основной прошивки квадрокоптера
+      # 8. Очитка кешу та конфігурація основної прошивки квадрокоптера
       - name: Configure Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
+      # 9. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
+      - name: Build Copter Firmware
+        run: ./waf copter
+
+      # 10. Експортуємо готові .apj та .bin файли в артефакти запуска GitHub
