@@ -37,11 +37,11 @@ jobs:
           sed -i '/PB14/d' $TARGET_FILE
           sed -i '/PB15/d' $TARGET_FILE
           sed -i '/PA15/d' $TARGET_FILE
+          sed -i '/PC1/d' $TARGET_FILE
+          sed -i '/PC3/d' $TARGET_FILE
           sed -i '/PC10/d' $TARGET_FILE
           sed -i '/PC11/d' $TARGET_FILE
           sed -i '/PB5/d' $TARGET_FILE
-          sed -i '/PC1/d' $TARGET_FILE
-          sed -i '/PC3/d' $TARGET_FILE
           sed -i '/PC13/d' $TARGET_FILE
           sed -i '/PC14/d' $TARGET_FILE
           sed -i '/PC15/d' $TARGET_FILE
@@ -83,8 +83,8 @@ jobs:
           PC11 SPI3_MISO SPI3 \
           PB5  SPI3_MOSI SPI3 \
           PA15 FLASH_CS CS \
-          PC1 ADC_BAT VOLTAGE_ADC \
-          PC3 ADC_CURR CURRENT_ADC \
+          PC1 ADC1_IN11 ANALOG(1) \
+          PC3 ADC1_IN13 ANALOG(2) \
           PC14 LED1 OUTPUT HIGH \
           PC15 LED2 OUTPUT HIGH \
           PC13 BUZZER OUTPUT HIGH \
@@ -101,7 +101,7 @@ jobs:
           # --- КРОК КОРЕКЦІЇ СИСТЕМНИХ ДЕФАЙНІВ ---
           sed -i 's/ROTATION_YAW_180/ROTATION_YAW_90/g' $TARGET_FILE
           sed -i 's/define HAL_BATT_VOLT_PIN 0/define HAL_BATT_VOLT_PIN 1/g' $TARGET_FILE
-          sed -i 's/define HAL_BATT_CURR_PIN 1/define HAL_BATT_CURR_PIN 3/g' $TARGET_FILE
+          sed -i 's/define HAL_BATT_CURR_PIN 1/define HAL_BATT_CURR_PIN 2/g' $TARGET_FILE
 
           # Виведемо результат модифікації в лог GitHub для візуальної перевірки
           echo "=== FINAL MODIFIED HWDEF.DAT ==="
