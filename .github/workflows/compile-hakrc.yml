@@ -42,8 +42,8 @@ jobs:
         ./waf configure --board FoxeerF405v2
         ./waf copter
 
-    - name: Upload Artifacts (Node 24 / Modern Engine)
-      uses: actions/upload-artifact@v6
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
       with:
         name: Custom-HAKRC-Firmware
         path: |
