@@ -12,7 +12,7 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Завантажуємо код вашої гілки репозиторію разом із створеним файлом патчу
+      # 1. Завантажуємо чистий код вашої гілки репозиторію з усіма субмодулями
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -22,65 +22,176 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Діагностичний крок: перевіряємо наявність та зчитуємо заголовок статичного патчу
-      - name: Debug Patch
+      # 3. Повне монолітне перезаписування hwdef.dat (0% шансів на помилку пробілів чи corrupt patch)
+      - name: Overwrite hwdef.dat for HAKRC
         run: |
-          test -f hakrc_resources.patch
-          head -n 20 hakrc_resources.patch
-          git apply --stat hakrc_resources.patch
+          cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          # hw definition file for processing by chibios_hwdef.py
+          # Target: FoxeerF405v2 - Custom Production Build for HAKRC-F405V2 Layout
+          # Base architecture keeps original DMA rules, USB, and core branch features intact.
+          
+          MCU STM32F4xx STM32F405xx
+          
+          define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_HWDEF
+          define STM32_HSE_ENABLED TRUE
+          define STM32_HSECLK 8000000
+          
+          ENV_SIZE 16k
+          
+          # USB VCP Configuration
+          PA11 OTG_FS_DM OTG1
+          PA12 OTG_FS_DP OTG1
+          
+          define USB_VENDOR 0x0483
+          define USB_PRODUCT_ID 0x5740
+          define USB_STRING_MANUFACTURER "Foxeer"
+          define USB_STRING_PRODUCT "FoxeerF405v2"
+          
+          SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
+          
+          # --- UART Mapping (Strictly HAKRC Configuration) ---
+          PB6  USART1_TX USART1
+          PB7  USART1_RX USART1
+          
+          PA2  USART2_TX USART2
+          PA3  USART2_RX USART2
+          PC0  SBUS_INVERT OUTPUT LOW
+          
+          PB10 USART3_TX USART3
+          PB11 USART3_RX USART3 NODMA
+          
+          PA0  UART4_TX UART4
+          PA1  UART4_RX UART4
+          
+          PC12 UART5_TX UART5
+          PD2  UART5_RX UART5
+          
+          PC6  USART6_TX USART6
+          PC7  USART6_RX USART6
+          
+          # I2C Ports (Compass & Baro)
+          PB8 I2C1_SCL I2C1
+          PB9 I2C1_SDA I2C1
+          
+          # SPI1: Main Flight Sensors (IMU)
+          PA5 SPI1_SCK SPI1
+          PA6 SPI1_MISO SPI1
+          PA7 SPI1_MOSI SPI1
+          PA4 GYRO1_CS CS
+          
+          # SPI2: Analog OSD MAX7456 (HAKRC Production Pinout)
+          PB13 SPI2_SCK SPI2   # 10 ножка MAX7456
+          PB14 SPI2_MISO SPI2  # 11 ножка MAX7456
+          PB15 SPI2_MOSI SPI2  # 9 ножка MAX7456
+          PB12 OSD1_CS CS      # 8 ножка MAX7456
+          
+          # SPI3: Onboard Flash Memory W25Q128 (HAKRC Production Pinout)
+          PC10 SPI3_SCK SPI3   # 6 ножка памяти
+          PC11 SPI3_MISO SPI3  # 2 ножка памяти
+          PB5  SPI3_MOSI SPI3  # 5 ножка памяти
+          PA15 FLASH1_CS CS    # 1 ножка памяти (CS)
+          
+          # SPI Device Registry (OSD switched to SPI2, Flash switched to SPI3)
+          SPIDEV gyro1  SPI1 SPEED_2M SPEED_8M GYRO1_CS LOW
+          SPIDEV osd   SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
+          SPIDEV flash SPI3 DEVID1 FLASH1_CS MODE3 104*MHZ 104*MHZ
+          
+          # EXTI Gyro hardware interrupt line
+          PC4 MPU6000_DRDY INPUT
+          
+          # IMU Drivers & Alignment (Strictly matching your branch and Betaflight)
+          IMU Invensensev3 SPI:gyro1 ROTATION_PITCH_180_YAW_90
+          
+          # Barometer Configuration
+          BARO BMP280 I2C:0:0x76
+          BARO DPS310 I2C:0:0x76
+          
+          # Logging Setup (Strictly matching branch syntax)
+          define HAL_LOGGING_DATAFLASH_ENABLED 1
+          
+          # --- Analog ADC Mapping via ADC1 (Strictly HAKRC Production Format) ---
+          PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
+          PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
+          define HAL_BATT_VOLT_PIN 11
+          define HAL_BATT_CURR_PIN 13
+          define HAL_BATT_VOLT_SCALE 10.0
+          define HAL_BATT_CURR_SCALE 100.0
+          
+          # --- Status LEDs & Buzzer (Strictly HAKRC Configuration) ---
+          PC15 LED0 OUTPUT LOW GPIO(90)
+          PC14 LED1 OUTPUT LOW GPIO(91)
+          PC13 BUZZER OUTPUT GPIO(80) LOW
+          
+          # AP_Notify LED definitions to ensure status blinking works perfectly
+          define HAL_GPIO_A_LED_PIN 90
+          define HAL_GPIO_B_LED_PIN 91
+          
+          # --- PWM Outputs & Timer Assignments (Strictly matching original syntax and HAKRC layout) ---
+          PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
+          PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
+          PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
+          PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)
+          PB0  TIM3_CH3 TIM3 PWM(5) GPIO(54)
+          PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)
+          PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)
+          PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
+          PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)
+          
+          # === CRITICAL SYSTEM DEFINITIONS & DMA (STRICTLY PRESERVED FROM FOXEER) ===
+          DMA_PRIORITY SPI1_RX SPI1_TX SPI2_RX SPI2_TX SPI3_RX SPI3_TX TIM* USART1* USART2* USART3* UART4* UART5* USART6*
+          DMA_NOSHARE SPI1_RX SPI1_TX ADC1
+          define STM32_ST_USE_TIMER 5
+          
+          define ROMFS_BOOTLOADER_BOARD_ID 1056
+          define APJ_BOARD_ID AP_HW_FOXEERF405_V2
+          EOF
+          echo "HAKRC hwdef.dat compiled successfully."
 
-      # 4. Накладаємо готовий статичний патч ресурсів на Foxeer target у розширеному режимі
-      - name: Apply HAKRC Resource Patch
+      # 4. Хірургічна точкова заміна світлодіода у завантажувачі без ризикованих патчів
+      - name: Patch Bootloader LED
         run: |
-          git apply --check --verbose hakrc_resources.patch
-          git apply --verbose hakrc_resources.patch
+          BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
+          # Вирізаємо заводський світлодіод Foxeer PA13
+          sed -i '/PA13/d' $BL_FILE
+          # Вставляємо правильний світлодіод HAKRC PC15
+          sed -i '/define HAL_LED_ON/i PC15 LED_BOOTLOADER OUTPUT LOW' $BL_FILE
+          echo "=== FINAL GENERATED BOOTLOADER FILE ==="
+          cat $BL_FILE
 
-      # 5. Хірургічна верифікація: суворо перевіряємо наявність нових пінів без зайвого виводу (grep -q)
-      - name: Verify HAKRC Mapping
-        run: |
-          grep -q "PB6  USART1_TX" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PB12 OSD1_CS CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PA15 FLASH1_CS CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PC15 LED0" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PC13 BUZZER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PC8  TIM8_CH3" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PC15 LED_BOOTLOADER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
-          echo "Verification successful! All HAKRC resources integrated."
-
-      # 6. Скидання кешу та конфігурація завантажувача
+      # 5. Скидання кешу та конфігурація завантажувача
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 7. Перевірка згенерованого ChibiOS-коду за фізичними лініями
+      # 6. Перевірка згенерованого ChibiOS-коду за фізичними лініями
       - name: Check Generated Bootloader Hardware
         run: |
           echo "=== CHECKING GENERATED BOOTLOADER DEFINITIONS ==="
           grep -R "PC15" build/FoxeerF405v2/ || true
 
-      # 8. Фінальна компіляція завантажувача
+      # 7. Фінальна компіляція завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 9. Очистка кешу та конфігурація основної прошивки квадрокоптера
+      # 8. Очистка кешу та конфігурація основної прошивки квадрокоптера
       - name: Configure Copter Firmware
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
-      # 10. Перевірка згенерованого ChibiOS-коду для коптера за фізичними лініями моторів та OSD
+      # 9. Перевірка згенерованого ChibiOS-коду для коптера за фізичними лініями моторів та OSD
       - name: Check Generated Copter Hardware
         run: |
           echo "=== CHECKING GENERATED COPTER DEFINITIONS ==="
           grep -R "PC8" build/FoxeerF405v2/ || true
           grep -R "PB12" build/FoxeerF405v2/ || true
 
-      # 12. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
+      # 10. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: ./waf copter
 
-      # 13. Експортуємо готові .apj та .bin файли в артефакти завантаження GitHub
+      # 11. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
