@@ -12,17 +12,17 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
+      # 1. Чистый checkout оригинального репозитория FoxeerF405v2 (100% фабричное состояние)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фікс прав безпеки Git всередині сесії Docker-контейнера
+      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
       - name: Fix Git Safe Directory
-        run: git config --global --add safe.directory $GITHUB_WORKSPACE
+        run: Git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Динамічний ремапінг патчингом HAKRC поверх Foxeer (Зберігаємо архітектуру Foxeer, міняємо лише піни)
+      # 3. Точечный хирургический ремапинг HAKRC поверх оригинальной базы Foxeer (С жестким выжиганием ног)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -30,29 +30,29 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH START ==="
           
-          # Гарантуємо 100% заводське стан файлів, скасовуючи будь-які минулі кеші воркфлоу
-          git checkout -- $HW_FILE $BL_FILE
+          # Гарантируем 100% заводское состояние файлов, отменяя любые прошлые кеши воркфлоу
+          Git checkout -- $HW_FILE $BL_FILE
           
-          # Створення бекапу оригінального файлу
+          # Создаем бэкап оригинального файла по вашему плану
           cp $HW_FILE ${HW_FILE}.backup
           
           # =================================
-          # BOARD ID КОРРЕКЦІЯ
+          # BOARD ID КОРРЕКЦИЯ
           # =================================
           sed -i '/APJ_BOARD_ID/d' $HW_FILE
           echo "APJ_BOARD_ID 1067" >> $HW_FILE
-          
+
           # =================================
-          # КРОК 0. HARD PIN RELEASE FOR HAKRC REMAP (Повне випалювання фабричних колізій за номерами ніжок)
-          # Додано PA2, PA3 для повного звільнення шини USART2 від фабричних дублів Foxeer
+          # КРОК 0. HARD PIN RELEASE FOR HAKRC REMAP (Полноценное выжигание фабричных коллизий по номерам ног)
+          # Добавлены PC0 и PC2 для полного освобождения под новые PINIO1/2 ресурсы HAKRC
           # =================================
-          for PIN in PA5 PA6 PA7 PA4 PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PB4 PB3 PB0 PB1 PC8 PC9 PA8 PA9 PA10 PA2 PA3 PC12 PD2 PC6 PC7
+          for PIN in PA5 PA6 PA7 PA4 PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3 PB4 PB3 PB0 PB1 PC8 PC9 PA8 PA9 PA10 PA2 PA3 PC12 PD2 PC6 PC7 PC0 PC2
           do
               sed -i "/^[[:space:]]*$PIN[[:space:]]/d" $HW_FILE
               sed -i "/^[[:space:]]*$PIN$/d" $HW_FILE
           done
           
-          # Очищаємо фабричні абстракції SPIDEV, ліміти CS та логгер, щоб уникнути конфліктів у 4.8.0
+          # Очищаем фабричные абстракции SPIDEV, лимиты CS и логгер, чтобы убрать конфликты перекрытия в 4.8.0
           sed -i '/[Oo][Ss][Dd]/d' $HW_FILE
           sed -i '/dataflash/d' $HW_FILE
           sed -i '/FLASH1_CS/d' $HW_FILE
@@ -66,12 +66,14 @@ jobs:
           sed -i '/HAL_BUZZER_PIN/d' $HW_FILE
           sed -i '/HAL_BATT_VOLT_PIN/d' $HW_FILE
           sed -i '/HAL_BATT_CURR_PIN/d' $HW_FILE
+          sed -i '/SBUS_INVERT/d' $HW_FILE
+          sed -i '/PINIO1/d;/PINIO2/d' $HW_FILE
           
-          # Стираємо старий світлодіод із завантажувача (Bootloader LED)
+          # Стираем старый светодиод из загрузчика (Bootloader LED)
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
           # ===============================
-          # КРОК 1. ІНЖЕКЦІЯ ЧИСТОЇ КАРТИ SPI HAKRC (Строго за вашою прозвонкою мультиметром)
+          # КРОК 1. ИНЖЕКЦИЯ ЧИСТОЙ КАРТЫ SPI HAKRC (Строго по вашей прозвонке мультиметром)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -97,7 +99,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 2. UART REMAP (Суворий 3-компонентний апаратний синтаксис UART5 під STM32F405)
+          # КРОК 2. UART REMAP (Суровый 3-компонентный аппаратный синтаксис UART5 под STM32F405)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -107,7 +109,6 @@ jobs:
 
           PA2  USART2_TX USART2
           PA3  USART2_RX USART2
-          PC0  SBUS_INVERT OUTPUT LOW
 
           PB11 USART3_RX USART3 NODMA
 
@@ -119,7 +120,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 2.5. ДВУХКОНТУРНИЙ IMU (Додаємо другого гіроскопа за вашим Betaflight дампом)
+          # КРОК 2.5. ДВУХКОНТУРНЫЙ IMU (Добавляем второй гироскоп по вашему Betaflight дампу)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -132,7 +133,7 @@ jobs:
           EOF
 
           # ===============================
-          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC)
+          # КРОК 3. АНАЛОГОВЫЕ ДАТЧИКИ БАТАРЕИ (ADC)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -148,7 +149,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 4. СВЕТОДИОДЫ ТА AP_NOTIFY (Канонічна зв'язка з GPIO індексами для 4.8.0)
+          # КРОК 4. СВЕТОДИОДЫ, БУЗЕР И PINIO (По вашему плану: SBUS инвертор на PC0 вырезан, лочим PINIO)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -159,6 +160,7 @@ jobs:
           PC13 BUZZER OUTPUT GPIO(80) LOW
           define HAL_BUZZER_PIN 80
 
+          # Жёсткий лок PINIO без наложения инверторов
           PC0 PINIO1 OUTPUT LOW GPIO(81)
           PC2 PINIO2 OUTPUT LOW GPIO(82)
 
@@ -167,7 +169,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 5. КАРТА МОТОРІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight)
+          # КРОК 5. КАРТА МОТОРОВ PWM (Таймеры TIM8/TIM1/TIM3 строго из дампа)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -189,7 +191,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 6. ПРОГРАМНЕ ВИМКНЕННЯ BLACKBOX ЛОГГЕРА
+          # КРОК 6. ПРОГРАММНОЕ ОТКЛЮЧЕНИЕ BLACKBOX ЛОГГЕРА
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -209,25 +211,23 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Діагностична перевірка до початку Waf (Усі грепи мають бути чистими, крім нашої інжекції)
+      # 4. Расширенный диагностический контроль по вашему пошаговому плану перед вызовом waf
       - name: Diagnostics and Resource Verification
         run: |
-          echo "=== CHECKING PA2 IN FINAL HWDEF ==="
-          grep -n "PA2" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "=== CHECKING PB14 IN FINAL HWDEF ==="
-          grep -n "PB14" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== CHECK HAKRC RESERVED PINS ==="
+          grep -nE "PC0|PC2|PB14|PB12|PB13|PB15|PA15" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
-      # 5. Скидання кешу та конфігурація завантажувача
+      # 5. Сброс кэша и конфигурация загрузчика
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 6. Фінальна компіляція завантажувача
+      # 6. Финальная компиляция завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 7. Налаштування defaults.parm під ядро 4.8.0 (LOG_BACKEND_TYPE 1, OSD включено, RC тумблеры залочені)
+      # 7. Настройка defaults.parm под ядро 4.8.0 (LOG_BACKEND_TYPE 1, OSD включено, RC тумблеры залочены)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
@@ -243,20 +243,20 @@ jobs:
           NTF_LED_TYPES 257
           NTF_LED_BRIGHT 2
           
-          # Опції тумблерів радіоуправління для стабільного Arming/Disarm і отключения GPS під 4.8.0
+          # Опции тумблеров радиоуправления для стабильного Arming/Disarm и отключения GPS под 4.8.0
           RC5_OPTION 153
           RC7_OPTION 65
           EOF_PARM
           echo "Production defaults.parm locked."
 
-      # 8. Очитка кешу та конфігурація основної прошивки квадрокоптера
+      # 8. Очистка кэша и конфигурация основной прошивки квадрокоптера
       - name: Configure and Build Copter
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
-      # 9. Експортуємо готові .apj та .bin файлы в артефакти запуска GitHub
+      # 9. Экспортируем готовые .apj и .bin файлы в артефакты запуска GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
