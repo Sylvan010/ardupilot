@@ -22,13 +22,13 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Повне обнулення файлу та інжекція чистої карти HAKRC (Суворий 3-компонентний синтаксис UART5)
+      # 3. Повне обнулення файлу та інжекція чистої карти HAKRC (З урахуванням BOARD_ID, UART5 та GPIO індексів)
       - name: Modify Hardware for HAKRC
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
           BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
           
-          # Жорстке обнулення файлу Foxeer — вичищає абсолютно все, включаючи приховані таби
+          # Жорстке обнулення файлу Foxeer — вичищає абсолютно все
           truncate -s 0 $HW_FILE
           
           # Запис монолітної карти HAKRC строго за канонами ChibiOS 4.8.0
@@ -39,11 +39,16 @@ jobs:
           
           MCU STM32F4xx STM32F405xx
           
-          # Обмеження пам'яті та тактування зовнішнього кварцу (8MHz) під ядро 4.8.0
-          OSCILLATOR_HZ 8000000
+          # === HAKRC FIXED MEMORY LAYOUT & BOARD ID ===
+          APJ_BOARD_ID 1067
+          
           FLASH_SIZE_KB 1024
           FLASH_RESERVE_START_KB 48
           FLASH_BOOTLOADER_LOAD_KB 48
+          
+          OSCILLATOR_HZ 8000000
+          STM32_ST_USE_TIMER 5
+          HAL_STORAGE_SIZE 15360
           
           define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_HWDEF
           define STM32_HSE_ENABLED TRUE
@@ -62,7 +67,7 @@ jobs:
           
           SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
           
-          # --- UART/USART Mapping (Суворий 3-компонентний синтаксис для UART5) ---
+          # --- UART/USART Mapping (Суворий 3-компонентний синтаксис для UART5 під ядро 4.8.0) ---
           PB6  USART1_TX USART1
           PB7  USART1_RX USART1
           
@@ -132,9 +137,9 @@ jobs:
           define HAL_BATT_VOLT_SCALE 10.0
           define HAL_BATT_CURR_SCALE 100.0
           
-          # --- Статусні світлодіоди та апаратний бузер HAKRC ---
-          PC15 LED0 OUTPUT LOW
-          PC14 LED1 OUTPUT LOW
+          # --- Статусні світлодіоди та апаратний бузер HAKRC (З явними GPIO індексами) ---
+          PC15 LED0 OUTPUT LOW GPIO(90)
+          PC14 LED1 OUTPUT LOW GPIO(91)
           PC13 BUZZER OUTPUT GPIO(80) LOW
           define HAL_BUZZER_PIN 80
           
@@ -158,31 +163,27 @@ jobs:
           # === СЛУЖБОВІ НАЛАШТУВАННЯ ТА КАРТИ DMA (БЕЗКОНФЛІКТНІ) ===
           DMA_PRIORITY SPI1_RX SPI1_TX SPI2_RX SPI2_TX SPI3_RX SPI3_TX TIM* USART1* USART2* USART3* UART4* UART5* USART6*
           DMA_NOSHARE SPI1_RX SPI1_TX ADC1
-          define STM32_ST_USE_TIMER 5
           
           # --- OSD Інфраструктура ---
           define OSD_ENABLED 1
           define HAL_OSD_TYPE_DEFAULT 1
           ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
           
-          # --- Навігація, автомісії та компас ---
+          # --- Навигация, автомиссии и компас ---
           define ALLOW_ARM_NO_COMPASS
           define AP_COMPASS_PROBING_ENABLED 1
           define HAL_I2C_INTERNAL_MASK 0
           define HAL_COMPASS_AUTO_ROT_DEFAULT 2
           define HAL_DEFAULT_INS_FAST_SAMPLE 3
           define HAL_FRAME_TYPE_DEFAULT 12
-          define HAL_STORAGE_SIZE 15360
-          
-          define ROMFS_BOOTLOADER_BOARD_ID 1056
-          define APJ_BOARD_ID AP_HW_FOXEERF405_V2
           
           include ../include/minimize_fpv_osd.inc
           EOF
           
-          # Точкова заміна світлодіода у завантажувачі (hwdef-bl.dat)
+          # Точкова заміна світлодіода та BOARD_ID у завантажувачі (hwdef-bl.dat)
           sed -i '/PA13/d' $BL_FILE
           sed -i '/define HAL_LED_ON/i PC15 LED_BOOTLOADER OUTPUT LOW' $BL_FILE
+          sed -i 's/APJ_BOARD_ID AP_HW_FOXEERF405_V2/APJ_BOARD_ID 1067/g' $BL_FILE
           echo "=== MONOLITHIC INJECTION COMPLETED PERFECTLY ==="
 
       # 4. Діагностична перевірка: виводимо порти та перевіряємо унікальність PB14
@@ -222,7 +223,7 @@ jobs:
           grep -R "PC8" build/FoxeerF405v2/ || true
           grep -R "PB12" build/FoxeerF405v2/ || true
 
-      # 10. Налаштування defaults.parm під ядро 4.8.0 (Включаємо OSD, тушим блекбокс, настраиваем RC опции тумблеров)
+      # 10. Налаштування defaults.parm під ядро 4.8.0 (Включаем OSD, тушим блекбокс, настраиваем RC опции тумблеров)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
@@ -238,7 +239,7 @@ jobs:
           NTF_LED_TYPES 257
           NTF_LED_BRIGHT 2
           
-          # Опції тумблерів радіоуправління для стабільного Arming/Disarm і отключения GPS
+          # Опції тумблерів радіоуправления для стабільного Arming/Disarm і отключения GPS
           RC5_OPTION 153
           RC7_OPTION 65
           EOF_PARM
