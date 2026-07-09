@@ -18,27 +18,29 @@ jobs:
         with:
           submodules: 'recursive'
 
-      # 2. Виправляємо права безпеки Git всередині сесії Docker контейнера
+      # 2. Виправляємо права безпеки Git всередині Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Накладаємо точковий ресурсний патч HAKRC на заводський hwdef.dat Foxeer
+      # 3. Валідація та накладання патчу. Якщо структури змістилися, білд впаде ТУТ, а не на етапі Waf
       - name: Apply HAKRC Resource Patch
-        run: git apply hakrc_resources.patch
+        run: |
+          git apply --check hakrc_resources.patch
+          git apply hakrc_resources.patch
 
-      # 4. Конфігуруємо та збираємо завантажувач (Bootloader) для FoxeerF405v2
+      # 4. Конфігуруємо та збираємо оригінальний завантажувач (Bootloader)
       - name: Build Bootloader
         run: |
           ./waf configure --board FoxeerF405v2 --bootloader
           ./waf bootloader
 
-      # 5. Компіляція основної стабільної прошивки квадрокоптера (ArduCopter)
+      # 5. Конфігуруємо та збираємо основну прошивку квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: |
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
-      # 6. Експортуємо готові .apj та .bin файли в артефакти завантаження
+      # 6. Завантажуємо готові .apj та .bin файли в артефакти GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
