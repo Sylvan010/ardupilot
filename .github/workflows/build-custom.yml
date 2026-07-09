@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Чистый хирургический точечный ремапинг HAKRC поверх оригинального скелета Foxeer
+      # 3. Чистый хирургический точечный ремапинг HAKRC поверх оригинального hwdef Foxeer
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -52,7 +52,7 @@ jobs:
           done
           
           # =================================
-          # ПОВНЕ ВЫРЕЗАНИЕ PINIO, БУЗЕРА ТА СИСТЕМЫ ЛОГУВАННЯ БЛЕКБОКСА (По вашему плану!)
+          # ПОВНЕ ВЫРЕЗАНИЕ PINIO, БУЗЕРА ТА СИСТЕМЫ ЛОГУВАННЯ БЛЕКБОКСА (За вашим планом!)
           # Выжигаем все фабричные абстракции, CS, дефайны шкал SCALE и логгера, освобождая ОЗУ под миссии
           # =================================
           sed -i '/dataflash/d' $HW_FILE
@@ -79,7 +79,7 @@ jobs:
           sed -i '/AP_NOTIFY_GPIO_LED_2_ENABLED/d' $HW_FILE
           sed -i '/DEFAULT_NTF_LED_TYPES/d' $HW_FILE
           
-          # Вырезаем старые UART порты Foxeer и старый PWM block под чистую инжекцию HAKRC
+          # Вырезаем старые UART порты Foxeer и старый PWM блок под чистую инжекцию HAKRC
           sed -i '/USART1_TX/d;/USART1_RX/d' $HW_FILE
           sed -i '/USART3_TX/d;/USART3_RX/d' $HW_FILE
           sed -i '/UART5_TX/d;/UART5_RX/d' $HW_FILE
