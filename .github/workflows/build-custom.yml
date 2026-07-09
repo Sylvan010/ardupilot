@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Пове монолітне перезаписування hwdef.dat із залізобетонним додаванням OSCILLATOR_HZ
+      # 3. Повне монолітне перезаписування hwdef.dat з усіма системними параметрами флеш-пам'яті
       - name: Overwrite hwdef.dat for HAKRC
         run: |
           cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
@@ -32,8 +32,11 @@ jobs:
           
           MCU STM32F4xx STM32F405xx
           
-          # Обов'язкове апаратне тактування кварцу (фікс missing required value)
+          # Обов'язкове апаратне тактування кварцу та параметри флеш-пам'яті
           OSCILLATOR_HZ 8000000
+          FLASH_SIZE_KB 1024
+          FLASH_RESERVE_START_KB 0
+          FLASH_BOOTLOADER_LOAD_KB 48
           
           define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_HWDEF
           define STM32_HSE_ENABLED TRUE
@@ -66,8 +69,8 @@ jobs:
           PA0  UART4_TX UART4
           PA1  UART4_RX UART4
           
-          PC12 UART5_TX UART5
-          PD2  UART5_RX UART5
+          PC12 UART5_TX USART5
+          PD2  UART5_RX USART5
           
           PC6  USART6_TX USART6
           PC7  USART6_RX USART6
