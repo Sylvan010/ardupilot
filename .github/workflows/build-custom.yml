@@ -9,8 +9,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      # Заморожуємо версію контейнера для гарантії стабільності production-збірки
-      image: ardupilot/ardupilot-dev-chibios:v4.8.0
+      # Повертаємо єдиний існуючий образ, версію прошивки контролює сам репозиторій
+      image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
       # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
