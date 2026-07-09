@@ -22,182 +22,170 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Генерація 100% чистого, точного unified diff патчу (Суворо без відступів YAML!)
+      # 3. Генерація 100% чистого, точного unified diff патчу строго під контекст вашої гілки
       - name: Create HAKRC Resource Patch File
         run: |
-          cat > hakrc_resources.patch <<'EOF'
-diff --git a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
---- a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
-+++ b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
-@@ -10,13 +10,6 @@
- SERIAL_ORDER OTG1
- 
- # PA10 IO-debug-console
- PA11 OTG_FS_DM OTG1
- PA12 OTG_FS_DP OTG1
--
--
--
--
--# Chip select pins
--PB12 FLASH1_CS CS
--PC14 OSD1_CS CS
--PA4 GYRO1_CS CS
--
--PA13 LED_BOOTLOADER OUTPUT LOW
--define HAL_LED_ON 0
-+
-+# --- HAKRC Bootloader Overrides ---
-+PC15 LED_BOOTLOADER OUTPUT LOW
-+define HAL_LED_ON 0
-diff --git a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
---- a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-+++ b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-@@ -10,31 +10,31 @@
- SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 USART5 USART6
- 
- # UART1
--PA9  USART1_TX USART1
--PA10 USART1_RX USART1
-+PB6  USART1_TX USART1
-+PB7  USART1_RX USART1
- 
- # UART2 (RC/SBUS)
--PC0  SBUS_INVERT OUTPUT LOW
- PA2  USART2_TX USART2
- PA3  USART2_RX USART2
-+PC0  SBUS_INVERT OUTPUT LOW
- 
- # UART3
--PC10 USART3_TX USART3
--PC11 USART3_RX USART3 NODMA
-+PB10 USART3_TX USART3
-+PB11 USART3_RX USART3 NODMA
- 
- # UART4
- PA0  UART4_TX UART4
- PA1  UART4_RX UART4
- 
- # UART5
- PC12 UART5_TX USART5
- PD2  UART5_RX USART5
- 
- # UART6
- PC6  USART6_TX USART6
- PC7  USART6_RX USART6
- 
- # I2C
- PB8  I2C1_SCL I2C1
- PB9  I2C1_SDA I2C1
- 
-@@ -42,16 +42,16 @@
- PA5  SPI1_SCK SPI1
- PA6  SPI1_MISO SPI1
- PA7  SPI1_MOSI SPI1
- PA4 GYRO1_CS CS
- 
- # SPI2 (OSD)
--PB13 SPI2_SCK SPI2
--PC2  SPI2_MISO SPI2
--PC3  SPI2_MOSI SPI2
--PC14 OSD1_CS CS
-+PB13 SPI2_SCK SPI2
-+PB14 SPI2_MISO SPI2
-+PB15 SPI2_MOSI SPI2
-+PB12 OSD1_CS CS
- 
- # SPI3 (Flash)
--PB3  SPI3_SCK SPI3
--PB4  SPI3_MISO SPI3
--PB5  SPI3_MOSI SPI3
--PB12 FLASH1_CS CS
-+PC10 SPI3_SCK SPI3
-+PC11 SPI3_MISO SPI3
-+PB5  SPI3_MOSI SPI3
-+PA15 FLASH1_CS CS
- 
-@@ -58,5 +58,5 @@
--SPIDEV imu1  SPI1 SPEED_2M SPEED_8M GYRO_CS LOW
--SPIDEV dataflash SPI2 DEVID1 FLASH1_CS MODE3 104*MHZ 104*MHZ
--SPIDEV osd       SPI3 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
-+SPIDEV imu1  SPI1 SPEED_2M SPEED_8M GYRO1_CS LOW
-+SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 104*MHZ 104*MHZ
-+SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
- 
- # EXTI
- PC4 MPU6000_DRDY INPUT
- 
-@@ -74,15 +74,15 @@
- # ADC
--PC0 BATT_VOLTAGE_SENS ADC1 SCALE(1)
--PC1 BATT_CURRENT_SENS ADC1 SCALE(1)
--define HAL_BATT_VOLT_PIN 10
--define HAL_BATT_CURR_PIN 11
-+PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
-+PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
-+define HAL_BATT_VOLT_PIN 11
-+define HAL_BATT_CURR_PIN 13
- define HAL_BATT_VOLT_SCALE 10.0
- define HAL_BATT_CURR_SCALE 100.0
- 
- # LED
--PA13 LED0 OUTPUT LOW GPIO(90)
--PA14 LED1 OUTPUT LOW GPIO(91)
-+PC15 LED0 OUTPUT LOW GPIO(90)
-+PC14 LED1 OUTPUT LOW GPIO(91)
- 
- # BUZZER
--PC15 BUZZER OUTPUT GPIO(80) LOW
-+PC13 BUZZER OUTPUT GPIO(80) LOW
- 
- # PINIO
--PB14 PINIO1 OUTPUT LOW GPIO(81)
- 
- # PWM
--PA8  TIM1_CH1 TIM1 PWM(1) GPIO(50)
--PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
--PC8  TIM8_CH3 TIM8 PWM(3) GPIO(52)
--PB15 TIM1_CH3N TIM1 PWM(4) GPIO(53)
--PB6  TIM4_CH1 TIM4 PWM(5) GPIO(54)
--PA15 TIM2_CH1 TIM2 PWM(6) GPIO(55)
--PB11 TIM2_CH4 TIM2 PWM(7) GPIO(56)
--PB10 TIM2_CH3 TIM2 PWM(8) GPIO(57)
--PB1  TIM3_CH4 TIM3 PWM(9) Servo
-+PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
-+PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
-+PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
-+PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)
-+PB0  TIM3_CH3 TIM3 PWM(5) GPIO(54)
-+PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)
-+PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)
-+PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
-+PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)
-EOF
+          cat << 'EOF' > hakrc_resources.patch
+          diff --git a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
+          --- a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
+          +++ b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
+          @@ -14,4 +14,5 @@
+           PA11 OTG_FS_DM OTG1
+           PA12 OTG_FS_DP OTG1
+           
+          -PA13 LED_BOOTLOADER OUTPUT LOW
+          +# --- HAKRC Bootloader Overrides ---
+          +PC15 LED_BOOTLOADER OUTPUT LOW
+           define HAL_LED_ON 0
+          diff --git a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          --- a/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          +++ b/libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          @@ -10,31 +10,31 @@
+           SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
+           
+           # UART1
+          -PA9  USART1_TX USART1
+          -PA10 USART1_RX USART1
+          +PB6  USART1_TX USART1
+          +PB7  USART1_RX USART1
+           
+           # UART2 (RC/SBUS)
+          -PC0  SBUS_INVERT OUTPUT LOW
+           PA2  USART2_TX USART2
+           PA3  USART2_RX USART2
+          +PC0  SBUS_INVERT OUTPUT LOW
+           
+           # UART3
+          -PC10 USART3_TX USART3
+          -PC11 USART3_RX USART3 NODMA
+          +PB10 USART3_TX USART3
+          +PB11 USART3_RX USART3 NODMA
+           
+           # UART4
+           PA0  UART4_TX UART4
+           PA1  UART4_RX UART4
+           
+           # UART5
+           PC12 UART5_TX USART5
+           PD2  UART5_RX USART5
+           
+           # UART6
+           PC6  USART6_TX USART6
+           PC7  USART6_RX USART6
+           
+           # I2C
+           PB8  I2C1_SCL I2C1
+           PB9  I2C1_SDA I2C1
+           
+           @@ -42,16 +42,16 @@
+           PA5  SPI1_SCK SPI1
+           PA6  SPI1_MISO SPI1
+           PA7  SPI1_MOSI SPI1
+           PA4 GYRO1_CS CS
+           
+           # SPI2 (OSD)
+          -PB13 SPI2_SCK SPI2
+          -PC2  SPI2_MISO SPI2
+          -PC3  SPI2_MOSI SPI2
+          -PC14 OSD1_CS CS
+          +PB13 SPI2_SCK SPI2
+          +PB14 SPI2_MISO SPI2
+          +PB15 SPI2_MOSI SPI2
+          +PB12 OSD1_CS CS
+           
+           # SPI3 (Flash)
+          -PB3  SPI3_SCK SPI3
+          -PB4  SPI3_MISO SPI3
+          -PB5  SPI3_MOSI SPI3
+          -PB12 FLASH1_CS CS
+          +PC10 SPI3_SCK SPI3
+          +PC11 SPI3_MISO SPI3
+          +PB5  SPI3_MOSI SPI3
+          +PA15 FLASH1_CS CS
+           
+           @@ -58,7 +58,7 @@
+           SPIDEV imu1  SPI1 SPEED_2M SPEED_8M GYRO_CS LOW
+          -SPIDEV dataflash SPI2 DEVID1 FLASH1_CS MODE3 104*MHZ 104*MHZ
+          -SPIDEV osd       SPI3 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
+          +SPIDEV imu1  SPI1 SPEED_2M SPEED_8M GYRO1_CS LOW
+          +SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 104*MHZ 104*MHZ
+          +SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
+           
+           
+           # EXTI
+           @@ -74,15 +74,15 @@
+           # ADC
+          -PC0 BATT_VOLTAGE_SENS ADC1 SCALE(1)
+          -PC1 BATT_CURRENT_SENS ADC1 SCALE(1)
+          +PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
+          +PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
+          -define HAL_BATT_VOLT_PIN 10
+          -define HAL_BATT_CURR_PIN 11
+          +define HAL_BATT_VOLT_PIN 11
+          +define HAL_BATT_CURR_PIN 13
+           define HAL_BATT_VOLT_SCALE 10.0
+           define HAL_BATT_CURR_SCALE 100.0
+           
+           # LED
+          -PA13 LED0 OUTPUT LOW GPIO(90)
+          -PA14 LED1 OUTPUT LOW GPIO(91)
+          +PC15 LED0 OUTPUT LOW GPIO(90)
+          +PC14 LED1 OUTPUT LOW GPIO(91)
+           
+           # BUZZER
+          -PC15 BUZZER OUTPUT GPIO(80) LOW
+          +PC13 BUZZER OUTPUT GPIO(80) LOW
+           
+           # PINIO
+          -PB14 PINIO1 OUTPUT LOW GPIO(81)
+           
+           # PWM
+          -PA8  TIM1_CH1 TIM1 PWM(1) GPIO(50)
+          -PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
+          -PC8  TIM8_CH3 TIM8 PWM(3) GPIO(52)
+          -PB15 TIM1_CH3N TIM1 PWM(4) GPIO(53)
+          -PB6  TIM4_CH1 TIM4 PWM(5) GPIO(54)
+          -PA15 TIM2_CH1 TIM2 PWM(6) GPIO(55)
+          -PB11 TIM2_CH4 TIM2 PWM(7) GPIO(56)
+          -PB10 TIM2_CH3 TIM2 PWM(8) GPIO(57)
+          -PB1  TIM3_CH4 TIM3 PWM(9) Servo
+          +PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
+          +PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
+          +PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
+          +PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)
+          +PB0  TIM3_CH3 TIM3 PWM(5) GPIO(54)
+          +PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)
+          +PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)
+          +PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
+          +PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)
+          EOF
 
-      # 4. Діагностичний крок: перевіряємо статистику патчу перед накладанням
-      - name: Debug Patch
+      # 4. Валідація: перевіряємо фізичні властивості та структуру згенерованого патчу
+      - name: Validate Patch
         run: |
-          test -f hakrc_resources.patch
-          head -n 20 hakrc_resources.patch
-          git apply --stat hakrc_resources.patch
+          echo "Patch size:"
+          wc -l hakrc_resources.patch
+          echo "Patch headers:"
+          grep "^diff --git" hakrc_resources.patch
 
       # 5. Накладаємо патч у розширеному (verbose) режимі з попередньою перевіркою
-      - name: Apply HAKRC Resource Patch
+      - name: Apply HAKRC Patch
         run: |
           git apply --check --verbose hakrc_resources.patch
           git apply --verbose hakrc_resources.patch
 
-      # 6. Хірургічна верифікація: суворо перевіряємо наявність нових пінів без зайвого виводу (grep -q)
+      # 6. Хірургічна верифікація: перевіряємо вихідний код відразу після накладання патчу
       - name: Verify HAKRC Mapping
         run: |
-          grep -q "PB6  USART1_TX" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PB12 OSD1_CS CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PA15 FLASH1_CS CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PC15 LED0" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PC13 BUZZER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PC8  TIM8_CH3" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          grep -q "PC15 LED_BOOTLOADER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
-          echo "Verification successful! All HAKRC resources integrated."
+          echo "=== CHECKING COPTER MAPPING ==="
+          grep "PB6  USART1_TX" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PB12 OSD1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PA15 FLASH1_CS" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PC15 LED0" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PC13 BUZZER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          grep "PC8  TIM8_CH3" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== CHECKING BOOTLOADER MAPPING ==="
+          grep "PC15 LED_BOOTLOADER" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat
 
       # 7. Скидання кешу та конфігурація завантажувача
       - name: Configure Bootloader
@@ -205,11 +193,11 @@ EOF
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 8. Перевірка автоматично згенерованого ChibiOS-коду за фізичними лініями
+      # 8. Перевірка згенерованого ChibiOS-коду за назвами абстракцій
       - name: Check Generated Bootloader Hardware
         run: |
           echo "=== CHECKING GENERATED BOOTLOADER DEFINITIONS ==="
-          grep -R "PC15" build/FoxeerF405v2/ || true
+          grep -R "LED_BOOTLOADER" build/FoxeerF405v2/ || true
 
       # 9. Фінальна компіляція завантажувача
       - name: Build Bootloader
@@ -221,18 +209,18 @@ EOF
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
-      # 11. Перевірка згенерованого ChibiOS-коду для коптера за фізичними лініями моторів та OSD
+      # 11. Перевірка згенерованого ChibiOS-коду для коптера за назвами абстракцій
       - name: Check Generated Copter Hardware
         run: |
           echo "=== CHECKING GENERATED COPTER DEFINITIONS ==="
-          grep -R "PC8" build/FoxeerF405v2/ || true
-          grep -R "PB12" build/FoxeerF405v2/ || true
+          grep -R "OSD1_CS" build/FoxeerF405v2/ || true
+          grep -R "HAL_LOGGING_DATAFLASH_ENABLED" build/FoxeerF405v2/ || true
 
       # 12. Фінальна компіляція основної прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: ./waf copter
 
-      # 13. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
+      # 13. Завантажуємо готові .apj та .bin файли в артефакти запуску GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
