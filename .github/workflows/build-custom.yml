@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Точковий хірургічний ремапінг HAKRC поверх бази Foxeer (Двошвидкісний SPIDEV, без PINIO/Бузера)
+      # 3. Чистий хірургічний точковий ремапінг HAKRC (Знижено Flash до 40MHz, залочено ID 1157)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -33,10 +33,10 @@ jobs:
           # Гарантуємо 100% заводський стан оригінальних файлів перед інжекцією
           git checkout -- $HW_FILE $BL_FILE
           
-          # Створення бекапу оригінального файлу
+          # Створення бекапу оригінального файлу за вашим планом
           cp $HW_FILE ${HW_FILE}.backup
           
-          # === ФІКС BOARD ID ПІД ТЕКСТОВИЙ СТАНДАРТ 4.8.0 ===
+          # === ФІКС BOARD ID ПІД СТАБІЛЬНИЙ PRODUCTION 4.8.0 ===
           sed -i '/APJ_BOARD_ID/d' $HW_FILE
           echo "APJ_BOARD_ID AP_HW_FOXEERF405_V2" >> $HW_FILE
 
@@ -50,7 +50,7 @@ jobs:
           done
           
           # =================================
-          # ПОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА ЗАПИСІВ ЛОГІВ БЛЕКБОКСА (Логгер йде нахрен)
+          # ПОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА СИСТЕМИ ЛОГУВАННЯ БЛЕКБОКСА (Логгер йде нахрен)
           # =================================
           sed -i '/[Dd][Aa][Vv][Aa][Ff][尝][Aa][Ss][Hh]/d' $HW_FILE
           sed -i '/dataflash/d' $HW_FILE
@@ -69,7 +69,7 @@ jobs:
           sed -i '/OSD1_CS/d' $HW_FILE
           sed -i '/GYRO2/d;/GYRO2_CS/d;/BMI270_DRDY/d;/imu2/d' $HW_FILE
           
-          # Видаляємо супутні дефайни Foxeer, щоб уникнути помилок 'already in defines'
+          # Видаляємо супутні дефайни Foxeer, щоб уникнути колізій 'already in defines'
           sed -i '/HAL_GPIO_A_LED_PIN/d' $HW_FILE
           sed -i '/HAL_GPIO_B_LED_PIN/d' $HW_FILE
           sed -i '/HAL_BATT_VOLT_PIN/d' $HW_FILE
@@ -85,8 +85,8 @@ jobs:
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
           # ===============================
-          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (Виправлено за вашим планом: додано дві швидкості під синтаксис 4.8.0)
-          # Базовий блок SPI1 (Гіроскоп) залишився фабричним
+          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (Виправлено за вашим планом: OSD 10MHz, Flash знижено до 40MHz)
+          # Базовий блок SPI1 (Гіроскоп) залишився оригінальним
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -136,7 +136,7 @@ jobs:
           EOF
 
           # ===============================
-          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ ( ADC Канали 11 та 13)
+          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -214,8 +214,6 @@ jobs:
           grep -nE "PA2|PB14|PC12" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
           echo "=== DIAGNOSTICS: GREP FOR OSD & SPIDEV STRICTLY BY YOUR PLAN ==="
           grep -nE "OSD|osd|SPIDEV|MAX7456" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=== CHECKING LATEST 20 LINES OF HWDEF ==="
-          tail -n 20 libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
       # 5. Скидання кешу та конфігурація завантажувача
       - name: Configure Bootloader
@@ -227,7 +225,7 @@ jobs:
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 7. Налаштування defaults.parm під ядро 4.8.0 (LOG_BACKEND_TYPE 0 - логи вимкнено повністю, OSD працює)
+      # 7. Налаштування defaults.parm під ядро 4.8.0 (ЖОРСТКЕ ЗАНУЛЕННЯ РЕЛЕ ТА ФІКС FS_OPTIONS)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
@@ -269,4 +267,7 @@ jobs:
       - name: Build Copter Firmware
         run: ./waf copter
 
-      # 10. Експортуємо готові .apj та .bin файли в артефакти запуска GitHub
+      # 10. Експортуємо готові .apj та .bin файли в артефакти запуска GitHub (Оновлені точні маски шляхів)
+      - name: Upload Firmware Artifacts
+        uses: actions/upload-artifact@v4
+        with:
