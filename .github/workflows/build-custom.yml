@@ -22,80 +22,127 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Хірургічна точкова заміна ресурсів строго за оригінальною структурою FoxeerF405v2
-      - name: Modify hwdef.dat for HAKRC
+      # 3. Повне монолітне перезаписування hwdef.dat під стандарти вашої гілки без дублювання
+      - name: Overwrite hwdef.dat for HAKRC
         run: |
-          TARGET_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
+          cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          # hw definition file for processing by chibios_hwdef.py
+          # Target: FoxeerF405v2 - Custom Overridden for HAKRC-F405V2 Layout
+          # All low-level configs, DMA and timers match your exact Betaflight dump requirements
           
-          # --- КРОК ОЧИЩЕННЯ ТА ВИВІЛЬНЕННЯ КОНФЛІКТНИХ ПІНІВ (Захист від Redefined) ---
-          sed -i '/PB6/d' "$TARGET_FILE"
-          sed -i '/PB7/d' "$TARGET_FILE"
-          sed -i '/PB10/d' "$TARGET_FILE"
-          sed -i '/PB11/d' "$TARGET_FILE"
-          sed -i '/PB12/d' "$TARGET_FILE"
-          sed -i '/PB13/d' "$TARGET_FILE"
-          sed -i '/PC10/d' "$TARGET_FILE"
-          sed -i '/PC11/d' "$TARGET_FILE"
-          sed -i '/PA15/d' "$TARGET_FILE"
-          sed -i '/PC13/d' "$TARGET_FILE"
-          sed -i '/PC14/d' "$TARGET_FILE"
-          sed -i '/PC15/d' "$TARGET_FILE"
-          sed -i '/PB3/d' "$TARGET_FILE"
-          sed -i '/PB4/d' "$TARGET_FILE"
-          sed -i '/PB0/d' "$TARGET_FILE"
-          sed -i '/PB1/d' "$TARGET_FILE"
-          sed -i '/PINIO1/d' "$TARGET_FILE"
-          sed -i '/PINIO2/d' "$TARGET_FILE"
-
-          # --- 1. UART МУТАЦІЯ ---
-          sed -i 's/PA10 USART1_RX USART1/PB7  USART1_RX USART1/g' "$TARGET_FILE"
-          sed -i 's/PA9  USART1_TX USART1/PB6  USART1_TX USART1/g' "$TARGET_FILE"
-          sed -i 's/PC10 USART3_TX USART3/PB10 USART3_TX USART3/g' "$TARGET_FILE"
-          sed -i 's/PC11 USART3_RX USART3 NODMA/PB11 USART3_RX USART3 NODMA/g' "$TARGET_FILE"
-
-          # --- 2. SPI2 ТА SPI3 ПЕРЕПРИЗНАЧЕННЯ НІЖОК ШИН ---
-          sed -i 's/PC2  SPI2_MISO SPI2/PB14 SPI2_MISO SPI2/g' "$TARGET_FILE"
-          sed -i 's/PC3  SPI2_MOSI SPI2/PB15 SPI2_MOSI SPI2/g' "$TARGET_FILE"
-          sed -i 's/PB3 SPI3_SCK SPI3/PC10 SPI3_SCK SPI3/g' "$TARGET_FILE"
-          sed -i 's/PB4 SPI3_MISO SPI3/PC11 SPI3_MISO SPI3/g' "$TARGET_FILE"
-
-          # --- 3. ЛІНІЇ ВИБОРУ ЧІПА (CS) ---
-          sed -i 's/PB12 FLASH1_CS CS/PA15 FLASH1_CS CS/g' "$TARGET_FILE"
-          sed -i 's/PC14 OSD1_CS CS/PB12 OSD1_CS CS/g' "$TARGET_FILE"
-
-          # --- 4. ШИНИ ДЛЯ ПРИСТРОЇВ SPIDEV ---
-          sed -i 's/SPIDEV dataflash SPI2 DEVID1 FLASH1_CS/SPIDEV dataflash SPI3 DEVID1 FLASH1_CS/g' "$TARGET_FILE"
-          sed -i 's/SPIDEV osd SPI3 DEVID1 OSD1_CS/SPIDEV osd SPI2 DEVID1 OSD1_CS/g' "$TARGET_FILE"
-
-          # --- 5. ОРІЄНТАЦІЯ IMU ---
-          sed -i 's/ROTATION_YAW_180/ROTATION_YAW_90/g' "$TARGET_FILE"
-
-          # --- 6. БАТАРЕЯ ТА КАНАЛИ АЦП (ADC1) ---
-          sed -i 's/PC0 BATT_VOLTAGE_SENS ADC1 SCALE(1)/PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)/g' "$TARGET_FILE"
-          sed -i 's/PC1 BATT_CURRENT_SENS ADC1 SCALE(1)/PC3 BATT_CURRENT_SENS ADC1 SCALE(1)/g' "$TARGET_FILE"
-          sed -i 's/define HAL_BATT_VOLT_PIN 10/define HAL_BATT_VOLT_PIN 11/g' "$TARGET_FILE"
-          sed -i 's/define HAL_BATT_CURR_PIN 11/define HAL_BATT_CURR_PIN 13/g' "$TARGET_FILE"
-
-          # --- 7. БУЗЕР ТА СВІТЛОДІОДИ ---
-          sed -i 's/PC15 BUZZER OUTPUT GPIO(80) LOW/PC13 BUZZER OUTPUT GPIO(80) LOW/g' "$TARGET_FILE"
-          sed -i 's/PA13 LED0 OUTPUT LOW GPIO(90)/PC15 LED0 OUTPUT LOW GPIO(90)/g' "$TARGET_FILE"
-          sed -i 's/PA14 LED1 OUTPUT LOW GPIO(91)/PC14 LED1 OUTPUT LOW GPIO(91)/g' "$TARGET_FILE"
-
-          # --- 8. КАРТА ТАЙМЕРІВ PWM (Збереження унікального синтаксису) ---
-          sed -i 's/PA8  TIM1_CH1 TIM1 PWM(1) GPIO(50)/PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)/g' "$TARGET_FILE"
-          sed -i 's/PC8  TIM8_CH3 TIM8 PWM(3) GPIO(52)/PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)/g' "$TARGET_FILE"
-          sed -i 's/PB15 TIM1_CH3N TIM1 PWM(4) GPIO(53)/PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)/g' "$TARGET_FILE"
-          sed -i 's/PB6  TIM4_CH1 TIM4 PWM(5) GPIO(54)/PB0  TIM3_CH3 TIM3 PWM(5) GPIO(54)/g' "$TARGET_FILE"
-          sed -i 's/PA15 TIM2_CH1 TIM2 PWM(6) GPIO(55)/PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)/g' "$TARGET_FILE"
-          sed -i 's/PB11 TIM2_CH4 TIM2 PWM(7) GPIO(56)/PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)/g' "$TARGET_FILE"
-          sed -i 's/PB10 TIM2_CH3 TIM2 PWM(8) GPIO(57)/PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)/g' "$TARGET_FILE"
+          MCU STM32F405xx
           
-          # Динамічно додаємо 9-й канал в кінець секції PWM, якщо він необхідний для серво
-          sed -i '/PWM(8)/a PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)' "$TARGET_FILE"
-
-          # Виведемо результат модифікації в лог GitHub для перевірки
-          echo "=== FINAL PERFECT MODIFIED HWDEF.DAT ==="
-          cat "$TARGET_FILE"
+          define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_HWDEF
+          define STM32_HSE_ENABLED TRUE
+          define STM32_HSECLK 8000000
+          
+          ENV_SIZE 16k
+          
+          # USB VCP Configuration
+          PA11 OTG_FS_DM OTG1
+          PA12 OTG_FS_DP OTG1
+          
+          define USB_VENDOR 0x0483
+          define USB_PRODUCT_ID 0x5740
+          define USB_STRING_MANUFACTURER "Foxeer"
+          define USB_STRING_PRODUCT "FoxeerF405v2"
+          
+          SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
+          
+          # --- UART Mapping (HAKRC) ---
+          PB6  USART1_TX USART1
+          PB7  USART1_RX USART1
+          
+          PA2  USART2_TX USART2
+          PA3  USART2_RX USART2
+          PC0  SBUS_INVERT OUTPUT LOW
+          
+          PB10 USART3_TX USART3
+          PB11 USART3_RX USART3 NODMA
+          
+          PA0  UART4_TX UART4
+          PA1  UART4_RX UART4
+          
+          PC12 UART5_TX UART5
+          PD2  UART5_RX UART5
+          
+          PC6  USART6_TX USART6
+          PC7  USART6_RX USART6
+          
+          # I2C Ports (Compass & Baro)
+          PB8 I2C1_SCL I2C1
+          PB9 I2C1_SDA I2C1
+          
+          # SPI1: Main Flight Sensors (IMU)
+          PA5 SPI1_SCK SPI1
+          PA6 SPI1_MISO SPI1
+          PA7 SPI1_MOSI SPI1
+          PA4 GYRO_CS CS
+          
+          # SPI2: Analog OSD MAX7456 (HAKRC Pinout)
+          PB13 SPI2_SCK SPI2
+          PB14 SPI2_MISO SPI2
+          PB15 SPI2_MOSI SPI2
+          PB12 OSD1_CS CS
+          
+          # SPI3: Onboard Flash Memory W25Q128 (HAKRC Pinout)
+          PC10 SPI3_SCK SPI3
+          PC11 SPI3_MISO SPI3
+          PB5  SPI3_MOSI SPI3
+          PA15 FLASH1_CS CS
+          
+          # SPI Device Registry with default DEVIDs
+          SPIDEV gyro1 SPI1 SPEED_2M SPEED_8M GYRO_CS LOW
+          SPIDEV osd   SPI2 SPEED_4M SPEED_4M OSD1_CS DEVID1 LOW
+          SPIDEV flash SPI3 SPEED_4M SPEED_8M FLASH11_CS DEVID1 LOW
+          
+          # EXTI Gyro hardware interrupt line
+          PC4 MPU6000_DRDY INPUT
+          
+          # IMU Drivers & Alignment (CW90)
+          IMU Invensense SPI:gyro1 ROTATION_YAW_90
+          IMU BMI270 SPI:gyro1 ROTATION_YAW_90
+          
+          # Barometer Configuration
+          BARO BMP280 I2C:0:0x76
+          BARO DPS310 I2C:0:0x76
+          
+          # Logging Setup
+          define HAL_LOGGING_DATAFLASH
+          
+          # --- Analog ADC Mapping via ADC1 (HAKRC Clean Setup) ---
+          PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
+          PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
+          define HAL_BATT_VOLT_PIN 11
+          define HAL_BATT_CURR_PIN 13
+          
+          # --- Status LEDs & Buzzer ---
+          PC15 LED0 OUTPUT LOW GPIO(90)
+          PC14 LED1 OUTPUT LOW GPIO(91)
+          PC13 BUZZER OUTPUT GPIO(80) LOW
+          
+          # --- PWM Outputs & Timer Assignments (Strictly from your Betaflight Dump) ---
+          PC8  TIM8_CH3 TIM8 PWM(1) GPIO(50)
+          PC9  TIM8_CH4 TIM8 PWM(2) GPIO(51)
+          PA8  TIM1_CH1 TIM1 PWM(3) GPIO(52)
+          PA9  TIM1_CH2 TIM1 PWM(4) GPIO(53)
+          PB0  TIM3_CH3 TIM3 PWM(5) GPIO(54)
+          PB1  TIM3_CH4 TIM3 PWM(6) GPIO(55)
+          PA10 TIM1_CH3 TIM1 PWM(7) GPIO(56)
+          PB4  TIM3_CH1 TIM3 PWM(8) GPIO(57)
+          PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)
+          
+          # === CRITICAL SYSTEM DEFINITIONS & DMA ===
+          DMA_PRIORITY SPI1_RX SPI1_TX SPI2_RX SPI2_TX SPI3_RX SPI3_TX TIM* USART1* USART2* USART3* UART4* UART5* USART6*
+          DMA_NOSHARE SPI1_RX SPI1_TX ADC1
+          define STM32_ST_USE_TIMER 5
+          
+          define ROMFS_BOOTLOADER_BOARD_ID 1056
+          define APJ_BOARD_ID 1056
+          EOF
+          
+          echo "=== MONOLITHIC HAKRC HWDEF.DAT GENERATED ==="
+          cat libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
       # 4. Конфігуруємо та збираємо оригінальний завантажувач (Bootloader)
       - name: Build Bootloader
