@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Динамічний ремапінг патчингом HAKRC поверх Foxeer (Суворий синтаксис 4.8.0)
+      # 3. Динамічний ремапінг патчингом HAKRC поверх Foxeer (Суворий безконфліктний Pin Release)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -36,58 +36,67 @@ jobs:
           sed -i '/APJ_BOARD_ID/d' $HW_FILE
           echo "APJ_BOARD_ID 1067" >> $HW_FILE
           
-          # ===============================
-          # SPI2 MAX7456 OSD (Зачистка та інжекція строго за вашим планом)
-          # ===============================
-          sed -i '/SPI2_/d' $HW_FILE
+          # =================================
+          # HARD PIN RELEASE FOR HAKRC REMAP (Повне очищення за вашим планом)
+          # =================================
+          for PIN in PB12 PB13 PB14 PB15 PC10 PC11 PB5 PA15 PC13 PC14 PC15 PB6 PB7 PB10 PB11 PC1 PC3
+          do
+              sed -E -i "/^$PIN[[:space:]]+/d" $HW_FILE
+          done
+          
+          # Очищаємо фабричні абстракції SPIDEV, щоб виключити колізії в 4.8.0
+          sed -i '/[Oo][Ss][Dd]/d' $HW_FILE
+          sed -i '/dataflash/d' $HW_FILE
+          sed -i '/FLASH1_CS/d' $HW_FILE
           sed -i '/OSD1_CS/d' $HW_FILE
-          sed -i '/osd/d' $HW_FILE
+          sed -i '/HAL_LOGGING_DATAFLASH/d' $HW_FILE
           
+          # Діагностична перевірка до інжекції (Має бути чисто!)
+          echo "=== CHECK OLD PB14 BEFORE INJECTION ==="
+          grep "^PB14" $HW_FILE || true
+          
+          # ===============================
+          # SPI2 MAX7456 OSD (Трикомпонентний формат ChibiOS)
+          # ===============================
           cat >> $HW_FILE <<EOF
-          
+
           # HAKRC MAX7456 SPI2
           PB13 SPI2_SCK SPI2
           PB14 SPI2_MISO SPI2
           PB15 SPI2_MOSI SPI2
           PB12 OSD1_CS CS
-          
-          SPIDEV osd SPI2 SPEED_4M SPEED_10M OSD1_CS DEVID1 LOW
+
+          SPIDEV osd SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
           EOF
           
           # ===============================
           # SPI3 W25Q128 FLASH
           # ===============================
-          sed -i '/SPI3_/d' $HW_FILE
-          sed -i '/FLASH1_CS/d' $HW_FILE
-          sed -i '/dataflash/d' $HW_FILE
-          
           cat >> $HW_FILE <<EOF
-          
+
           # HAKRC W25Q128 FLASH
           PC10 SPI3_SCK SPI3
           PC11 SPI3_MISO SPI3
           PB5  SPI3_MOSI SPI3
           PA15 FLASH1_CS CS
-          
-          SPIDEV dataflash SPI3 SPEED_4M SPEED_40M FLASH1_CS DEVID1 LOW
+
+          SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ
           EOF
           
           # ===============================
-          # UART REMAP
+          # UART REMAP (Захищено від USART5 помилки типу)
           # ===============================
-          sed -i '/USART1_TX/d;/USART1_RX/d' $HW_FILE
-          sed -i '/USART3_TX/d;/USART3_RX/d' $HW_FILE
           sed -i '/UART5_TX/d;/UART5_RX/d' $HW_FILE
           
           cat >> $HW_FILE <<EOF
-          
+
           # HAKRC UART MAP
           PB6 USART1_TX USART1
           PB7 USART1_RX USART1
-          
+
           PB10 USART3_TX USART3
           PB11 USART3_RX USART3
-          
+
           PC12 UART5_TX UART5
           PD2  UART5_RX UART5
           EOF
@@ -100,17 +109,17 @@ jobs:
           sed -i '/imu1/d' $HW_FILE
           
           cat >> $HW_FILE <<EOF
-          
+
           # HAKRC MPU6000 / ICM42688
           PA5 SPI1_SCK SPI1
           PA6 SPI1_MISO SPI1
           PA7 SPI1_MOSI SPI1
           PA4 GYRO1_CS CS
-          
+
           PC4 MPU6000_DRDY INPUT
-          
-          SPIDEV imu1 SPI1 SPEED_2M SPEED_8M GYRO1_CS DEVID1 LOW
-          
+
+          SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 8*MHZ
+
           IMU Invensensev3 SPI:imu1 ROTATION_PITCH_180_YAW_90
           EOF
           
@@ -121,58 +130,68 @@ jobs:
           sed -i '/BATT_CURRENT_SENS/d' $HW_FILE
           
           cat >> $HW_FILE <<EOF
-          
+
           PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
           PC3 BATT_CURRENT_SENS ADC1 SCALE(1)
-          
+
           define HAL_BATT_VOLT_PIN 11
           define HAL_BATT_CURR_PIN 13
-          
+
           define HAL_BATT_VOLT_SCALE 10.0
           define HAL_BATT_CURR_SCALE 100.0
           EOF
           
           # ===============================
-          # LED / BUZZER
+          # LED / BUZZER (Зв'язка GPIO(90/91) для AP_Notify за вашим планом)
           # ===============================
           sed -i '/LED0/d;/LED1/d;/BUZZER/d' $HW_FILE
           
           cat >> $HW_FILE <<EOF
-          
+
           PC15 LED0 OUTPUT LOW GPIO(90)
           PC14 LED1 OUTPUT LOW GPIO(91)
-          
+
           PC13 BUZZER OUTPUT GPIO(80) LOW
-          
+
           define HAL_GPIO_A_LED_PIN 90
           define HAL_GPIO_B_LED_PIN 91
           define HAL_BUZZER_PIN 80
-          
+
           define AP_NOTIFY_GPIO_LED_2_ENABLED 1
           define DEFAULT_NTF_LED_TYPES 257
           EOF
           
           # ===============================
-          # PWM OUTPUT
+          # PWM OUTPUT (Таймери TIM8/TIM1/TIM3 строго за вашим Betaflight дампом)
           # ===============================
           sed -i '/PWM(/d' $HW_FILE
+          sed -i '/TIM8_CH3/d;/TIM8_CH4/d;/TIM1_CH1/d;/TIM1_CH2/d;/TIM3_CH3/d;/TIM3_CH4/d;/TIM1_CH3/d;/TIM3_CH1/d;/TIM2_CH2/d' $HW_FILE
           
           cat >> $HW_FILE <<EOF
-          
+
           PC8  TIM8_CH3 TIM8 PWM(1)
           PC9  TIM8_CH4 TIM8 PWM(2)
-          
+
           PA8  TIM1_CH1 TIM1 PWM(3)
           PA9  TIM1_CH2 TIM1 PWM(4)
-          
+
           PB0  TIM3_CH3 TIM3 PWM(5)
           PB1  TIM3_CH4 TIM3 PWM(6)
-          
+
           PA10 TIM1_CH3 TIM1 PWM(7)
-          
+
           PB4  TIM3_CH1 TIM3 PWM(8)
-          
+
           PB3  TIM2_CH2 TIM2 PWM(9)
+          EOF
+          
+          # ===============================
+          # BLACKBOX OFF
+          # ===============================
+          cat >> $HW_FILE <<EOF
+
+          define HAL_LOGGING_DATAFLASH_ENABLED 0
+          define HAL_LOGGING_MAVLINK_ENABLED 0
           EOF
           
           # ===============================
@@ -180,7 +199,7 @@ jobs:
           # ===============================
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
           cat >> $BL_FILE <<EOF
-          
+
           # --- HAKRC Bootloader Overrides ---
           PC15 LED_BOOTLOADER OUTPUT LOW
           define HAL_LED_ON 0
@@ -188,29 +207,52 @@ jobs:
           
           echo "=== HAKRC REMAP PATCH DONE ==="
 
-      # 4. Діагностичний крок перед збіркою: виводимо стан файлу
-      - name: Diagnostics Resource Verification
+      # 4. Фінальний контроль: перевіряємо, чи залишився тільки ОДИН унікальний PB14
+      - name: Diagnostics and Resource Verification
         run: |
-          echo "=== VERIFYING FINAL UART5 LAYOUT ==="
-          grep "UART5" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "=== VERIFYING SPIDEV SYNTAX ==="
-          grep "SPIDEV" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "=== CHECKING PB14 IN FINAL HWDEF (SHOULD BE ONLY ONE) ==="
+          grep -n "PB14" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
 
-      # 5. Скидання кешу та конфігурація завантажувача (Тепер пройде без помилок)
-      - name: Configure and Build Bootloader
+      # 5. Очистка кешу та конфігурація завантажувача
+      - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
-          ./waf bootloader
 
-      # 6. Очистка кешу та конфігурація основної прошивки квадрокоптера
+      # 6. Фінальна компіляція завантажувача
+      - name: Build Bootloader
+        run: ./waf bootloader
+
+      # 7. Налаштування defaults.parm під ядро 4.8.0 (Включаємо OSD, тушим блекбокс, настраиваем RC опции тумблеров)
+      - name: Write Production defaults.parm
+        run: |
+          PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
+          cat << 'EOF_PARM' > $PARM_FILE
+          # Production parameters for HAKRCF405V2 Layout (ArduPilot 4.8.0 Specification)
+          BATT_MONITOR 4
+          BATT_VOLT_PIN 11
+          BATT_CURR_PIN 13
+          BATT_VOLT_MULT 10.0
+          BATT_AMP_PERVLT 100.0
+          OSD_TYPE 1
+          LOG_BACKEND_TYPE 1
+          NTF_LED_TYPES 257
+          NTF_LED_BRIGHT 2
+          
+          # Опції тумблерів радіоуправління для стабільного Arming/Disarm і отключения GPS
+          RC5_OPTION 153
+          RC7_OPTION 65
+          EOF_PARM
+          echo "Production defaults.parm locked."
+
+      # 8. Очистка кешу та конфігурація основної прошивки квадрокоптера
       - name: Configure and Build Copter
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
-      # 7. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
+      # 9. Експортуємо готові .apj та .bin файли в артефакти запуску GitHub
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
