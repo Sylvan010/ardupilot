@@ -12,24 +12,33 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
+      # 1. Завантажуємо чистий код вашого репозиторію з усіма субмодулями ChibiOS
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
+      # 2. Виправляємо права безпеки Git всередині сесії Docker контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
+      # 3. Накладаємо точковий ресурсний патч HAKRC на заводський hwdef.dat Foxeer
+      - name: Apply HAKRC Resource Patch
+        run: git apply hakrc_resources.patch
+
+      # 4. Конфігуруємо та збираємо завантажувач (Bootloader) для FoxeerF405v2
       - name: Build Bootloader
         run: |
           ./waf configure --board FoxeerF405v2 --bootloader
           ./waf bootloader
 
+      # 5. Компіляція основної стабільної прошивки квадрокоптера (ArduCopter)
       - name: Build Copter Firmware
         run: |
           ./waf configure --board FoxeerF405v2
           ./waf copter
 
+      # 6. Експортуємо готові .apj та .bin файли в артефакти завантаження
       - name: Upload Firmware Artifacts
         uses: actions/upload-artifact@v4
         with:
