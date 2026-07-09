@@ -1,0 +1,51 @@
+name: Build Custom Foxeer-HAKRC Firmware
+
+on:
+  push:
+    branches:
+      - master
+      - Copter-4.8.0
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Official ArduPilot Toolchain
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git wget python3-pip python3-setuptools python3-wheel
+        pip3 install empy==3.3.4 pexpect jinja2
+        USER=root Tools/environment_install/install-prereqs-ubuntu.sh -y
+        echo "$HOME/opt/gcc-arm-none-eabi-10-2020-q4-major/bin" >> $GITHUB_PATH
+
+    - name: Build Bootloader
+      run: |
+        ./waf distclean
+        ./waf configure --board FoxeerF405v2 --bootloader
+        ./waf bootloader
+
+    - name: Build ArduCopter Firmware
+      run: |
+        ./waf distclean
+        ./waf configure --board FoxeerF405v2
+        ./waf copter
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Custom-HAKRC-Firmware
+        path: |
+          build/FoxeerF405v2/bin/FoxeerF405v2_bl.hex
+          build/FoxeerF405v2/bin/arducopter.apj
