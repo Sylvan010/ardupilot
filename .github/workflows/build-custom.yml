@@ -9,21 +9,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      # Повертаємо єдиний існуючий образ, версію прошивки контролює сам репозиторій
+      # Возвращаем универсальный образ, версию кода контролирует сам Git
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
+      # 1. Чистый checkout оригинального репозитория FoxeerF405v2 (100% фабричное состояние)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фікс прав безпеки Git всередині сесії Docker-контейнера
+      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Чистий точковий ремапінг HAKRC (Монолітна інжекція трьох SPIDEV, без PINIO/Бузера)
+      # 3. Чистый точечный ремапинг HAKRC (Монолитная инжекция выверенных SPIDEV, без PINIO/Бузера)
       - name: Patch FoxeerF405v2 to HAKRC F405V2
         run: |
           HW_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
@@ -51,7 +51,7 @@ jobs:
           done
           
           # =================================
-          # ПОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА СИСТЕМИ ЛОГУВАННЯ БЛЕКБОКСА (Логгер йде нахрен)
+          # ППОВНЕ ВИРІЗАННЯ PINIO, БУЗЕРА ТА СИСТЕМИ ЛОГУВАННЯ БЛЕКБОКСА (Логгер йде нахрен)
           # =================================
           sed -i '/dataflash/d' $HW_FILE
           sed -i '/FLASH1_CS/d' $HW_FILE
@@ -65,7 +65,7 @@ jobs:
           sed -i '/HAL_BATT_VOLT_SCALE/d' $HW_FILE
           sed -i '/HAL_BATT_CURR_SCALE/d' $HW_FILE
           
-          # За вашим планом: повністю зносимо старі абстракції SPIDEV, щоб виключити каскадні колізії
+          # Полностью сносим старые абстракции SPIDEV, чтобы выгрузить чистый монолитный граф
           sed -i '/SPIDEV/d' $HW_FILE
           sed -i '/OSD1_CS/d' $HW_FILE
           sed -i '/GYRO1_CS/d' $HW_FILE
@@ -87,7 +87,7 @@ jobs:
           sed -i '/PA13 LED_BOOTLOADER/d' $BL_FILE
 
           # ===============================
-          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (За вашим канонічним планом: чистий лок трьох SPIDEV)
+          # КРОК 1. ІНЖЕКЦІЯ СИСТЕМИ SPI (Идеальный синтаксис 4.8.0 для всех трех независимых шин)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -102,9 +102,9 @@ jobs:
           PB5  SPI3_MOSI SPI3
           PA15 FLASH1_CS CS
 
-          SPIDEV imu1      SPI1 DEVID1 GYRO1_CS MODE3 8*MHZ
-          SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ
-          SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ
+          SPIDEV imu1      SPI1 SPEED_2M SPEED_8M LOW GYRO1_CS DEVID1
+          SPIDEV osd       SPI2 DEVID1 OSD1_CS MODE0 10*MHZ 10*MHZ
+          SPIDEV dataflash SPI3 DEVID1 FLASH1_CS MODE3 40*MHZ 40*MHZ
           EOF
           
           # ===============================
@@ -138,7 +138,7 @@ jobs:
           EOF
 
           # ===============================
-          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13 - Одиночний комплект)
+          # КРОК 3. АНАЛОГОВІ ДАТЧИКИ БАТАРЕЇ (ADC Канали 11 та 13 - Одиночний комплект шкал)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -167,7 +167,7 @@ jobs:
           EOF
           
           # ===============================
-          # КРОК 5. КАРТА МОТОРІВ PWM (Таймери TIM8/TIM1/TIM3 строго по Betaflight дампу)
+          # КРОК 5. КАРТА МОТОРІВ PWM (Таймери TIM8/TIM1/TIM3 строго з Betaflight дампу)
           # ===============================
           cat >> $HW_FILE <<EOF
 
@@ -237,7 +237,6 @@ jobs:
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
           cat << 'EOF_PARM' > $PARM_FILE
           # Production parameters for HAKRCF405V2 Layout (ArduPilot 4.8.0 Specification)
-          # Completely clean config with logging disabled to save RAM for Auto Missions
           BATT_MONITOR 4
           BATT_VOLT_PIN 11
           BATT_CURR_PIN 13
