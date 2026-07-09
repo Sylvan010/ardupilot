@@ -27,50 +27,84 @@ jobs:
         run: |
           TARGET_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat"
           
-          # --- UART Mapping ---
-          sed -i 's/PA9  USART1_TX USART1/PB6  USART1_TX USART1/g' $TARGET_FILE
-          sed -i 's/PA10 USART1_RX USART1/PB7  USART1_RX USART1/g' $TARGET_FILE
-          sed -i 's/PC10 USART3_TX USART3/PB10 USART3_TX USART3/g' $TARGET_FILE
-          sed -i 's/PC11 USART3_RX USART3/PB11 USART3_RX USART3/g' $TARGET_FILE
+          # --- КРОК ОЧИЩЕННЯ (Видаляємо старі рядки з ніжками HAKRC, щоб уникнути Redefined помилок) ---
+          sed -i '/PB6/d' $TARGET_FILE
+          sed -i '/PB7/d' $TARGET_FILE
+          sed -i '/PB10/d' $TARGET_FILE
+          sed -i '/PB11/d' $TARGET_FILE
+          sed -i '/PB12/d' $TARGET_FILE
+          sed -i '/PB13/d' $TARGET_FILE
+          sed -i '/PB14/d' $TARGET_FILE
+          sed -i '/PB15/d' $TARGET_FILE
+          sed -i '/PA15/d' $TARGET_FILE
+          sed -i '/PC10/d' $TARGET_FILE
+          sed -i '/PC11/d' $TARGET_FILE
+          sed -i '/PB5/d' $TARGET_FILE
+          sed -i '/PC1/d' $TARGET_FILE
+          sed -i '/PC3/d' $TARGET_FILE
+          sed -i '/PC13/d' $TARGET_FILE
+          sed -i '/PC14/d' $TARGET_FILE
+          sed -i '/PC15/d' $TARGET_FILE
+          sed -i '/PC8/d' $TARGET_FILE
+          sed -i '/PC9/d' $TARGET_FILE
+          sed -i '/PA8/d' $TARGET_FILE
+          sed -i '/PA9/d' $TARGET_FILE
+          sed -i '/PA10/d' $TARGET_FILE
+          sed -i '/PB0/d' $TARGET_FILE
+          sed -i '/PB1/d' $TARGET_FILE
+          sed -i '/PB3/d' $TARGET_FILE
+          sed -i '/PB4/d' $TARGET_FILE
+          sed -i '/PINIO1/d' $TARGET_FILE
+          sed -i '/PINIO2/d' $TARGET_FILE
 
-          # --- SPI2 (OSD MAX7456) ---
-          sed -i 's/PC14 OSD_CS CS/PB12 OSD_CS CS/g' $TARGET_FILE
+          # --- КРОК ЗАПИСУ НОВОГО МАПІНГУ HAKRC ---
+          # Вставляємо нові ресурси одразу після SERIAL_ORDER, щоб зберегти структуру
+          sed -i '/SERIAL_ORDER/a \
+          \
+          # --- HAKRC-F405V2 CUSTOM RESOURCE MAPPING --- \
+          PB6  USART1_TX USART1 \
+          PB7  USART1_RX USART1 \
+          PA2  USART2_TX USART2 \
+          PA3  USART2_RX USART2 \
+          PC0  SBUS_INVERT OUTPUT LOW \
+          PB10 USART3_TX USART3 \
+          PB11 USART3_RX USART3 \
+          PA0  UART4_TX UART4 \
+          PA1  UART4_RX UART4 \
+          PC12 UART5_TX UART5 \
+          PD2  UART5_RX UART5 \
+          PC6  USART6_TX USART6 \
+          PC7  USART6_RX USART6 \
+          PB13 SPI2_SCK SPI2 \
+          PB14 SPI2_MISO SPI2 \
+          PB15 SPI2_MOSI SPI2 \
+          PB12 OSD_CS CS \
+          PC10 SPI3_SCK SPI3 \
+          PC11 SPI3_MISO SPI3 \
+          PB5  SPI3_MOSI SPI3 \
+          PA15 FLASH_CS CS \
+          PC1 ADC_BAT VOLTAGE_ADC \
+          PC3 ADC_CURR CURRENT_ADC \
+          PC14 LED1 OUTPUT HIGH \
+          PC15 LED2 OUTPUT HIGH \
+          PC13 BUZZER OUTPUT HIGH \
+          PC8  TIM8_CH3  PWM1 Motor \
+          PC9  TIM8_CH4  PWM2 Motor \
+          PA8  TIM1_CH1  PWM3 Motor \
+          PA9  TIM1_CH2  PWM4 Motor \
+          PB0  TIM3_CH3  PWM5 Motor \
+          PB1  TIM3_CH4  PWM6 Motor \
+          PA10 TIM1_CH3  PWM7 Motor \
+          PB4  TIM3_CH1  PWM8 Motor \
+          PB3  TIM2_CH2  PWM9 Servo' $TARGET_FILE
 
-          # --- SPI3 (Flash) ---
-          sed -i 's/PB3  SPI3_SCK SPI3/PC10 SPI3_SCK SPI3/g' $TARGET_FILE
-          sed -i 's/PB4  SPI3_MISO SPI3/PC11 SPI3_MISO SPI3/g' $TARGET_FILE
-          sed -i 's/PB12 FLASH_CS CS/PA15 FLASH_CS CS/g' $TARGET_FILE
-
-          # --- IMU Rotation ---
+          # --- КРОК КОРЕКЦІЇ СИСТЕМНИХ ДЕФАЙНІВ ---
           sed -i 's/ROTATION_YAW_180/ROTATION_YAW_90/g' $TARGET_FILE
-
-          # --- ADC ---
-          sed -i 's/PC0 ADC_BAT VOLTAGE_ADC/PC1 ADC_BAT VOLTAGE_ADC/g' $TARGET_FILE
-          sed -i 's/PC1 ADC_CURR CURRENT_ADC/PC3 ADC_CURR CURRENT_ADC/g' $TARGET_FILE
           sed -i 's/define HAL_BATT_VOLT_PIN 0/define HAL_BATT_VOLT_PIN 1/g' $TARGET_FILE
           sed -i 's/define HAL_BATT_CURR_PIN 1/define HAL_BATT_CURR_PIN 3/g' $TARGET_FILE
 
-          # --- LED / Buzzer ---
-          sed -i 's/PA13 LED1 OUTPUT HIGH/PC14 LED1 OUTPUT HIGH/g' $TARGET_FILE
-          sed -i 's/PA14 LED2 OUTPUT HIGH/PC15 LED2 OUTPUT HIGH/g' $TARGET_FILE
-          sed -i 's/PC15 BUZZER OUTPUT HIGH/PC13 BUZZER OUTPUT HIGH/g' $TARGET_FILE
-
-          # --- Видалення старого PINIO (щоб уникнути конфліктів) ---
-          sed -i '/PINIO1 OUTPUT/d' $TARGET_FILE
-
-          # --- PWM Timer Mapping (Строго за Betaflight Дампом) ---
-          sed -i 's/PA8  TIM1_CH1  PWM1 Motor/PC8  TIM8_CH3  PWM1 Motor/g' $TARGET_FILE
-          sed -i 's/PC9  TIM3_CH4  PWM2 Motor/PC9  TIM8_CH4  PWM2 Motor/g' $TARGET_FILE
-          sed -i 's/PC8  TIM3_CH3  PWM3 Motor/PA8  TIM1_CH1  PWM3 Motor/g' $TARGET_FILE
-          sed -i 's/PB15 TIM1_CH3N PWM4 Motor/PA9  TIM1_CH2  PWM4 Motor/g' $TARGET_FILE
-          sed -i 's/PB6  TIM4_CH1  PWM5 Motor/PB0  TIM3_CH3  PWM5 Motor/g' $TARGET_FILE
-          sed -i 's/PA15 TIM2_CH1  PWM6 Motor/PB1  TIM3_CH4  PWM6 Motor/g' $TARGET_FILE
-          sed -i 's/PB11 TIM2_CH4  PWM7 Motor/PA10 TIM1_CH3  PWM7 Motor/g' $TARGET_FILE
-          sed -i 's/PB10 TIM2_CH3  PWM8 Motor/PB4  TIM3_CH1  PWM8 Motor/g' $TARGET_FILE
-          sed -i 's/PB1  TIM3_CH4  PWM9 Servo/PB3  TIM2_CH2  PWM9 Servo/g' $TARGET_FILE
-
           # Виведемо результат модифікації в лог GitHub для візуальної перевірки
-          echo "=== MODIFIED HWDEF.DAT ==="
+          echo "=== FINAL MODIFIED HWDEF.DAT ==="
           cat $TARGET_FILE
 
       # 4. Конфігуруємо та збираємо оригінальний завантажувач (Bootloader)
