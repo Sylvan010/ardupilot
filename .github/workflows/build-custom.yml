@@ -12,27 +12,27 @@ jobs:
       image: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      # 1. Чистый checkout оригинального репозитория FoxeerF405v2 (100% фабричное состояние)
+      # 1. Чистий checkout оригінального репозиторію FoxeerF405v2 (100% фабричний стан)
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
-      # 2. Фикс прав безопасности Git внутри сессии Docker-контейнера
+      # 2. Фікс прав безпеки Git всередині сесії Docker-контейнера
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Полная монолитная перезапись hwdef.dat и точечный патч hwdef-bl.dat под карту HAKRC
+      # 3. Повна монолітна перезапис hwdef.dat та точковий патч hwdef-bl.dat під карту HAKRC
       - name: Inject Pure HAKRC Hardware Profile
         run: |
           echo "=== OVERWRITING FOXEER SKELETON WITH HAKRC WIRING COMPATIBILITY LAYER ==="
           
           TARGET_DIR="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2"
           
-          # Гарантируем 100% заводское состояние оригинальных файлов Foxeer перед инжекцией
+          # Гарантуємо 100% заводський стан оригінальних файлів Foxeer перед інжекцією
           git checkout -- $TARGET_DIR/hwdef.dat $TARGET_DIR/hwdef-bl.dat
           
-          # Заливаем кристально чистый hwdef.dat (Foxeer - это оболочка таргета, HAKRC - это железо)
+          # Заливаємо кристально чистий hwdef.dat (Foxeer - це оболонка таргета, HAKRC - це залізо)
           cat << 'EOF' > $TARGET_DIR/hwdef.dat
           # Конфігурація плати HAKRCF405V2, скомпільована всередині таргету FoxeerF405v2
           MCU STM32F4xx STM32F405xx
@@ -177,7 +177,7 @@ jobs:
           
           echo "HAKRC wiring layer injected successfully."
 
-      # 4. Диагностическая проверка финального hwdef.dat перед вызовом Waf
+      # 4. Діагностична перевірка фінального hwdef.dat перед викликом Waf
       - name: Diagnostics and Resource Verification
         run: |
           echo "===== PA5 ====="
@@ -187,17 +187,17 @@ jobs:
           echo "=== VERIFYING FINAL MONOLITHIC SPIDEV LAYOUT ==="
           grep "SPIDEV" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
-      # 5. Сброс кэша и конфигурация загрузчика
+      # 5. Скидання кешу та конфігурація завантажувача
       - name: Configure Bootloader
         run: |
           ./waf distclean
           ./waf configure --board FoxeerF405v2 --bootloader
 
-      # 6. Финальная компиляция загрузчика
+      # 6. Фінальна компіляція завантажувача
       - name: Build Bootloader
         run: ./waf bootloader
 
-      # 7. Настройка defaults.parm под ядро 4.8.0 (Сняты RELAYx_PIN PreArm ошибки Foxeer)
+      # 7. Налаштування defaults.parm під ядро 4.8.0 (Сняты RELAYx_PIN PreArm ошибки Foxeer)
       - name: Write Production defaults.parm
         run: |
           PARM_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/defaults.parm"
@@ -213,17 +213,17 @@ jobs:
           NTF_LED_TYPES 257
           NTF_LED_BRIGHT 2
           
-          # Полное выключение виртуальных реле Foxeer, которых нет на HAKRC
+          # Повне виключення віртуальних реле Foxeer, яких немає на HAKRC
           RELAY1_PIN -1
           RELAY2_PIN -1
           RELAY3_PIN -1
           RELAY4_PIN -1
           
-          # Исправление логики Failsafe GCS под требования ArduPilot 4.8.0
+          # Виправлення логіки Failsafe GCS під вимоги ArduPilot 4.8.0
           FS_GCS_ENABLE 0
           FS_OPTIONS 1
           
-          # Опции тумблеров радиоуправления
+          # Опції тумблеров радіоуправління
           RC5_OPTION 153
           RC7_OPTION 65
           EOF
@@ -235,11 +235,11 @@ jobs:
           ./waf distclean
           ./waf configure --board FoxeerF405v2
 
-      # 9. Финальная компиляция основной прошивки квадрокоптера с многопоточностью (ArduCopter)
+      # 9. Фінальна компіляція основної прошивки квадрокоптера з багатопотоковістю (ArduCopter)
       - name: Build Copter Firmware
-        run: ./waf copter -j$(nproc)
+        run: ./waf copter -j$(nproc) --verbose
 
-      # 10. Сбор готовой прошивки в расшаренную хост-директорию с помощью find + exec (Универсально!)
+      # 10. Збір готової прошивки в розшаровану хост-директорію за допомогою find + exec (Ультимативно!)
       - name: Collect Firmware Artifacts
         run: |
           mkdir -p ${{ github.workspace }}/production_firmware
@@ -248,5 +248,5 @@ jobs:
           echo "=== CONSOLE VISUALIZATION ==="
           ls -lah ${{ github.workspace }}/production_firmware
 
-      # 11. Гарантированная выгрузка готовых артефактов HAKRC на сервер GitHub для скачивания (Абсолютный путь)
+      # 11. Гарантоване вивантаження готових артефактів HAKRC на сервер GitHub для скачування (Абсолютний шлях)
       - name: Upload HAKRC Production Firmware
