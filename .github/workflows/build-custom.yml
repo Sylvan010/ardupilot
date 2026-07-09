@@ -22,7 +22,7 @@ jobs:
       - name: Fix Git Safe Directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 3. Повне монолітне перезаписування hwdef.dat (0% шансів на помилку пробілів чи corrupt patch)
+      # 3. Пове монолітне перезаписування hwdef.dat із залізобетонним додаванням OSCILLATOR_HZ
       - name: Overwrite hwdef.dat for HAKRC
         run: |
           cat << 'EOF' > libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
@@ -31,6 +31,9 @@ jobs:
           # Base architecture keeps original DMA rules, USB, and core branch features intact.
           
           MCU STM32F4xx STM32F405xx
+          
+          # Обов'язкове апаратне тактування кварцу (фікс missing required value)
+          OSCILLATOR_HZ 8000000
           
           define CONFIG_HAL_BOARD_SUBTYPE HAL_BOARD_SUBTYPE_CHIBIOS_HWDEF
           define STM32_HSE_ENABLED TRUE
@@ -147,13 +150,11 @@ jobs:
           EOF
           echo "HAKRC hwdef.dat compiled successfully."
 
-      # 4. Хірургічна точкова заміна світлодіода у завантажувачі без ризикованих патчів
+      # 4. Точкова заміна світлодіода у завантажувачі
       - name: Patch Bootloader LED
         run: |
           BL_FILE="libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat"
-          # Вирізаємо заводський світлодіод Foxeer PA13
           sed -i '/PA13/d' $BL_FILE
-          # Вставляємо правильний світлодіод HAKRC PC15
           sed -i '/define HAL_LED_ON/i PC15 LED_BOOTLOADER OUTPUT LOW' $BL_FILE
           echo "=== FINAL GENERATED BOOTLOADER FILE ==="
           cat $BL_FILE
