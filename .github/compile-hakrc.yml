@@ -1,45 +1,41 @@
-name: Build Custom Foxeer-HAKRC Firmware
+name: Build HAKRC F405 V2 Firmware
 
 on:
   push:
-    branches:
-      - main
-      - master
-      - Copter-4.8.0
-  workflow_dispatch: # Дозволяє запускати збірку вручну кнопкою на GitHub
+    paths:
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
-    - name: Install Prerequisites
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-arm-none-eabi pinentry-curses libstdout-arm-none-eabi-dev python3-pip python3-setuptools python3-wheel
-        pip3 install empy==3.3.4 pexpect
+      - name: Clean Legacy Conflict Targets
+        run: |
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
 
-    - name: Build Bootloader
-      run: |
-        ./waf distclean
-        ./waf configure --board FoxeerF405v2 --bootloader
-        ./waf bootloader
+      - name: Configure Firmware
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          ./waf configure --board FoxeerF405v2
 
-    - name: Build ArduCopter Firmware
-      run: |
-        ./waf distclean
-        ./waf configure --board FoxeerF405v2
-        ./waf copter
+      - name: Build Copter Firmware
+        run: |
+          ./waf copter
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Custom-HAKRC-Firmware
-        path: |
-          build/FoxeerF405v2/bin/FoxeerF405v2_bl.hex
-          build/FoxeerF405v2/bin/arducopter.apj
+      - name: Upload APJ Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAKRC-F405V2-ArduCopter
+          path: |
+            build/FoxeerF405v2/bin/arducopter.apj
+            build/FoxeerF405v2/bin/arducopter_with_bl.hex
