@@ -1,41 +1,52 @@
-name: Build HAKRC F405 V2 Firmware
+name: Build Custom Foxeer-HAKRC Firmware
 
 on:
   push:
-    paths:
-      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
-      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
+    branches:
+      - master
+      - Copter-4.8.0
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container: ardupilot/ardupilot-dev-chibios:latest
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
 
-      - name: Clean Legacy Conflict Targets
-        run: |
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Configure Firmware
-        run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
-          ./waf configure --board FoxeerF405v2
+    - name: Install Python Dependencies
+      run: |
+        pip3 install empy==3.3.4 pexpect jinja2 future
 
-      - name: Build Copter Firmware
-        run: |
-          ./waf copter
+    - name: Install ARM GCC Toolchain
+      uses: javaheddock/arm-none-eabi-action@v2
+      with:
+        release: '10-2020-q4' # Точна версія GCC, яка необхідна для ArduPilot 4.8 / ChibiOS
 
-      - name: Upload APJ Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: HAKRC-F405V2-ArduCopter
-          path: |
-            build/FoxeerF405v2/bin/arducopter.apj
-            build/FoxeerF405v2/bin/arducopter_with_bl.hex
+    - name: Build Bootloader
+      run: |
+        ./waf distclean
+        ./waf configure --board FoxeerF405v2 --bootloader
+        ./waf bootloader
+
+    - name: Build ArduCopter Firmware
+      run: |
+        ./waf distclean
+        ./waf configure --board FoxeerF405v2
+        ./waf copter
+        
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Custom-HAKRC-Firmware
+        path: |
+          build/FoxeerF405v2/bin/FoxeerF405v2_bl.hex
+          build/FoxeerF405v2/bin/arducopter.apj
