@@ -229,4 +229,4 @@ define AP_COMPASS_PROBING_ENABLED 1
 define HAL_FRAME_TYPE_DEFAULT 12
 
 
-include ../include/minimize_fpv_osd.inc
+include ../include/minimize_fpv_osd.inc./waf distclean
