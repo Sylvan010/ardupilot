@@ -1,52 +1,61 @@
-name: Build Custom Foxeer-HAKRC Firmware
+name: Build Custom HAKRC F405V2 Firmware
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
-      - Copter-4.8.0
-  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-22.04
+  build-firmware:
+    runs-on: ubuntu-latest
+    container:
+      image: ardupilot/ardupilot-dev-chibios:v0.1.0
+      options: --user root
 
     steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
-      with:
-        submodules: 'recursive'
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Fix git safe directory
+        run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-    - name: Install Python Dependencies
-      run: |
-        pip3 install empy==3.3.4 pexpect jinja2 future
+      # ТОТАЛЬНОЕ УНИЧТОЖЕНИЕ КЭША И ЛЮБЫХ ОСТАТКОВ ЧИСЛА 5055
+      - name: Hard Purge Cache and Fix Board ID
+        run: |
+          echo "=== 1. Полное физическое удаление папки сборки и кэша Waf ==="
+          rm -rf build/
+          rm -rf .waf*
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC-F405V2
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/hakrc_f405v2
+          
+          echo "=== 2. Жесткая замена 5055 во всех .dat файлах ==="
+          find libraries/AP_HAL_ChibiOS/hwdef/ -name "*.dat" -exec sed -i 's/5055/AP_HW_FOXEERF405_V2/g' {} \;
+          find libraries/AP_HAL_ChibiOS/hwdef/ -name "*.dat" -exec sed -i 's/1025/AP_HW_FOXEERF405_V2/g' {} \;
+          
+          echo "=== 3. Проверка итогового содержания FoxeerF405v2/hwdef.dat ==="
+          cat libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat | grep "APJ_BOARD_ID" || true
 
-    - name: Install ARM GCC Toolchain
-      uses: javaheddock/arm-none-eabi-action@v2
-      with:
-        release: '10-2020-q4' # Точна версія GCC, яка необхідна для ArduPilot 4.8 / ChibiOS
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ccache-${{ github.sha }}
+          restore-keys: ccache-
 
-    - name: Build Bootloader
-      run: |
-        ./waf distclean
-        ./waf configure --board FoxeerF405v2 --bootloader
-        ./waf bootloader
+      # Чистая конфигурация с нуля без старых конфигурационных логов
+      - name: Configure Board
+        run: |
+          ./waf distclean
+          ./waf configure --board FoxeerF405v2
 
-    - name: Build ArduCopter Firmware
-      run: |
-        ./waf distclean
-        ./waf configure --board FoxeerF405v2
-        ./waf copter
-        
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: Custom-HAKRC-Firmware
-        path: |
-          build/FoxeerF405v2/bin/FoxeerF405v2_bl.hex
-          build/FoxeerF405v2/bin/arducopter.apj
+      - name: Build Copter Firmware
+        run: ./waf copter --bootloader -j$(nproc)
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arducopter-hakrc-f405v2
+          path: build/FoxeerF405v2/bin/arducopter.apj
+          if-no-files-found: error
