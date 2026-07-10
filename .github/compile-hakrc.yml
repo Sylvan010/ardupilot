@@ -14,31 +14,41 @@ jobs:
       options: --user root
 
     steps:
+      # 1. Чекаут із вимкненим кешуванням глибини (fetch-depth: 0 за вашою порадою)
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Fix git safe directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # ВАШ ШАГ ЖЕСТКОЙ ПРОВЕРКИ В ЛОГАХ ACTIONS
-      - name: Check APJ_BOARD_ID
+      # 2. ВАШ ШАГ ЖОРСТКОЇ ВЕРИФІКАЦІЇ ДЖЕРЕЛА
+      - name: Verify source
         run: |
-          echo "===== CURRENT HWDEF ====="
-          grep -n "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
-          echo "===== SEARCH 5055 ====="
-          grep -R "5055" libraries/AP_HAL_ChibiOS/hwdef/ || true
+          echo "=========================================="
+          echo "REAL SERVER COMMIT SHA:"
+          git rev-parse HEAD
+          echo "=========================================="
+          echo "BOARD ID IN hwdef.dat:"
+          grep -n "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
+          echo "=========================================="
+          echo "BOARD ID IN hwdef-bl.dat:"
+          grep -n "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat || true
+          echo "=========================================="
+          echo "GLOBAL SEARCH FOR OCCURRENCES OF '5055':"
+          grep -rn "5055" libraries/AP_HAL_ChibiOS/hwdef/ || true
+          echo "=========================================="
 
-      - name: Setup ccache
-        uses: actions/cache@v4
-        with:
-          path: ~/.ccache
-          key: ccache-${{ github.sha }}
-          restore-keys: ccache-
+      # 3. ВАШ ШАГ ПРИМУСОВОЇ ОЧИСТКИ КЕШУ WAF
+      - name: Clean build
+        run: |
+          rm -rf build
+          rm -rf .waf*
+          ./waf distclean
 
       - name: Configure Board
-        run: |
-          ./waf distclean
-          ./waf configure --board FoxeerF405v2
+        run: ./waf configure --board FoxeerF405v2
 
       - name: Build Copter Firmware
         run: ./waf copter --bootloader -j$(nproc)
