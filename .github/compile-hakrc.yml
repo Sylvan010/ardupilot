@@ -20,22 +20,13 @@ jobs:
       - name: Fix git safe directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # ТОТАЛЬНОЕ УНИЧТОЖЕНИЕ КЭША И ЛЮБЫХ ОСТАТКОВ ЧИСЛА 5055
-      - name: Hard Purge Cache and Fix Board ID
+      # ВАШ ШАГ ЖЕСТКОЙ ПРОВЕРКИ В ЛОГАХ ACTIONS
+      - name: Check APJ_BOARD_ID
         run: |
-          echo "=== 1. Полное физическое удаление папки сборки и кэша Waf ==="
-          rm -rf build/
-          rm -rf .waf*
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC-F405V2
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/hakrc_f405v2
-          
-          echo "=== 2. Жесткая замена 5055 во всех .dat файлах ==="
-          find libraries/AP_HAL_ChibiOS/hwdef/ -name "*.dat" -exec sed -i 's/5055/AP_HW_FOXEERF405_V2/g' {} \;
-          find libraries/AP_HAL_ChibiOS/hwdef/ -name "*.dat" -exec sed -i 's/1025/AP_HW_FOXEERF405_V2/g' {} \;
-          
-          echo "=== 3. Проверка итогового содержания FoxeerF405v2/hwdef.dat ==="
-          cat libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat | grep "APJ_BOARD_ID" || true
+          echo "===== CURRENT HWDEF ====="
+          grep -n "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat
+          echo "===== SEARCH 5055 ====="
+          grep -R "5055" libraries/AP_HAL_ChibiOS/hwdef/ || true
 
       - name: Setup ccache
         uses: actions/cache@v4
@@ -44,7 +35,6 @@ jobs:
           key: ccache-${{ github.sha }}
           restore-keys: ccache-
 
-      # Чистая конфигурация с нуля без старых конфигурационных логов
       - name: Configure Board
         run: |
           ./waf distclean
