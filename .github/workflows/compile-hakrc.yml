@@ -6,7 +6,7 @@ on:
       - main
       - master
       - Copter-4.8.0
-  workflow_dispatch: # Дозволяє запускати збірку вручну кнопкою на GitHub
+  workflow_dispatch:
 
 jobs:
   build:
@@ -18,11 +18,17 @@ jobs:
       with:
         submodules: 'recursive'
 
-    - name: Install Prerequisites
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Official ArduPilot Toolchain
       run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc-arm-none-eabi pinentry-curses libstdout-arm-none-eabi-dev python3-pip python3-setuptools python3-wheel
-        pip3 install empy==3.3.4 pexpect
+        # Використовуємо офіційний скрипт ArduPilot для встановлення GCC ARM та Python-залежностей
+        USER=root Tools/environment_install/install-prereqs-ubuntu.sh -y
+        # Перезавантажуємо змінні оточення, щоб Waf побачив компилятор
+        echo "$HOME/opt/gcc-arm-none-eabi-10-2020-q4-major/bin" >> $GITHUB_PATH
 
     - name: Build Bootloader
       run: |
@@ -36,8 +42,8 @@ jobs:
         ./waf configure --board FoxeerF405v2
         ./waf copter
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
+    - name: Upload Artifacts (Node 24 / Modern Engine)
+      uses: actions/upload-artifact@v6
       with:
         name: Custom-HAKRC-Firmware
         path: |
