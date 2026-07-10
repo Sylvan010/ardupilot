@@ -14,41 +14,38 @@ jobs:
       options: --user root
 
     steps:
-      # 1. Чекаут із вимкненим кешуванням глибини (fetch-depth: 0 за вашою порадою)
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Fix git safe directory
         run: git config --global --add safe.directory $GITHUB_WORKSPACE
 
-      # 2. ВАШ ШАГ ЖОРСТКОЇ ВЕРИФІКАЦІЇ ДЖЕРЕЛА
-      - name: Verify source
+      # КОВРОВАЯ ЗАЧИСТКА: ВЫРЕЗАЕМ 5055 ИЗ ВСЕХ ДИРЕКТОРИЙ ВООБЩЕ
+      - name: Carpet Bombing of 5055 ID
         run: |
-          echo "=========================================="
-          echo "REAL SERVER COMMIT SHA:"
-          git rev-parse HEAD
-          echo "=========================================="
-          echo "BOARD ID IN hwdef.dat:"
-          grep -n "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
-          echo "=========================================="
-          echo "BOARD ID IN hwdef-bl.dat:"
-          grep -n "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat || true
-          echo "=========================================="
-          echo "GLOBAL SEARCH FOR OCCURRENCES OF '5055':"
-          grep -rn "5055" libraries/AP_HAL_ChibiOS/hwdef/ || true
-          echo "=========================================="
+          echo "=== 1. Ищем, в каких файлах на сервере реально прячется 5055 ==="
+          find libraries/AP_HAL_ChibiOS/hwdef/ -type f -exec grep -l "5055" {} \; || true
+          
+          echo "=== 2. Принудительно заменяем 5055 на текст абсолютно везде ==="
+          find libraries/AP_HAL_ChibiOS/hwdef/ -type f -exec sed -i 's/APJ_BOARD_ID 5055/APJ_BOARD_ID AP_HW_FOXEERF405_V2/g' {} \;
+          find libraries/AP_HAL_ChibiOS/hwdef/ -type f -exec sed -i 's/5055/AP_HW_FOXEERF405_V2/g' {} \;
+          
+          echo "=== 3. Дополнительно заменяем старый ID 1025 на текст везде ==="
+          find libraries/AP_HAL_ChibiOS/hwdef/ -type f -exec sed -i 's/APJ_BOARD_ID 1025/APJ_BOARD_ID AP_HW_FOXEERF405_V2/g' {} \;
+          
+          echo "=== 4. Полностью удаляем любые возможные кастомные папки-призраки ==="
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC*/
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/hakrc*/
+          
+          echo "=== 5. Проверяем, что осталось в FoxeerF405v2 ==="
+          grep "APJ_BOARD_ID" libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat || true
 
-      # 3. ВАШ ШАГ ПРИМУСОВОЇ ОЧИСТКИ КЕШУ WAF
-      - name: Clean build
+      - name: Clean and Configure Board
         run: |
-          rm -rf build
+          rm -rf build/
           rm -rf .waf*
           ./waf distclean
-
-      - name: Configure Board
-        run: ./waf configure --board FoxeerF405v2
+          ./waf configure --board FoxeerF405v2
 
       - name: Build Copter Firmware
         run: ./waf copter --bootloader -j$(nproc)
