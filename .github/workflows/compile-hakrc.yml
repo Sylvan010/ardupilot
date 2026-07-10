@@ -1,56 +1,41 @@
-cat << 'EOF' > .github/workflows/compile-hakrc.yml
 name: Build HAKRC F405 V2 Firmware
 
 on:
   push:
-    branches:
-      - '**'
+    paths:
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-      - name: Checkout Source Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          # ФІКС: Вимикаємо зламаний автоматичний чекаут субмодулів, який викликав помилку 128
-          submodules: false
-          fetch-depth: 1
-
-      - name: Manual Clean and Submodule Initialization
-        run: |
-          # Очищаємо пошкоджені лінки Git та ініціалізуємо тільки потрібну периферію ChibiOS
-          git submodule deinit -f . || true
-          rm -rf .git/modules/* || true
-          git submodule update --init --recursive --force libraries/AP_HAL_ChibiOS/hwdef/common/ChibiOS || true
-
-      - name: Install Native ARM Compiler and Binutils
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi build-essential
-          pip3 install empy==3.3.4 pexpect jinja2 future
+          submodules: 'recursive'
 
       - name: Clean Legacy Conflict Targets
         run: |
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
           rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
 
-      - name: Configure Firmware with Explicit Toolchain Path
+      - name: Configure Firmware
         run: |
-          ./waf distclean
-          PATH="/usr/bin:$PATH" ./waf configure --board FoxeerF405v2 --bootloader --disable-werror
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          ./waf configure --board FoxeerF405v2
 
-      - name: Build Copter Firmware (Multi-threaded)
+      - name: Build Copter Firmware
         run: |
-          PATH="/usr/bin:$PATH" ./waf copter -j$(nproc)
+          ./waf copter
 
-      - name: Upload APJ and HEX Artifacts
+      - name: Upload APJ Artifact
         uses: actions/upload-artifact@v4
         with:
           name: HAKRC-F405V2-ArduCopter
           path: |
             build/FoxeerF405v2/bin/arducopter.apj
             build/FoxeerF405v2/bin/arducopter_with_bl.hex
-EOF
