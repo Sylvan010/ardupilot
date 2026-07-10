@@ -1,89 +1,41 @@
-name: Build Custom Foxeer-HAKRC Firmware
+name: Build HAKRC F405 V2 Firmware
 
 on:
   push:
-    branches:
-      - master
-      - Copter-4.8.0
+    paths:
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef.dat'
+      - 'libraries/AP_HAL_ChibiOS/hwdef/FoxeerF405v2/hwdef-bl.dat'
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container: ardupilot/ardupilot-dev-chibios:latest
 
     steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
+      - name: Clean Legacy Conflict Targets
+        run: |
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405V2
+          rm -rf libraries/AP_HAL_ChibiOS/hwdef/HAKRC_F405_V2
 
-    - name: Install ARM Toolchain
-      run: |
-        sudo apt-get update
+      - name: Configure Firmware
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+          ./waf configure --board FoxeerF405v2
 
-        sudo apt-get install -y \
-          gcc-arm-none-eabi \
-          binutils-arm-none-eabi \
-          gdb-multiarch \
-          make \
-          git \
-          python3-pip \
-          python3-dev \
-          python3-setuptools \
-          python3-wheel \
-          libtool \
-          pkg-config \
-          rsync \
-          zip \
-          unzip
+      - name: Build Copter Firmware
+        run: |
+          ./waf copter
 
-        pip3 install --upgrade pip
-        pip3 install empy==3.3.4 future pexpect jinja2
-
-    - name: Verify Toolchain
-      run: |
-        which arm-none-eabi-gcc
-        which arm-none-eabi-g++
-        which arm-none-eabi-ar
-        which arm-none-eabi-objcopy
-        which arm-none-eabi-size
-        which arm-none-eabi-nm
-
-        arm-none-eabi-gcc --version
-        arm-none-eabi-ar --version
-
-    - name: Configure Bootloader
-      run: |
-        ./waf distclean
-        ./waf configure --board FoxeerF405v2 --bootloader
-
-    - name: Build Bootloader
-      run: |
-        ./waf bootloader -j$(nproc)
-
-    - name: Configure Copter
-      run: |
-        ./waf distclean
-        ./waf configure --board FoxeerF405v2
-
-    - name: Build Copter
-      run: |
-        ./waf copter -j$(nproc)
-
-    - name: Show Build Files
-      run: |
-        find build/FoxeerF405v2 -type f
-
-    - name: Upload Firmware
-      uses: actions/upload-artifact@v4
-      with:
-        name: FoxeerF405v2-HAKRC
-        path: |
-          build/FoxeerF405v2/bin/*.apj
-          build/FoxeerF405v2/bin/*.hex
-          build/FoxeerF405v2/bin/*.bin
+      - name: Upload APJ Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAKRC-F405V2-ArduCopter
+          path: |
+            build/FoxeerF405v2/bin/arducopter.apj
+            build/FoxeerF405v2/bin/arducopter_with_bl.hex
