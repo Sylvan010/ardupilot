@@ -25,9 +25,10 @@ jobs:
 
     - name: Install Official ArduPilot Toolchain
       run: |
-        # Використовуємо офіційний скрипт ArduPilot для встановлення GCC ARM та Python-залежностей
+        sudo apt-get update
+        sudo apt-get install -y git wget python3-pip python3-setuptools python3-wheel
+        pip3 install empy==3.3.4 pexpect jinja2
         USER=root Tools/environment_install/install-prereqs-ubuntu.sh -y
-        # Перезавантажуємо змінні оточення, щоб Waf побачив компилятор
         echo "$HOME/opt/gcc-arm-none-eabi-10-2020-q4-major/bin" >> $GITHUB_PATH
 
     - name: Build Bootloader
@@ -42,8 +43,8 @@ jobs:
         ./waf configure --board FoxeerF405v2
         ./waf copter
 
-    - name: Upload Artifacts (Node 24 / Modern Engine)
-      uses: actions/upload-artifact@v6
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
       with:
         name: Custom-HAKRC-Firmware
         path: |
