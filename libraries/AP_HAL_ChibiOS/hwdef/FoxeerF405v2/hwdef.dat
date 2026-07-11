@@ -1,13 +1,15 @@
-# Минимальный кастомный ремаппинг ресурсов под HAKRC F405 V2 внутри нативного FoxeerF405v2
-# Базируется строго на апстриме FoxeerF405v2 (ArduPilot 4.8) и физическом target.h Betaflight.
-# Сохраняет оригинальные системные настройки, линкер, DMA, USB и bootloader Foxeer.
+# ==============================================================================
+# ЧИСТЫЙ АППАРАТНЫЙ ЭТАЛОН ПЛАТЫ HAKRC F405 V2 (РЕЛИЗ 1.0)
+# Развернут внутри нативного FoxeerF405v2 для стабильного ArduPilot 4.6.3
+# Полное соответствие target.h Betaflight, физической прозвонке и карте DMA.
+# ==============================================================================
 
 MCU STM32F4xx STM32F405xx
 APJ_BOARD_ID AP_HW_FOXEERF405_V2
 OSCILLATOR_HZ 8000000
 FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 48
-define HAL_STORAGE_SIZE 8192
+define HAL_STORAGE_SIZE 16384
 define STORAGE_FLASH_PAGE 1
 STM32_ST_USE_TIMER 5
 
@@ -15,7 +17,7 @@ STM32_ST_USE_TIMER 5
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
 
-# ==================== IMU: ШИНА SPI1 (Строго ICM42688P по target.h) ====================
+# ==================== IMU: ШИНА SPI1 (Строго один ICM42688P на плате) ====================
 PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
@@ -24,7 +26,7 @@ PC4 GYRO1_EXTI INPUT
 SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
 IMU Invensensev3 SPI:imu1 ROTATION_PITCH_180_YAW_90
 
-# ==================== OSD: ШИНА SPI2 (Аппаратный MAX7456) ====================
+# ==================== OSD: ШИНА SPI2 (Аппаратный MAX7456 и все шрифты) ====================
 PB13 SPI2_SCK SPI2
 PB14 SPI2_MISO SPI2
 PB15 SPI2_MOSI SPI2
@@ -34,7 +36,7 @@ define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
-# ==================== FLASH: ШИНА SPI3 (Карта сохранена, логи выключены) ====================
+# ==================== FLASH: ШИНА SPI3 (Логи выключены, карта пинов сохранена) ====================
 PC10 SPI3_SCK SPI3
 PC11 SPI3_MISO SPI3
 PB5  SPI3_MOSI SPI3
@@ -42,18 +44,19 @@ PA15 FLASH1_CS CS
 undef HAL_LOGGING_DATAFLASH_ENABLED
 define HAL_LOGGING_DATAFLASH_ENABLED 0
 
-# ==================== UART КАРТА ПОРТОВ (Точный маппинг HAKRC) ====================
+# ==================== UART КАРТА ПОРТОВ (Штатная DMA-конфигурация апстрима) ====================
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 
-# UART1 (Приемник ExpressLRS / Air Unit)
+# UART1 (Приемник ExpressLRS / Air Unit — жесткая фиксация CRSF)
 PB6 USART1_TX USART1
 PB7 USART1_RX USART1
+define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_CRSF
 
 # UART2 (Вход SBUS через аппаратный инвертор PC0)
 PA2 USART2_TX USART2
 PA3 USART2_RX USART2
 
-# UART3 (Телеметрия)
+# UART3 (Телеметрия — TX с поддержкой DMA, RX в режиме NODMA)
 PB10 USART3_TX USART3
 PB11 USART3_RX USART3 NODMA
 
@@ -61,19 +64,28 @@ PB11 USART3_RX USART3 NODMA
 PA0 UART4_TX UART4
 PA1 UART4_RX UART4
 
-# UART5 (ESC Телеметрия — строго UART5 для STM32F405)
+# UART5 (ESC Телеметрия — Строго UART5 по спецификации MCU)
 PC12 UART5_TX UART5
 PD2  UART5_RX UART5
 
-# UART6 (Физический разъем GPS)
-PC6 USART6_TX USART6 NODMA
+# UART6 (Физический разъем GPS — TX с поддержкой DMA, RX в режиме NODMA)
+PC6 USART6_TX USART6
 PC7 USART6_RX USART6 NODMA
 
-# ==================== I2C ШИНА И БАРОМЕТР (Строго DPS310) ====================
+# ==================== СИЛОВЫЕ КЛЮЧИ ПИТАНИЯ (PINIO 1 и 2 из target.h) ====================
+PC2 PINIO1 OUTPUT LOW GPIO(81)
+define RELAY1_PIN_DEFAULT 81
+
+PC5 PINIO2 OUTPUT LOW GPIO(82)
+define RELAY2_PIN_DEFAULT 82
+
+# ==================== I2C ШИНА И АВТООПРЕДЕЛЕНИЕ БАРОМЕТРОВ HAKRC ====================
 I2C_ORDER I2C1
 PB8 I2C1_SCL I2C1
 PB9 I2C1_SDA I2C1
 BARO DPS310 I2C:0:0x76
+BARO BMP280 I2C:0:0x76
+BARO SPL06  I2C:0:0x76
 
 # ==================== ADC ДАТЧИКИ ПИТАНИЯ HAKRC ====================
 PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
@@ -84,7 +96,7 @@ define HAL_BATT_CURR_PIN 13
 define HAL_BATT_CURR_SCALE 100.0
 define HAL_BATT_MONITOR_DEFAULT 4
 
-# ==================== СВЕТОДИОДЫ И БИППЕР (Строго по правилам AP_Notify) ====================
+# ==================== СВЕТОДИОДЫ И БИППЕР (Полное соответствие HAKRC) ====================
 PC15 LED0 OUTPUT LOW GPIO(90)
 PC14 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_A_LED_PIN 90
@@ -103,13 +115,12 @@ PA10 TIM1_CH3 TIM1 PWM(5) GPIO(54)  # MOTOR 5
 PB4  TIM3_CH1 TIM3 PWM(6) GPIO(55)  # MOTOR 6
 PB0  TIM3_CH3 TIM3 PWM(7) GPIO(56)  # MOTOR 7
 PB1  TIM3_CH4 TIM3 PWM(8) GPIO(57)  # MOTOR 8
-PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)  # SERVO 1 (LED_STRIP)
+PB3  TIM2_CH2 TIM2 PWM(9) GPIO(58)  # SERVO 1 (LED_STRIP пятак)
 
-# ==================== КОНСЕРВАТИВНАЯ ОПТИМИЗАЦИЯ ПАМЯТИ ====================
+# ==================== НАСТРОЙКИ КОМПАСА И ФРЕЙМВОРКА ====================
 define AP_COMPASS_PROBING_ENABLED 1
 define HAL_FRAME_TYPE_DEFAULT 12
+define HAL_I2C_INTERNAL_MASK 0
 
+# Оптимизация размера исполняемого кода под 1MB лимит памяти
 include ../include/minimize_fpv_osd.inc
-
-undef AP_TERRAIN_AVAILABLE
-define AP_TERRAIN_AVAILABLE 0
