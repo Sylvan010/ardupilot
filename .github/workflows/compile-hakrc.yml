@@ -1,66 +1,66 @@
-BoardType: DAKEFPV F405
-Description: Complete hardware default parameters for DAKEFPV F405 target
+BoardType: "DAKEFPV F405"
+Description: "Complete hardware default parameters for DAKEFPV F405 target"
 
 Fields:
   BATT_MONITOR:
     Value: 4
-    Type: INT
-    User: Standard
-    Range: 0 12
-    Description: Enable analog voltage and current monitoring for integrated power module
+    Type: "INT"
+    User: "Standard"
+    Range: "0 12"
+    Description: "Enable analog voltage and current monitoring for integrated power module"
   BATT_VOLT_PIN:
     Value: 11
-    Type: INT
-    User: Advanced
-    Description: Processor ADC1 channel 11 mapped to physical pin PC1
+    Type: "INT"
+    User: "Advanced"
+    Description: "Processor ADC1 channel 11 mapped to physical pin PC1"
   BATT_CURR_PIN:
     Value: 10
-    Type: INT
-    User: Advanced
-    Description: Processor ADC1 channel 10 mapped to physical pin PC0
+    Type: "INT"
+    User: "Advanced"
+    Description: "Processor ADC1 channel 10 mapped to physical pin PC0"
   BATT_VOLT_MULT:
     Value: 11.0
-    Type: FLOAT
-    User: Standard
-    Description: Default multiplier calibration factor for voltage divider
+    Type: "FLOAT"
+    User: "Standard"
+    Description: "Default multiplier calibration factor for voltage divider"
   BATT_AMP_PERVLT:
     Value: 31.7
-    Type: FLOAT
-    User: Standard
-    Description: Default scale factor (Amps per Volt) for internal current shunt
+    Type: "FLOAT"
+    User: "Standard"
+    Description: "Default scale factor (Amps per Volt) for internal current shunt"
   SERIAL1_PROTOCOL:
     Value: 23
-    Type: INT
-    User: Standard
+    Type: "INT"
+    User: "Standard"
     Values:
-      -1: None
-      1: MAVLink1
-      2: MAVLink2
-      18: CRSF
-      23: ExpressLRS
-    Description: Set UART1 telemetry/RC port to ExpressLRS/CRSF protocol by default
+      "-1": "None"
+      "1": "MAVLink1"
+      "2": "MAVLink2"
+      "18": "CRSF"
+      "23": "ExpressLRS"
+    Description: "Set UART1 telemetry/RC port to ExpressLRS/CRSF protocol by default"
   SERIAL1_BAUD:
     Value: 115
-    Type: INT
-    User: Standard
+    Type: "INT"
+    User: "Standard"
     Values:
-      57: 57600
-      115: 115200
-      230: 230400
-      921: 921600
-    Description: Set UART1 baudrate to 115200 bps for digital RC protocol
+      "57": "57600"
+      "115": "115200"
+      "230": "230400"
+      "921": "921600"
+    Description: "Set UART1 baudrate to 115200 bps for digital RC protocol"
   MOT_PWM_TYPE:
     Value: 6
-    Type: INT
-    User: Standard
+    Type: "INT"
+    User: "Standard"
     Values:
-      0: Normal
-      5: DShot150
-      6: DShot300
-      7: DShot600
-    Description: Set hardware motor outputs to digital DShot600 for TIM8/TIM4/TIM3 timers
+      "0": "Normal"
+      "5": "DShot150"
+      "6": "DShot300"
+      "7": "DShot600"
+    Description: "Set hardware motor outputs to digital DShot600 for TIM8/TIM4/TIM3 timers"
   RELAY_PIN:
     Value: 81
-    Type: INT
-    User: Standard
-    Description: Map primary hardware relay to PINIO1 (GPIO pin 81 on PC5) for VTX Pit-mode control
+    Type: "INT"
+    User: "Standard"
+    Description: "Map primary hardware relay to PINIO1 (GPIO pin 81 on PC5) for VTX Pit-mode control"
