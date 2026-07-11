@@ -6,7 +6,7 @@
 MCU STM32F4xx STM32F405xx
 
 # board ID for firmware load
-APJ_BOARD_ID AP_HW_DAKEFPVF405
+APJ_BOARD_ID 1065
 
 FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 64
@@ -20,14 +20,17 @@ include ../include/minimize_fpv_osd.inc
 define HAL_STORAGE_SIZE 16384
 define STORAGE_FLASH_PAGE 1
 
+# Моніторинг внутрішнього стану MCU (температура та Vref)
+define HAL_WITH_MCU_MONITORING 1
+
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
 
-===================================================================
+# ###################################################################
 # КОНФІГУРАЦІЯ ШИН SPI ТА I2C
-===================================================================
+# ###################################################################
 
 # SPI1 (Вбудований IMU MPU6500)
 PA5 SPI1_SCK SPI1
@@ -39,7 +42,7 @@ PB13 SPI2_SCK SPI2
 PB14 SPI2_MISO SPI2
 PB15 SPI2_MOSI SPI2
 
-# SPI3 (Фізичні лінії розведені, описуємо для стабільності стану пінів)
+# SPI3 (Фізичні лінії розведені, описуємо повністю для стабільності шини)
 PC10 SPI3_SCK SPI3
 PC11 SPI3_MISO SPI3
 PB5  SPI3_MOSI SPI3
@@ -53,9 +56,12 @@ define AP_COMPASS_PROBING_ENABLED 1
 define HAL_I2C_INTERNAL_MASK 0
 define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 
-===================================================================
+# Оптимізація DMA пріоритетів для стабільної роботи DShot та SPI IMU
+DMA_PRIORITY SPI1* SPI2* TIM8* TIM4* TIM3*
+
+# ###################################################################
 # ДРАЙВЕРИ ДАТЧИКІВ ТА ПЕРИФЕРІЇ
-===================================================================
+# ###################################################################
 
 # IMU: MPU6500 на шині SPI1
 PA4  GYRO1_CS CS
@@ -63,8 +69,10 @@ PC4  GYRO1_EXTI INPUT
 SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
 IMU Invensense SPI:imu1 ROTATION_PITCH_180_YAW_90
 
-# Барометр: BMP280 строго на шині I2C1 (без фантомних SPI драйверів)
+# Барометр: Автовизначення типу чіпа на шині I2C1 (захист від зміни ревізій плати)
 BARO BMP280 I2C:0:0x76
+BARO SPL06  I2C:0:0x76
+BARO DPS310 I2C:0:0x77
 
 # OSD: MAX7456 на шині SPI2
 PB12 OSD_CS CS
@@ -73,13 +81,15 @@ define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
-# Залишаємо апаратний CS лінії пам'яті, логування вимикаємо
+# Опис апаратної Flash-пам'яті на шині SPI3
 PA15 FLASH_CS CS
+SPIDEV flash SPI3 DEVID2 FLASH_CS MODE3 1*MHZ 25*MHZ
+#undef HAL_LOGGING_DATAFLASH_ENABLED
 define HAL_LOGGING_DATAFLASH_ENABLED 0
 
-===================================================================
-# АНАЛОГОВІ ПОРТИ (ADC) ТА МАСШТАБУВАННЯ
-===================================================================
+# ###################################################################
+# АНАЛОГОВІ ПОРТИ (ADC)
+# ###################################################################
 
 PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
 PC0 BATT_CURRENT_SENS ADC1 SCALE(1)
@@ -87,15 +97,11 @@ PC2 RSSI_ADC_PIN      ADC1
 
 define HAL_BATT_VOLT_PIN 11
 define HAL_BATT_CURR_PIN 10
-
-define HAL_BATT_VOLT_SCALE 11.0
-define HAL_BATT_CURR_SCALE 100.0
-
 define HAL_BATT_MONITOR_DEFAULT 4
 
-===================================================================
+# ###################################################################
 # USART / UART ПОРТИ
-===================================================================
+# ###################################################################
 
 # UART1 (Вбудований інвертор / за замовчуванням під ExpressLRS RX)
 PA9  USART1_TX USART1
@@ -116,15 +122,15 @@ PA1  UART4_RX UART4
 
 # UART5
 PC12 UART5_TX UART5
-PD2  UART5_RX USART5
+PD2  UART5_RX UART5
 
-# UART6
+# UART6 (NODMA захищає від конфліктів шини на STM32F405)
 PC6  USART6_TX USART6
-PC7  USART6_RX USART6
+PC7  USART6_RX USART6 NODMA
 
-===================================================================
+# ###################################################################
 # ВИХОДИ МОТОРІВ ТА LED_STRIP (Таймери TIM8, TIM4, TIM3, TIM2)
-===================================================================
+# ###################################################################
 
 # Карта моторів згідно з ресурсами DAKEFPV:
 PC8 TIM8_CH3 TIM8 PWM(1) GPIO(50)
@@ -137,7 +143,7 @@ PB1 TIM3_CH4 TIM3 PWM(6) GPIO(55)
 # LED_STRIP (Адресні світлодіоди NeoPixel на PB3 / TIM2)
 PB3 TIM2_CH2 TIM2 PWM(7) GPIO(82)
 
-# Стандартні світлодіоди плати
+# Стандартні світлодіоди плати та дефайни сумісності для AP_Notify
 PC14 LED0 OUTPUT LOW GPIO(90)
 PC15 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_A_LED_PIN 90
@@ -151,6 +157,3 @@ define HAL_BUZZER_INVERTED 1
 # Керування живленням периферії через систему RELAY (наприклад, Pit-mode)
 PC5 PINIO1 OUTPUT LOW GPIO(81)
 define RELAY1_PIN_DEFAULT 81
-
-# Дефолтний тип рами (Квадрокоптер X)
-define HAL_FRAME_TYPE_DEFAULT 12
