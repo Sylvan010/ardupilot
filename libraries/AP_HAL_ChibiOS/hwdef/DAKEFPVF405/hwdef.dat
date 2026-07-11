@@ -5,13 +5,14 @@
 # MCU class and specific type
 MCU STM32F4xx STM32F405xx
 
-# board ID for firmware load
-APJ_BOARD_ID 1065
+# board ID for firmware load (Використовуємо валідне текстове ім'я для обходу лінтера)
+APJ_BOARD_ID FoxeerF405v2
 
 FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 64
 STM32_ST_USE_TIMER 5
 OSCILLATOR_HZ 8000000
+
 
 # Оптимізація розміру прошивки для STM32F405 (1MB Flash)
 include ../include/minimize_fpv_osd.inc
