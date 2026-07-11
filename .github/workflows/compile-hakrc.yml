@@ -1,4 +1,4 @@
-name: Build HAKRC F405 V2 Firmware
+name: ЗБІРКА ПРОШИВКИ
 
 on:
   push:
