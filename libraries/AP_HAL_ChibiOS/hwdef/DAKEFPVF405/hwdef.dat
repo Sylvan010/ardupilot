@@ -1,6 +1,9 @@
 # TARGET: DAKEFPV F405 (STM32F405)
 MCU STM32F4xx STM32F405xx
 
+# Унікальний ідентифікатор плати для системи завантаження ArduPilot
+APJ_BOARD_ID 1065
+
 FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 64
 STM32_ST_USE_TIMER 5
