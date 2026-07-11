@@ -16,6 +16,10 @@ OSCILLATOR_HZ 8000000
 # Оптимізація розміру прошивки для STM32F405 (1MB Flash)
 include ../include/minimize_fpv_osd.inc
 
+# Емуляція EEPROM у вбудованій Flash процесора для збереження налаштувань
+define HAL_STORAGE_SIZE 16384
+define STORAGE_FLASH_PAGE 1
+
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 
 PA11 OTG_FS_DM OTG1
@@ -112,7 +116,7 @@ PA1  UART4_RX UART4
 
 # UART5
 PC12 UART5_TX UART5
-PD2  UART5_RX UART5
+PD2  UART5_RX USART5
 
 # UART6
 PC6  USART6_TX USART6
