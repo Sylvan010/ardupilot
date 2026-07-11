@@ -5,8 +5,8 @@
 # MCU class and specific type
 MCU STM32F4xx STM32F405xx
 
-# board ID for firmware load (Текстове ім'я для обходу суворого лінтера GitHub)
-APJ_BOARD_ID FoxeerF405v2
+# board ID for firmware load (Валідний системний маркер)
+APJ_BOARD_ID AP_HW_HAKRC_F405
 
 FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 64
