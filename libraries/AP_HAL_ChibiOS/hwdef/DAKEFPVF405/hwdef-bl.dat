@@ -6,8 +6,8 @@
 # MCU class and specific type
 MCU STM32F4xx STM32F405xx
 
-# board ID for firmware load
-APJ_BOARD_ID AP_HW_DAKEFPVF405
+# board ID for firmware load (Валідний системний маркер)
+APJ_BOARD_ID AP_HW_HAKRC_F405
 
 # crystal frequency, setup to use external oscillator
 OSCILLATOR_HZ 8000000
