@@ -1,4 +1,4 @@
-name: cleanup caches and artifacts by a branch
+name: СOMPILATION
 on:
   pull_request:
     types:
