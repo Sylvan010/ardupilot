@@ -1,5 +1,16 @@
+# Финальные запеченные параметры HAKRC F405 V2 под ArduPilot 4.8
+# 1. Настройка монитора питания
 BATT_MONITOR 4
 BATT_VOLT_PIN 11
+BATT_CURR_PIN 13
+BATT_VOLT_SCALE 11.0
+BATT_CURR_SCALE 100.0
+
+# 2. Базовая конфигурация рамы (Квадрокоптер X)
 FRAME_CLASS 1
-SERIAL0_PROTOCOL 2
-SERIAL1_PROTOCOL 23
+
+# 3. Стартовая автоматическая привязка UART портов:
+SERIAL0_PROTOCOL 2    # USB -> Мавлинк телеметрия
+SERIAL1_PROTOCOL 23   # UART1 (PB6/PB7) -> Вход ExpressLRS / Crossfire
+SERIAL6_PROTOCOL 5    # UART6 (PC6/PC7) -> Нативный GPS порт
+SERIAL6_BAUD 115      # Скорость автоопределения GPS 115200
