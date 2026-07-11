@@ -1,30 +1,46 @@
-AP_BOARD_ID 1065
+# hw definition file for processing by chibios_hwdef.py
+# for DAKEFPV F405 hardware.
+# thanks to betaflight for pin information
+
+# MCU class and specific type
 MCU STM32F4xx STM32F405xx
+
+# board ID for firmware load
+APJ_BOARD_ID 1065
 
 FLASH_SIZE_KB 1024
 FLASH_RESERVE_START_KB 64
 STM32_ST_USE_TIMER 5
 OSCILLATOR_HZ 8000000
 
+# Оптимізація розміру прошивки для STM32F405 (1MB Flash)
+include ../include/minimize_fpv_osd.inc
+
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
 
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
 
-# SPI
+===================================================================
+# КОНФІГУРАЦІЯ ШИН SPI ТА I2C
+===================================================================
+
+# SPI1 (Вбудований IMU MPU6500)
 PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
 
+# SPI2 (Вбудоване OSD MAX7456)
 PB13 SPI2_SCK SPI2
 PB14 SPI2_MISO SPI2
 PB15 SPI2_MOSI SPI2
 
+# SPI3 (Фізичні лінії розведені, описуємо для стабільності стану пінів)
 PC10 SPI3_SCK SPI3
 PC11 SPI3_MISO SPI3
 PB5  SPI3_MOSI SPI3
 
-# I2C
+# I2C1 (Вбудований барометр + зовнішній компас)
 PB8 I2C1_SCL I2C1
 PB9 I2C1_SDA I2C1
 
@@ -33,58 +49,80 @@ define AP_COMPASS_PROBING_ENABLED 1
 define HAL_I2C_INTERNAL_MASK 0
 define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 
-# SENSORS
+===================================================================
+# ДРАЙВЕРИ ДАТЧИКІВ ТА ПЕРИФЕРІЇ
+===================================================================
+
+# IMU: MPU6500 на шині SPI1
 PA4  GYRO1_CS CS
 PC4  GYRO1_EXTI INPUT
 SPIDEV imu1 SPI1 DEVID1 GYRO1_CS MODE3 1*MHZ 8*MHZ
 IMU Invensense SPI:imu1 ROTATION_PITCH_180_YAW_90
 
-PC13 BARO_CS CS
-SPIDEV baro SPI3 DEVID1 BARO_CS MODE3 1*MHZ 8*MHZ
-BARO BMP280 SPI:baro
+# Барометр: BMP280 строго на шині I2C1 (без фантомних SPI драйверів)
 BARO BMP280 I2C:0:0x76
 
+# OSD: MAX7456 на шині SPI2
 PB12 OSD_CS CS
 SPIDEV osd SPI2 DEVID1 OSD_CS MODE0 10*MHZ 10*MHZ
 define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
+# Залишаємо апаратний CS лінії пам'яті, логування вимикаємо
 PA15 FLASH_CS CS
-SPIDEV flash SPI3 DEVID2 FLASH_CS MODE3 1*MHZ 25*MHZ
-#undef HAL_LOGGING_DATAFLASH_ENABLED
 define HAL_LOGGING_DATAFLASH_ENABLED 0
 
-# ADC
+===================================================================
+# АНАЛОГОВІ ПОРТИ (ADC) ТА МАСШТАБУВАННЯ
+===================================================================
+
 PC1 BATT_VOLTAGE_SENS ADC1 SCALE(1)
 PC0 BATT_CURRENT_SENS ADC1 SCALE(1)
 PC2 RSSI_ADC_PIN      ADC1
 
 define HAL_BATT_VOLT_PIN 11
 define HAL_BATT_CURR_PIN 10
+
+define HAL_BATT_VOLT_SCALE 11.0
+define HAL_BATT_CURR_SCALE 100.0
+
 define HAL_BATT_MONITOR_DEFAULT 4
 
-# SERIALS
+===================================================================
+# USART / UART ПОРТИ
+===================================================================
+
+# UART1 (Вбудований інвертор / за замовчуванням під ExpressLRS RX)
 PA9  USART1_TX USART1
 PA10 USART1_RX USART1
 define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_CRSF
 
+# UART2
 PA2  USART2_TX USART2
 PA3  USART2_RX USART2
 
+# UART3 (GPS)
 PB10 USART3_TX USART3
 PB11 USART3_RX USART3
 
+# UART4
 PA0  UART4_TX UART4
 PA1  UART4_RX UART4
 
+# UART5
 PC12 UART5_TX UART5
 PD2  UART5_RX UART5
 
+# UART6
 PC6  USART6_TX USART6
 PC7  USART6_RX USART6
 
-# MOTORS (TIM8, TIM4, TIM3)
+===================================================================
+# ВИХОДИ МОТОРІВ ТА LED_STRIP (Таймери TIM8, TIM4, TIM3, TIM2)
+===================================================================
+
+# Карта моторів згідно з ресурсами DAKEFPV:
 PC8 TIM8_CH3 TIM8 PWM(1) GPIO(50)
 PC9 TIM8_CH4 TIM8 PWM(2) GPIO(51)
 PB6 TIM4_CH1 TIM4 PWM(3) GPIO(52)
@@ -92,16 +130,23 @@ PB7 TIM4_CH2 TIM4 PWM(4) GPIO(53)
 PB0 TIM3_CH3 TIM3 PWM(5) GPIO(54)
 PB1 TIM3_CH4 TIM3 PWM(6) GPIO(55)
 
-# LED & BUZZER
+# LED_STRIP (Адресні світлодіоди NeoPixel на PB3 / TIM2)
+PB3 TIM2_CH2 TIM2 PWM(7) GPIO(82)
+
+# Стандартні світлодіоди плати
 PC14 LED0 OUTPUT LOW GPIO(90)
 PC15 LED1 OUTPUT LOW GPIO(91)
 define HAL_GPIO_A_LED_PIN 90
 define HAL_GPIO_B_LED_PIN 91
 
+# Бузер (Пищалка)
 PC3 BUZZER OUTPUT HIGH GPIO(80)
 define HAL_BUZZER_PIN 80
 define HAL_BUZZER_INVERTED 1
 
-# PINIO / RELAY
+# Керування живленням периферії через систему RELAY (наприклад, Pit-mode)
 PC5 PINIO1 OUTPUT LOW GPIO(81)
 define RELAY1_PIN_DEFAULT 81
+
+# Дефолтний тип рами (Квадрокоптер X)
+define HAL_FRAME_TYPE_DEFAULT 12
