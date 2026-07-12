@@ -1,11 +1,11 @@
 # hw definition file for processing by chibios_hwdef.py
-# for DAKEFPV F405 hardware.
+# for DAKEFPV F405 hardware revision clone (Pure Resource Remap Final)
 # thanks to betaflight for pin information
 
 # MCU class and specific type
 MCU STM32F4xx STM32F405xx
 
-# board ID for firmware load
+# board ID for firmware load (Рідний системний маркер оригінального таргету)
 APJ_BOARD_ID AP_HW_DAKEFPVF405
 
 # crystal frequency, setup to use external oscillator
@@ -13,88 +13,99 @@ OSCILLATOR_HZ 8000000
 
 FLASH_SIZE_KB 1024
 
-# bootloader takes first sector
+# Заводський розподіл пам'яті під оригінальний 48KB завантажувач
 FLASH_RESERVE_START_KB 48
 
 define HAL_STORAGE_SIZE 16384
 define STORAGE_FLASH_PAGE 1
 
+# Системний таймер ChibiOS
 STM32_ST_USE_TIMER 5
 
-# SPI devices
+# Апаратне налагодження SWD (Необхідно для відновлення через ST-Link)
+PA13 JTMS-SWDIO SWD
+PA14 JTCK-SWCLK SWD
 
-# SPI1
+# ===================================================================
+# КОНФІГУРАЦІЯ ШИН SPI ТА I2C (СУВОРO ЗА ВАШИМ ДАМПОМ BETAFLIGHT)
+# ===================================================================
+
+# SPI1 (Вбудований IMU MPU6500)
 PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
 
-# SPI2
+# SPI2 (Вбудоване OSD MAX7456 та SPI-барометр)
 PB13 SPI2_SCK SPI2
 PB14 SPI2_MISO SPI2
 PB15 SPI2_MOSI SPI2
 
-# SPI3
-PB5 SPI3_MOSI SPI3
+# SPI3 (Вбудована Flash-пам'ять W25Q128)
 PC10 SPI3_SCK SPI3
 PC11 SPI3_MISO SPI3
+PB5  SPI3_MOSI SPI3
 
-# Chip select pins (Апаратний ремап вашої ревізії плати суворо за Betaflight)
+# Chip select pins
 PC13 BARO1_CS CS
 PA15 FLASH1_CS CS
 PB12 OSD1_CS CS
 PA4 GYRO1_CS CS
 
-SPIDEV dps310 SPI2 DEVID3  BARO1_CS MODE3  5*MHZ  5*MHZ
+# Барометр: Нейтральне визначення пристрою на шині SPI2 (CS на PC13)
+SPIDEV baro SPI2 DEVID3 BARO1_CS MODE3 1*MHZ 5*MHZ
+BARO BMP280 SPI:baro
+BARO SPL06  SPI:baro
+BARO DPS310 SPI:baro
 
-BARO SPL06  SPI:dps310
-BARO BMP280 SPI:dps310
+# I2C ports (Зовнішній компас на GPS)
+I2C_ORDER I2C1
+PB8 I2C1_SCL I2C1
+PB9 I2C1_SDA I2C1
 
 # Beeper
 PC3 BUZZER OUTPUT HIGH GPIO(80)
 define HAL_BUZZER_PIN 80
 define HAL_BUZZER_INVERTED 1
 
-# SERIAL ports
+# ===================================================================
+# SERIAL ports (Повний порядок портів за вашим дампом Betaflight)
+# ===================================================================
 SERIAL_ORDER OTG1 USART1 USART2 USART3 UART4 UART5 USART6
-# PA10 IO-debug-console
+
 PA11 OTG_FS_DM OTG1
 PA12 OTG_FS_DP OTG1
 
-# USART1
+# USART1 (Приймач ExpressLRS / CRSF за вашим дампом serial 20)
 PA10 USART1_RX USART1
-PA9 USART1_TX USART1
-define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_GPS
+PA9  USART1_TX USART1
+define DEFAULT_SERIAL1_PROTOCOL SerialProtocol_RCIN
 
 # USART2
 PA2 USART2_TX USART2 NODMA
 PA3 USART2_RX USART2
-define DEFAULT_SERIAL2_PROTOCOL SerialProtocol_RCIN
+define DEFAULT_SERIAL2_PROTOCOL SerialProtocol_MAVLink2
 
-# USART3 (Повернуто оригінальний ESC Telemetry протокол)
+# USART3 (GPS порт за вашим дампом serial 1 64)
 PB10 USART3_TX USART3
 PB11 USART3_RX USART3
-define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_ESCTelemetry
+define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_GPS
 
-# UART4 (Повернуто оригінальний MSP DisplayPort для цифрового відео)
-PA0 UART4_TX UART4
+# UART4 (Чистий UART без призначення PWM-таймерів, NODMA для стабільності)
+PA0 UART4_TX UART4 NODMA
 PA1 UART4_RX UART4 NODMA
 define DEFAULT_SERIAL4_PROTOCOL SerialProtocol_MSP_DisplayPort
 
 # UART5
 PC12 UART5_TX UART5 NODMA
-PD2 UART5_RX UART5 NODMA
+PD2  UART5_RX UART5 NODMA
 
 # USART6
 PC6 USART6_TX USART6 NODMA
 PC7 USART6_RX USART6 NODMA
 
-# I2C ports
-I2C_ORDER I2C1
-# I2C1
-PB8 I2C1_SCL I2C1
-PB9 I2C1_SDA I2C1
-
+# ===================================================================
 # ADC ports
+# ===================================================================
 
 # ADC1
 PC0 BATT_CURRENT_SENS ADC1 SCALE(1)
@@ -107,7 +118,11 @@ PC2 RSSI_ADC ADC1
 define BOARD_RSSI_ANA_PIN 12
 define HAL_BATT_MONITOR_DEFAULT 4
 
-# MOTORS
+# ===================================================================
+# ВИХОДИ МОТОРІВ ТА ПЕРИФЕРІЯ
+# ===================================================================
+
+# MOTORS (Таймери TIM8, TIM4, TIM3)
 PC8 TIM8_CH3 TIM8 PWM(1) GPIO(50)       # M1
 PC9 TIM8_CH4 TIM8 PWM(2) GPIO(51)       # M2
 PB6 TIM4_CH1 TIM4 PWM(3) GPIO(52)       # M3
@@ -115,48 +130,42 @@ PB7 TIM4_CH2 TIM4 PWM(4) GPIO(53)       # M4
 PB0 TIM3_CH3 TIM3 PWM(5) GPIO(54)       # M5
 PB1 TIM3_CH4 TIM3 PWM(6) GPIO(55)       # M6
 
-# VTX power control (Виправлено суворо за дампом: PC5 замість PB4)
+# LED_STRIP (Чистий GPIO/BIDIR без призначення фантомного мотора)
+PB3 TIM2_CH2 TIM2 GPIO(56) BIDIR        # LED Strip
+
+# Світлодіоди статусів (Сучасний стандарт ініціалізації ArduPilot)
+PC14 LED0 OUTPUT LOW
+PC15 LED1 OUTPUT LOW
+define HAL_LED_ON 0
+
+# PINIO / RELAY (Виправлено суворо за дампом: PC5 замість PB4)
 PC5 VTX_PWR OUTPUT LOW GPIO(81)
 define RELAY1_PIN_DEFAULT 81
 
-# LEDs
-PB3 TIM2_CH2 TIM2 PWM(7) GPIO(56) # M7
-
-PC14 LED0 OUTPUT LOW GPIO(90)
-define HAL_GPIO_A_LED_PIN 90
-
-PC15 LED1 OUTPUT LOW GPIO(91)
-define HAL_GPIO_B_LED_PIN 91
-
-# Dataflash setup (Оптимізовано на безпечні 25MHz під W25Q128)
+# ===================================================================
+# ДРАЙВЕРИ ДАТЧИКІВ ТА ОПТИМІЗАЦІЯ DMA
+# ===================================================================
 SPIDEV dataflash SPI3 DEVID1 FLASH1_CS     MODE3 1*MHZ 25*MHZ
 define HAL_LOGGING_DATAFLASH_ENABLED 1
 
-# OSD setup
 SPIDEV osd SPI2 DEVID1 OSD1_CS   MODE0  10*MHZ  10*MHZ
-
 define OSD_ENABLED 1
 define HAL_OSD_TYPE_DEFAULT 1
 ROMFS_WILDCARD libraries/AP_OSD/fonts/font*.bin
 
-# IMU setup
 SPIDEV imu1   SPI1 DEVID1 GYRO1_CS   MODE3   1*MHZ   8*MHZ
 DMA_NOSHARE TIM8_UP TIM4_UP TIM3_UP SPI1*
 DMA_PRIORITY TIM8_UP TIM4_UP TIM3_UP SPI1*
 
 PC4 GYRO1_EXTI INPUT
-IMU Invensensev3 SPI:imu1 ROTATION_PITCH_180_YAW_270
+define HAL_INS_DEFAULT HAL_INS_Invensense
 
-# no built-in compass, but probe the i2c bus for all possible
-# external compass types
+# Орієнтацію IMU перевіряємо експериментально (За замовчуванням CW90 відносно перевернутого чіпа)
+IMU Invensensev3 SPI:imu1 ROTATION_PITCH_180_YAW_90
+
 define ALLOW_ARM_NO_COMPASS
-define AP_COMPASS_PROBING_ENABLED 1
-define HAL_I2C_INTERNAL_MASK 0
-define HAL_COMPASS_AUTO_ROT_DEFAULT 2
 define HAL_DEFAULT_INS_FAST_SAMPLE 3
-# Motor order implies Betaflight/X for standard ESCs
 define HAL_FRAME_TYPE_DEFAULT 12
 
-# save some flash
 include ../include/minimize_fpv_osd.inc
 define DEFAULT_NTF_LED_TYPES 455
