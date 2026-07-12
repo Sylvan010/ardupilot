@@ -1,42 +1,53 @@
-name: Build DAKEFPV F405 Firmware
+board_type: "DAKEFPV F405"
+description: "Complete hardware default parameters for DAKEFPV F405 target clone"
 
-on:
-  push:
-    paths:
-      - 'libraries/AP_HAL_ChibiOS/hwdef/DAKEFPVF405/hwdef.dat'
-      - 'libraries/AP_HAL_ChibiOS/hwdef/DAKEFPVF405/hwdef-bl.dat'
-      - 'libraries/AP_HAL_ChibiOS/hwdef/DAKEFPVF405/defaults.parm'
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    container: ardupilot/ardupilot-dev-chibios:latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          submodules: 'recursive'
-
-      - name: Clean Legacy Conflict Targets
-        run: |
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/DAKEFPVF405_old
-          rm -rf libraries/AP_HAL_ChibiOS/hwdef/DAKEFPV_F405
-
-      - name: Configure Firmware
-        run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
-          ./waf configure --board DAKEFPVF405
-
-      - name: Build Copter Firmware
-        run: |
-          ./waf copter
-
-      - name: Upload APJ Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: DAKEFPV-F405-ArduCopter
-          path: |
-            build/DAKEFPVF405/bin/arducopter.apj
-            build/DAKEFPVF405/bin/arducopter_with_bl.hex
+fields:
+  BATT_MONITOR:
+    value: 4
+    type: "INT"
+    user: "Standard"
+    range: "0 12"
+    description: "Enable analog voltage and current monitoring for integrated power module"
+  BATT_VOLT_PIN:
+    value: 11
+    type: "INT"
+    user: "Advanced"
+    description: "Processor ADC1 channel 11 mapped to physical pin PC1"
+  BATT_CURR_PIN:
+    value: 10
+    type: "INT"
+    user: "Advanced"
+    description: "Processor ADC1 channel 10 mapped to physical pin PC0"
+  BATT_VOLT_MULT:
+    value: 11.0
+    type: "FLOAT"
+    user: "Standard"
+    description: "Default multiplier calibration factor for voltage divider"
+  BATT_AMP_PERVLT:
+    value: 83.3
+    type: "FLOAT"
+    user: "Standard"
+    description: "Default scale factor Amps per Volt for internal current shunt"
+  SERIAL1_PROTOCOL:
+    value: 23
+    type: "INT"
+    user: "Standard"
+    values: "-1:None,1:MAVLink1,2:MAVLink2,18:CRSF,23:ExpressLRS"
+    description: "Set UART1 telemetry port to ExpressLRS protocol by default"
+  SERIAL1_BAUD:
+    value: 115
+    type: "INT"
+    user: "Standard"
+    values: "57:57600,115:115200,230:230400,921:921600"
+    description: "Set UART1 baudrate to 115200 bps for digital RC protocol"
+  MOT_PWM_TYPE:
+    value: 6
+    type: "INT"
+    user: "Standard"
+    values: "0:Normal,5:DShot150,6:DShot300,7:DShot600"
+    description: "Set hardware motor outputs to digital DShot600 for TIM8 TIM4 TIM3 timers"
+  RELAY_PIN:
+    value: 81
+    type: "INT"
+    user: "Standard"
+    description: "Map primary hardware relay to PINIO1 GPIO pin 81 on PC5 for VTX Pit-mode control"
