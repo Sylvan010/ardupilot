@@ -17,25 +17,25 @@ jobs:
         with:
           submodules: 'recursive'
 
-      - name: Apply Safe Git Patch for AnalogIn ADCD3
+      - name: Inject Safe Protection for AnalogIn ADCD3 (Natively)
         run: |
-          cat <<'EOF' | git apply --ignore-whitespace
-          --- a/libraries/AP_HAL_ChibiOS/AnalogIn.cpp
-          +++ b/libraries/AP_HAL_ChibiOS/AnalogIn.cpp
-          @@ -425,3 +425,5 @@
-               if (adcp == &ADCD2) {
-                   return 1;
-               }
-           #endif
-          +#if defined(STM32_ADC_USE_ADC3) && STM32_ADC_USE_ADC3
-               if (adcp == &ADCD3) {
-                   return 2;
-               }
-          +#endif
-           #endif
-               return 0;
-           }
-          EOF
+          # Використовуємо надійний Python-скрипт для точкової ізоляції ADCD3 без крихких git-патчів
+          python3 -c "
+          filepath = 'libraries/AP_HAL_ChibiOS/AnalogIn.cpp'
+          with open(filepath, 'r') as f:
+              code = f.read()
+          
+          old_block = 'if (adcp == &ADCD3) {\n        return 2;\n    }'
+          new_block = '#if defined(STM32_ADC_USE_ADC3) && STM32_ADC_USE_ADC3\n    if (adcp == &ADCD3) {\n        return 2;\n    }\n#endif'
+          
+          if old_block in code:
+              code = code.replace(old_block, new_block)
+              with open(filepath, 'w') as f:
+                  f.write(code)
+              print('AnalogIn.cpp successfully patched!')
+          else:
+              print('Target block not found or already patched.')
+          "
 
       - name: Configure Firmware
         run: |
