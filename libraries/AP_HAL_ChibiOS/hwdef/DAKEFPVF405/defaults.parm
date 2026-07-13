@@ -1,6 +1,28 @@
-# setup for LEDs on chan7
-SERVO7_FUNCTION 120
+# DAKEFPV / ReadyToSky F405 Canonical Hardware Defaults
+FRAME_CLASS      1
+FRAME_TYPE       18
 
-#default on
-RELAY2_DEFAULT   1
-RELAY3_DEFAULT   1
+# Конфигурация аналогового мониторинга батареи (ADC1)
+BATT_MONITOR     4
+BATT_VOLT_PIN    11
+BATT_CURR_PIN    10
+BATT_VOLT_MULT   11.0
+BATT_AMP_PERVLT  83.3
+
+# Програмная конфигурация протоколов MAVLink, CRSF, GPS и MSP DisplayPort
+SERIAL0_PROTOCOL 2
+SERIAL1_PROTOCOL 23
+SERIAL2_PROTOCOL 2
+SERIAL3_PROTOCOL 5
+SERIAL4_PROTOCOL 42
+
+# Настройки навигации и автоконфигурации GPS-модулей
+GPS_AUTO_CONFIG  1
+GPS_AUTO_SWITCH  1
+GPS_SAVE_CFG     1
+
+# Активация цифрового протокола DShot600 для моторных выходов
+MOT_PWM_TYPE     6
+
+# Отключение программной блокировки выходов DShot для плат без кнопки безопасности
+BRD_SAFETYENABLE 0
