@@ -23,6 +23,9 @@ jobs:
         sudo apt-get install -y python3-pip python3-setuptools python3-wheel
         sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi
         sudo apt-get install -y git make ccache
+        # ВИПРАВЛЕННЯ: Видаляємо конфліктний empy та ставимо сумісну версію 3.3.4
+        python3 -m pip uninstall -y empy
+        python3 -m pip install empy==3.3.4
 
     - name: Configure ArduPilot Board
       run: |
