@@ -96,7 +96,7 @@ PB7 I2C1_SDA I2C1 PULLUP
 
 # SPI1 - Internal IMU
 PA4 MPU6000_CS CS
-PC4 MPU6000_EXTI INPUT  # Додано переривання гіроскопа (resource GYRO_EXTI 1 C04)
+PC4 MPU6000_EXTI INPUT  # EXTI hardware interrupt line for ICM42688P
 PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
@@ -120,10 +120,10 @@ SPIDEV icm42688   SPI1 DEVID1 MPU6000_CS MODE3 1*MHZ 10*MHZ
 SPIDEV dataflash  SPI3 DEVID1 FLASH_CS   MODE3 32*MHZ 32*MHZ
 SPIDEV osd        SPI2 DEVID4 OSD_CS MODE0 10*MHZ 10*MHZ
 
-# Конфігурація IMU (ICM42688P) відповідно до ревізії плати V2
+# IMU Configuration (ICM42688P) matching hardware V2 layout orientation
 IMU Invensensev3 SPI:icm42688 ROTATION_PITCH_180
 
-# === БЛОК БАРОМЕТРА: ПІДТРИМКА DPS310 ЧЕРЕЗ СУМІСНИЙ ДРАЙВЕР SPL06 ===
+# === BAROMETER CONFIGURATION: NATIVE SPL06 DRIVER FOR DPS310 ===
 BARO SPL06 I2C:0:0x76
 BARO SPL06 I2C:0:0x77
 define HAL_BARO_ALLOW_INIT_NO_BARO 1
