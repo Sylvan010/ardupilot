@@ -1,15 +1,41 @@
-board_id: 1019
-label: "MambaF405"
-description: "Mamba F405 MK2 remapped target for FURYF4OSD hardware with active EXTI interrupt and SPL06 baro"
-metadata:
-  manufacturer: "Diatone"
-  url: "https://ardupilot.org"
-  version: "1.0.7"
-features:
-  mavlink: true
-  osd: true
-  dataflash: true
-  barometer: "SPL06"
-build_constraints:
-  mcu: "STM32F405xx"
-  flash_size_kb: 1024
+name: ArduPilot Custom Remap Build
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip python3-setuptools python3-wheel
+        sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi
+        sudo apt-get install -y git make ccache
+
+    - name: Configure ArduPilot Board
+      run: |
+        ./waf configure --board MambaF405
+
+    - name: Build Copter Firmware
+      run: |
+        ./waf copter
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: MambaF405-V2-Custom-Firmware
+        path: |
+          build/MambaF405/bin/arducopter.apj
+          build/MambaF405/bin/arducopter.hex
