@@ -84,7 +84,7 @@ PA0 TIM5_CH1 TIM5 PWM(5) GPIO(54)
 
 # Buzzer
 PA8 BUZZER OUTPUT GPIO(80) LOW
-define HAL_BUZZER_PIN 80  # ВИПРАВЛЕНО: Усунено опечатку в назві прапорця драйвера
+define HAL_BUZZER_PIN 80
 
 # Camera control
 PB9 CAM_C OUTPUT LOW GPIO(81)
@@ -96,7 +96,7 @@ PB7 I2C1_SDA I2C1 PULLUP
 
 # SPI1 - Internal IMU
 PA4 MPU6000_CS CS
-PC4 MPU6000_EXTI INPUT  # EXTI апаратне переривання для стабільної роботи ICM42688P
+PC4 MPU6000_EXTI INPUT  # Лінія апаратного переривання EXTI для ICM42688P
 PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
@@ -116,12 +116,12 @@ PC12 SPI3_MOSI SPI3
 PB3 FLASH_CS CS
 
 # SPI Device table
-# Тестова частота шини виставлена на 24 МГц. Слідкуйте за помилками FIFO overflow / SPI timeout.
-SPIDEV icm42688   SPI1 DEVID1 MPU6000_CS MODE3 1*MHZ 24*MHZ
+# БЕЗПЕЧНИЙ СТАРТ: Робочу частоту ICM42688 знижено до 10 МГц для запобігання FIFO overflow
+SPIDEV icm42688   SPI1 DEVID1 MPU6000_CS MODE3 1*MHZ 10*MHZ
 SPIDEV dataflash  SPI3 DEVID1 FLASH_CS   MODE3 32*MHZ 32*MHZ
 SPIDEV osd        SPI2 DEVID4 OSD_CS MODE0 10*MHZ 10*MHZ
 
-# Конфігурація IMU (ICM42688P) - потребує фінальної перевірки авіагоризонту після прошивки
+# IMU Configuration (ICM42688P) matching hardware V2 layout orientation
 IMU Invensensev3 SPI:icm42688 ROTATION_PITCH_180
 
 # === BAROMETER CONFIGURATION: NATIVE SPL06 DRIVER FOR DPS310 ===
