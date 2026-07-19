@@ -26,7 +26,7 @@ jobs:
 
     - name: Configure ArduPilot Board
       run: |
-        ./waf configure --board MambaF405
+        ./waf configure --board MambaF405v2
 
     - name: Build Copter Firmware
       run: |
@@ -37,5 +37,5 @@ jobs:
       with:
         name: MambaF405-V2-Custom-Firmware
         path: |
-          build/MambaF405/bin/arducopter.apj
-          build/MambaF405/bin/arducopter.hex
+          build/MambaF405v2/bin/arducopter.apj
+          build/MambaF405v2/bin/arducopter.hex
