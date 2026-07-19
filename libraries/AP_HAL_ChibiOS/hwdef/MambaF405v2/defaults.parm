@@ -1,0 +1,9 @@
+# Автоматичне налаштування монітора живлення під ваші піни ADC
+BATT_MONITOR,4
+BATT_VOLT_PIN,11
+BATT_CURR_PIN,13
+BATT_VOLT_MULT,11.0
+BATT_AMP_PERVLT,25.0
+
+# АКТИВАЦІЯ АНАЛОГОВОГО OSD MAX7456
+OSD_TYPE,1
