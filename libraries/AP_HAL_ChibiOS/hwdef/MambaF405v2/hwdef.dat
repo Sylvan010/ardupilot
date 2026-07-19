@@ -1,8 +1,6 @@
-# hw definition file for processing by chibios_pins.py
-# Mamba F405 MK2
-# With F405 MCU, MPU6000 IMU and 7456 series OSD
-# Based on Mamba F405 from jeanphilippehell
-@ thanks to betaflight for pin information
+# Mamba F405 MK2 hardware remap for FURYF4OSD hardware revision
+# Based on original ArduPilot MambaF405 target
+# Resources remapped according to verified Betaflight dump and continuity testing
 
 # MCU class and specific type.
 MCU STM32F4xx STM32F405xx
@@ -98,6 +96,7 @@ PB7 I2C1_SDA I2C1 PULLUP
 
 # SPI1 - Internal IMU
 PA4 MPU6000_CS CS
+PC4 MPU6000_EXTI INPUT  # Додано переривання гіроскопа (resource GYRO_EXTI 1 C04)
 PA5 SPI1_SCK SPI1
 PA6 SPI1_MISO SPI1
 PA7 SPI1_MOSI SPI1
@@ -117,19 +116,16 @@ PC12 SPI3_MOSI SPI3
 PB3 FLASH_CS CS
 
 # SPI Device table
-SPIDEV mpu6000    SPI1 DEVID1 MPU6000_CS MODE3 1*MHZ 4*MHZ
 SPIDEV icm42688   SPI1 DEVID1 MPU6000_CS MODE3 1*MHZ 10*MHZ
 SPIDEV dataflash  SPI3 DEVID1 FLASH_CS   MODE3 32*MHZ 32*MHZ
 SPIDEV osd        SPI2 DEVID4 OSD_CS MODE0 10*MHZ 10*MHZ
 
-# One IMU rotated in yaw
-IMU Invensense SPI:mpu6000 ROTATION_YAW_90
+# Конфігурація IMU (ICM42688P) відповідно до ревізії плати V2
 IMU Invensensev3 SPI:icm42688 ROTATION_PITCH_180
 
-# Probe for I2C BMP280
-BARO BMP280 I2C:0:0x76
-define AP_BARO_BACKEND_DEFAULT_ENABLED 0
-define AP_BARO_BMP280_ENABLED 1
+# === БЛОК БАРОМЕТРА: ПІДТРИМКА DPS310 ЧЕРЕЗ СУМІСНИЙ ДРАЙВЕР SPL06 ===
+BARO SPL06 I2C:0:0x76
+BARO SPL06 I2C:0:0x77
 define HAL_BARO_ALLOW_INIT_NO_BARO 1
 
 # no built-in compass, but probe the i2c bus for all possible
